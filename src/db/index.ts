@@ -1,16 +1,9 @@
 import Dexie, { type Table } from 'dexie';
 import type {
   Task, Evaluation, Schedule, PointsEntry, StreakState, Pet,
-  Badge, ShopItem, Redemption, BarkRecipient, Settings,
+  Badge, ShopItem, Redemption, BarkRecipient, Settings, TemplateHidden,
 } from '../types';
 import { SCHEMA_VERSION } from '../types';
-
-// ============================================================
-// IndexedDB schema (Dexie)
-// 升级规则：
-//   - 字段新增（非索引）：可以直接改 types，老数据 undefined 字段会被代码默认值处理
-//   - 索引变化或表结构变化：bump 版本号，在 version(n).upgrade() 里写迁移
-// ============================================================
 
 export class FatboyDB extends Dexie {
   tasks!: Table<Task, string>;
@@ -24,11 +17,12 @@ export class FatboyDB extends Dexie {
   redemptions!: Table<Redemption, string>;
   recipients!: Table<BarkRecipient, string>;
   settings!: Table<Settings, 'singleton'>;
+  templateHidden!: Table<TemplateHidden, string>;  // v3
 
   constructor() {
     super('FatboyQuestDB');
 
-    // Version 1: initial schema
+    // v1: initial
     this.version(1).stores({
       tasks: 'id, date, status, [date+status]',
       evaluations: 'id, taskId, evaluatedAt',
@@ -43,22 +37,41 @@ export class FatboyDB extends Dexie {
       settings: 'id',
     });
 
-    // 未来版本在这里追加：
-    // this.version(2).stores({...}).upgrade(async tx => { ... })
+    // v2: no schema change, only new optional fields
+    // (Dexie 不需要单独升级 statement，老数据兼容)
+
+    // v3: 新增 templateHidden 表
+    this.version(3).stores({
+      tasks: 'id, date, status, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled',
+      redemptions: 'id, redeemedAt, shopItemId',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+    });
   }
 }
 
 export const db = new FatboyDB();
 
-// ============================================================
-// 初始化：第一次打开时填入默认值
-// ============================================================
 export async function initializeDB() {
   const existing = await db.settings.get('singleton');
   if (existing) {
-    // 已初始化，仅做兼容性补丁
     if (existing.schemaVersion < SCHEMA_VERSION) {
-      await db.settings.update('singleton', { schemaVersion: SCHEMA_VERSION });
+      const patch: Partial<typeof existing> = { schemaVersion: SCHEMA_VERSION };
+      if (existing.soundEnabled === undefined) patch.soundEnabled = true;
+      if (existing.childCanAddTasks === undefined) patch.childCanAddTasks = true;
+      if (existing.childMaxPointsPerTask === undefined) patch.childMaxPointsPerTask = 20;
+      if (existing.warnMinutesBeforeEnd === undefined) patch.warnMinutesBeforeEnd = 3;
+      if (existing.restEndSoundLeadSec === undefined) patch.restEndSoundLeadSec = 60;
+      if (existing.helpButtonEnabled === undefined) patch.helpButtonEnabled = true;
+      await db.settings.update('singleton', patch);
     }
     return;
   }
@@ -73,6 +86,12 @@ export async function initializeDB() {
     notificationsEnabled: false,
     childName: '肥仔',
     setupComplete: false,
+    soundEnabled: true,
+    childCanAddTasks: true,
+    childMaxPointsPerTask: 20,
+    warnMinutesBeforeEnd: 3,
+    restEndSoundLeadSec: 60,
+    helpButtonEnabled: true,
   });
 
   await db.streak.put({
@@ -84,42 +103,13 @@ export async function initializeDB() {
     lastWeeklyGiftWeek: null,
   });
 
-  // 预置奖励商店
   await db.shop.bulkPut([
-    {
-      id: 'preset-dq',
-      name: 'DQ 雪糕券',
-      emoji: '🍦',
-      costPoints: 300,
-      stockPerWeek: 1,
-      redeemedThisWeek: 0,
-      weekKey: null,
-      enabled: true,
-    },
-    {
-      id: 'preset-mixue',
-      name: '蜜雪冰城券',
-      emoji: '🥤',
-      costPoints: 150,
-      stockPerWeek: 2,
-      redeemedThisWeek: 0,
-      weekKey: null,
-      enabled: true,
-    },
-    {
-      id: 'preset-guard',
-      name: '守护卡（保护连击）',
-      emoji: '🛡️',
-      costPoints: 0, // 由代码动态算
-      stockPerWeek: 99,
-      redeemedThisWeek: 0,
-      weekKey: null,
-      enabled: true,
-    },
+    { id: 'preset-dq', name: 'DQ 雪糕券', emoji: '🍦', costPoints: 300, stockPerWeek: 1, redeemedThisWeek: 0, weekKey: null, enabled: true },
+    { id: 'preset-mixue', name: '蜜雪冰城券', emoji: '🥤', costPoints: 150, stockPerWeek: 2, redeemedThisWeek: 0, weekKey: null, enabled: true },
+    { id: 'preset-guard', name: '守护卡（保护连击）', emoji: '🛡️', costPoints: 0, stockPerWeek: 99, redeemedThisWeek: 0, weekKey: null, enabled: true },
   ]);
 }
 
-// 简单密保答案哈希（不是为了对抗专业攻击，仅防止小孩偷看）
 export function hashAnswer(answer: string): string {
   let h = 0;
   const s = answer.trim().toLowerCase();

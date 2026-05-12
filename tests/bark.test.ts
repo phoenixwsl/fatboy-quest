@@ -13,6 +13,7 @@ const makeRecipient = (overrides: Partial<BarkRecipient> = {}): BarkRecipient =>
   subMilestone: true,
   subPendingReview: true,
   subWeeklyReport: true,
+  subHelp: true,
   enabled: true,
   ...overrides,
 });
@@ -29,11 +30,7 @@ describe('buildBarkUrl', () => {
   it('adds query params for group/sound/url', () => {
     const r = makeRecipient();
     const url = buildBarkUrl(r, {
-      title: 'a',
-      body: 'b',
-      group: 'fatboy',
-      sound: 'bell',
-      url: 'https://example.com',
+      title: 'a', body: 'b', group: 'fatboy', sound: 'bell', url: 'https://example.com',
     });
     expect(url).toContain('group=fatboy');
     expect(url).toContain('sound=bell');
@@ -59,11 +56,14 @@ describe('shouldNotify', () => {
     const r = makeRecipient({ enabled: false });
     expect(shouldNotify(r, 'taskDone')).toBe(false);
   });
-
   it('respects per-kind subscriptions', () => {
     const r = makeRecipient({ subTaskDone: false, subRoundDone: true });
     expect(shouldNotify(r, 'taskDone')).toBe(false);
     expect(shouldNotify(r, 'roundDone')).toBe(true);
+  });
+  it('treats undefined subHelp as enabled (backwards compat for v2 data)', () => {
+    const r = makeRecipient({ subHelp: undefined as any });
+    expect(shouldNotify(r, 'help')).toBe(true);
   });
 });
 
@@ -128,22 +128,62 @@ describe('pushToRecipients', () => {
   });
 });
 
-describe('messages', () => {
-  it('generates well-formed taskDone payload', () => {
-    const m = messages.taskDone('肥仔', '数学作业', 25);
+describe('messages (detailed)', () => {
+  it('taskDone includes time range and speed mark', () => {
+    const start = new Date(2026, 4, 12, 19, 15);
+    const end = new Date(2026, 4, 12, 19, 38);
+    const m = messages.taskDone({
+      childName: '肥仔', taskTitle: '数学作业',
+      startedAt: start, completedAt: end,
+      estimatedMin: 25, effectiveMin: 23,
+    });
     expect(m.title).toContain('肥仔');
     expect(m.title).toContain('数学作业');
-    expect(m.body).toContain('25');
+    expect(m.body).toContain('19:15');
+    expect(m.body).toContain('19:38');
+    expect(m.body).toContain('23');           // effective minutes
+    expect(m.body).toContain('快');            // speed mark
   });
 
-  it('generates roundDone payload', () => {
-    const m = messages.roundDone('肥仔', 5);
-    expect(m.title).toContain('5');
+  it('taskDone marks overtime', () => {
+    const m = messages.taskDone({
+      childName: 'X', taskTitle: 'Y',
+      startedAt: new Date(2026, 0, 1, 10, 0),
+      completedAt: new Date(2026, 0, 1, 10, 40),
+      estimatedMin: 30, effectiveMin: 40,
+    });
+    expect(m.body).toContain('慢');
+  });
+
+  it('taskDone includes pause/extend extras if any', () => {
+    const m = messages.taskDone({
+      childName: 'X', taskTitle: 'Y',
+      startedAt: new Date(0), completedAt: new Date(60_000),
+      estimatedMin: 5, effectiveMin: 1,
+      pauseCount: 1, extendCount: 2,
+    });
+    expect(m.body).toContain('暂停');
+    expect(m.body).toContain('延时');
+  });
+
+  it('roundDone includes combo tag when 3+', () => {
+    const m1 = messages.roundDone('肥仔', 5, 100, 5);
+    expect(m1.title).toContain('完美');
+    const m2 = messages.roundDone('肥仔', 4, 80, 3);
+    expect(m2.title).toContain('3 连击');
+    const m3 = messages.roundDone('肥仔', 2, 30, 1);
+    expect(m3.title).not.toContain('连击');
   });
 
   it('milestone includes streak count', () => {
     const m = messages.milestone('肥仔', '蛋仔进化', 30);
     expect(m.title).toContain('30');
     expect(m.body).toContain('进化');
+  });
+
+  it('help message contains task title', () => {
+    const m = messages.help('肥仔', '难数学');
+    expect(m.title).toContain('需要帮助');
+    expect(m.body).toContain('难数学');
   });
 });

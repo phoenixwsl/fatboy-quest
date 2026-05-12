@@ -5,6 +5,7 @@ import { totalPoints, calcGuardCardPrice } from '../lib/points';
 import { useAppStore } from '../store/useAppStore';
 import { newId } from '../lib/ids';
 import { isoWeekString, addDays, todayString } from '../lib/time';
+import { sounds } from '../lib/sounds';
 
 export function ShopPage() {
   const nav = useNavigate();

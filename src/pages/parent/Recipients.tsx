@@ -31,6 +31,7 @@ export function Recipients() {
       subMilestone: true,
       subPendingReview: true,
       subWeeklyReport: true,
+      subHelp: true,
       enabled: true,
     };
     await db.recipients.add(r);
@@ -106,6 +107,7 @@ export function Recipients() {
               <SubToggle label="连击里程碑" v={r.subMilestone} on={(v) => update(r.id, { subMilestone: v })} />
               <SubToggle label="待评分提醒" v={r.subPendingReview} on={(v) => update(r.id, { subPendingReview: v })} />
               <SubToggle label="周日周报" v={r.subWeeklyReport} on={(v) => update(r.id, { subWeeklyReport: v })} />
+              <SubToggle label="🙋 求助" v={r.subHelp !== false} on={(v) => update(r.id, { subHelp: v })} />
             </div>
             <button onClick={() => del(r.id)} className="text-rose-400 text-xs mt-3">删除</button>
           </div>

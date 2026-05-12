@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { newId } from '../../lib/ids';
 import { todayString, addDays, formatChineseDate } from '../../lib/time';
+import { extractTemplates, type TaskTemplate } from '../../lib/templates';
 import { useAppStore } from '../../store/useAppStore';
 import { SubjectIcon } from '../HomePage';
 import type { SubjectType, Task } from '../../types';
@@ -28,11 +29,28 @@ export function TaskManager() {
   const [minutes, setMinutes] = useState(25);
 
   const tasksForDate = useLiveQuery(() => db.tasks.where({ date }).toArray(), [date]);
-  const allDates = useLiveQuery(async () => {
-    const all = await db.tasks.toArray();
-    const set = new Set(all.map(t => t.date));
-    return Array.from(set).sort();
-  });
+  const allTasks = useLiveQuery(() => db.tasks.toArray());
+  const hiddenRows = useLiveQuery(() => db.templateHidden.toArray());
+
+  const templates = (() => {
+    if (!allTasks) return [];
+    const hidden = new Set((hiddenRows ?? []).map(h => h.title));
+    return extractTemplates(allTasks, hidden, 15);
+  })();
+
+  function applyTemplate(tpl: TaskTemplate) {
+    setTitle(tpl.title);
+    setDescription(tpl.description ?? '');
+    setSubject(tpl.subject);
+    setPoints(tpl.basePoints || 20);
+    setMinutes(tpl.estimatedMinutes);
+  }
+
+  async function hideTemplate(t: TaskTemplate) {
+    if (!confirm(`从模板列表里移除「${t.title}」？（不会删除历史任务）`)) return;
+    await db.templateHidden.put({ title: t.title, hiddenAt: Date.now() });
+    toast('模板已隐藏', 'info');
+  }
 
   async function addTask() {
     if (!title.trim()) { toast('标题不能为空', 'warn'); return; }
@@ -46,6 +64,7 @@ export function TaskManager() {
       subject,
       status: 'pending',
       createdAt: Date.now(),
+      createdBy: 'parent',
     };
     await db.tasks.add(t);
     setTitle(''); setDescription('');
@@ -69,10 +88,24 @@ export function TaskManager() {
         createdAt: Date.now(),
         completedAt: undefined,
         evaluationId: undefined,
+        actualStartedAt: undefined,
+        pausedAt: undefined,
+        pauseSecondsUsed: undefined,
+        pauseCount: undefined,
+        extendCount: undefined,
+        extendMinutesTotal: undefined,
+        extendPointsSpent: undefined,
+        undoCount: undefined,
+        earlyBonusPoints: undefined,
       });
     }
     toast(`已复制 ${tasks.length} 项到 ${date}`, 'success');
   }
+
+  const allDates = (() => {
+    if (!allTasks) return [];
+    return Array.from(new Set(allTasks.map(t => t.date))).sort();
+  })();
 
   return (
     <div className="min-h-full p-4 pb-24 text-white">
@@ -91,6 +124,30 @@ export function TaskManager() {
         </div>
         <div className="text-sm text-white/50">{formatChineseDate(date)}</div>
       </div>
+
+      {/* 模板 */}
+      {templates.length > 0 && (
+        <div className="space-card p-3 mb-3">
+          <div className="text-sm text-white/70 mb-2">📋 任务模板（点一下填入表单，长按移除）</div>
+          <div className="flex flex-wrap gap-1.5">
+            {templates.map(tpl => (
+              <div key={tpl.title} className="relative group">
+                <button onClick={() => applyTemplate(tpl)}
+                  onContextMenu={(e) => { e.preventDefault(); hideTemplate(tpl); }}
+                  className="bg-white/10 hover:bg-white/20 active:scale-95 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+                  <SubjectIcon subject={tpl.subject} />
+                  <span>{tpl.title}</span>
+                  <span className="text-white/40">×{tpl.useCount}</span>
+                </button>
+                <button onClick={() => hideTemplate(tpl)}
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500/80 text-white text-xs opacity-0 group-hover:opacity-100">
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-card p-4 mb-3">
         <div className="text-sm text-white/70 mb-2">新增作业</div>
@@ -124,7 +181,7 @@ export function TaskManager() {
       </div>
 
       {/* 复制现有日期 */}
-      {allDates && allDates.length > 0 && (
+      {allDates.length > 0 && (
         <div className="space-card p-3 mb-3">
           <div className="text-sm text-white/70 mb-2">📋 一键复制其他日期</div>
           <div className="flex flex-wrap gap-2">
@@ -144,8 +201,13 @@ export function TaskManager() {
           <div key={t.id} className="space-card p-3 flex items-center gap-3">
             <SubjectIcon subject={t.subject} />
             <div className="flex-1">
-              <div className="font-medium">{t.title}</div>
-              <div className="text-xs text-white/50">{t.estimatedMinutes}分 · {t.basePoints}积分 · {t.status}</div>
+              <div className="font-medium flex items-center gap-2">
+                {t.title}
+                {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">孩子加的</span>}
+              </div>
+              <div className="text-xs text-white/50">
+                {t.estimatedMinutes}分 · {t.basePoints || '积分待评分'} · {t.status}
+              </div>
             </div>
             <button onClick={() => delTask(t.id)} className="text-rose-400 active:scale-90 px-2">🗑</button>
           </div>

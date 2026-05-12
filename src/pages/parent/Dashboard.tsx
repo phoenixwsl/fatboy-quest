@@ -1,21 +1,28 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { todayString } from '../../lib/time';
 import { totalPoints } from '../../lib/points';
+import {
+  PointsTrendCard, SubjectPieCard, TimeAccuracyCard, RatingRadarCard,
+} from '../../components/charts/ChartCards';
 
 export function ParentDashboard() {
   const nav = useNavigate();
   const today = todayString();
   const todayTasks = useLiveQuery(() => db.tasks.where({ date: today }).toArray(), [today]);
   const pendingReview = useLiveQuery(() => db.tasks.where({ status: 'done' }).toArray());
+  const allTasks = useLiveQuery(() => db.tasks.toArray());
   const points = useLiveQuery(() => db.points.toArray());
+  const evaluations = useLiveQuery(() => db.evaluations.toArray());
   const streak = useLiveQuery(() => db.streak.get('singleton'));
 
   const total = points ? totalPoints(points) : 0;
+  const [showCharts, setShowCharts] = useState(true);
 
   const tiles = [
-    { label: '📝 任务管理', desc: '添加 / 编辑作业', to: '/parent/tasks' },
+    { label: '📝 任务管理', desc: '添加 / 编辑作业 / 模板', to: '/parent/tasks' },
     { label: '⭐ 待评分', desc: `${pendingReview?.length ?? 0} 项等你评分`, to: '/parent/evaluations', urgent: (pendingReview?.length ?? 0) > 0 },
     { label: '🎁 奖励商店', desc: '管理可兑换奖励', to: '/parent/shop' },
     { label: '📱 通知接收人', desc: '配置 Bark 推送', to: '/parent/recipients' },
@@ -47,6 +54,21 @@ export function ParentDashboard() {
         </div>
       </div>
 
+      <button onClick={() => setShowCharts(!showCharts)}
+        className="text-sm text-white/60 mb-2 active:scale-95">
+        {showCharts ? '▼' : '▶'} 数据图表
+      </button>
+
+      {showCharts && (
+        <div className="space-y-3 mb-4">
+          <PointsTrendCard entries={points ?? []} />
+          <RatingRadarCard evaluations={evaluations ?? []} />
+          <SubjectPieCard tasks={allTasks ?? []} />
+          <TimeAccuracyCard tasks={allTasks ?? []} />
+        </div>
+      )}
+
+      <div className="text-sm text-white/60 mb-2">功能入口</div>
       <div className="grid grid-cols-2 gap-3">
         {tiles.map(t => (
           <button key={t.to} onClick={() => nav(t.to)} className={`space-card p-4 text-left active:scale-95 transition-transform ${t.urgent ? 'ring-2 ring-amber-400 animate-pulse-glow' : ''}`}>

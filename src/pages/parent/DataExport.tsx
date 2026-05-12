@@ -25,6 +25,7 @@ export function DataExport() {
       redemptions: await db.redemptions.toArray(),
       recipients: await db.recipients.toArray(),
       settings: await db.settings.toArray(),
+      templateHidden: await db.templateHidden.toArray(),
     };
     const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -49,14 +50,14 @@ export function DataExport() {
 
     await db.transaction('rw',
       [db.tasks, db.evaluations, db.schedules, db.points, db.streak, db.pet,
-       db.badges, db.shop, db.redemptions, db.recipients, db.settings] as any,
+       db.badges, db.shop, db.redemptions, db.recipients, db.settings, db.templateHidden] as any,
       async () => {
         // 清空所有表
         await Promise.all([
           db.tasks.clear(), db.evaluations.clear(), db.schedules.clear(),
           db.points.clear(), db.streak.clear(), db.pet.clear(),
           db.badges.clear(), db.shop.clear(), db.redemptions.clear(),
-          db.recipients.clear(), db.settings.clear(),
+          db.recipients.clear(), db.settings.clear(), db.templateHidden.clear(),
         ]);
         // 写入
         if (data.tasks?.length) await db.tasks.bulkAdd(data.tasks);
@@ -70,6 +71,7 @@ export function DataExport() {
         if (data.redemptions?.length) await db.redemptions.bulkAdd(data.redemptions);
         if (data.recipients?.length) await db.recipients.bulkAdd(data.recipients);
         if (data.settings?.length) await db.settings.bulkAdd(data.settings);
+        if (data.templateHidden?.length) await db.templateHidden.bulkAdd(data.templateHidden);
       });
     toast('✓ 已恢复', 'success');
     setTimeout(() => nav('/'), 500);

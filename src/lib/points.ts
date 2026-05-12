@@ -103,16 +103,18 @@ export function makePointsEntry(
 
 /**
  * 给任务生成评分对象
+ * @param basePointsAtEval 家长在评分时确认或修改的基础积分（v3）
  */
-export function makeEvaluation(task: Task, input: EvalInput, note?: string): Evaluation {
+export function makeEvaluation(task: Task, input: EvalInput, basePointsAtEval: number, note?: string): Evaluation {
   return {
     id: `ev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     taskId: task.id,
+    basePointsAtEval,
     completion: input.completion,
     quality: input.quality,
     attitude: input.attitude,
     note,
     evaluatedAt: Date.now(),
-    finalPoints: calcFinalPoints(task.basePoints, input),
+    finalPoints: calcFinalPoints(basePointsAtEval, input),
   };
 }

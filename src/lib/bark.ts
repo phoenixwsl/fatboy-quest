@@ -13,7 +13,8 @@ export type NotificationKind =
   | 'roundDone'
   | 'milestone'
   | 'pendingReview'
-  | 'weeklyReport';
+  | 'weeklyReport'
+  | 'help';
 
 const KIND_SUB_MAP: Record<NotificationKind, keyof BarkRecipient> = {
   taskDone: 'subTaskDone',
@@ -21,6 +22,7 @@ const KIND_SUB_MAP: Record<NotificationKind, keyof BarkRecipient> = {
   milestone: 'subMilestone',
   pendingReview: 'subPendingReview',
   weeklyReport: 'subWeeklyReport',
+  help: 'subHelp',
 };
 
 export interface PushPayload {
@@ -34,7 +36,10 @@ export interface PushPayload {
 export function shouldNotify(recipient: BarkRecipient, kind: NotificationKind): boolean {
   if (!recipient.enabled) return false;
   const subKey = KIND_SUB_MAP[kind];
-  return Boolean(recipient[subKey]);
+  const val = recipient[subKey];
+  // help 字段是 v3 新增，老数据默认开
+  if (kind === 'help' && val === undefined) return true;
+  return Boolean(val);
 }
 
 /**
@@ -112,18 +117,40 @@ export async function sendTestPush(
 /**
  * 预设的通知文案生成器
  */
+export interface TaskDoneDetail {
+  childName: string;
+  taskTitle: string;
+  startedAt: Date;          // 实际开始时间
+  completedAt: Date;
+  estimatedMin: number;
+  effectiveMin: number;     // 扣除暂停
+  pauseCount?: number;
+  extendCount?: number;
+}
+
+function hhmm(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export const messages = {
-  taskDone(childName: string, taskTitle: string, durationMin: number): PushPayload {
+  taskDone(d: TaskDoneDetail): PushPayload {
+    const diff = d.estimatedMin - d.effectiveMin;
+    const speedMark = diff > 0 ? `比预估快 ${diff} 分钟` : diff < 0 ? `比预估慢 ${-diff} 分钟` : '准时完成';
+    const extras: string[] = [];
+    if (d.pauseCount) extras.push(`暂停 ${d.pauseCount} 次`);
+    if (d.extendCount) extras.push(`延时 ${d.extendCount} 次`);
+    const extraLine = extras.length ? ` · ${extras.join(' · ')}` : '';
     return {
-      title: `✓ ${childName} 完成了【${taskTitle}】`,
-      body: `用时 ${durationMin} 分钟，等你评分`,
+      title: `✓ ${d.childName} 完成了【${d.taskTitle}】`,
+      body: `${hhmm(d.startedAt)} - ${hhmm(d.completedAt)}（用时 ${d.effectiveMin} 分，${speedMark}）${extraLine}`,
       group: 'fatboy-quest',
     };
   },
-  roundDone(childName: string, count: number): PushPayload {
+  roundDone(childName: string, count: number, totalMinutes: number, combo: number): PushPayload {
+    const comboTag = combo >= 5 ? ' 🌟 完美通关' : combo >= 3 ? ` ⚡ ${combo} 连击` : '';
     return {
-      title: `🎉 ${childName} 完成今日 ${count} 项作业！`,
-      body: '点击打开 App 进入评分',
+      title: `🎉 ${childName} 完成今日 ${count} 项作业！${comboTag}`,
+      body: `本轮总用时 ${totalMinutes} 分钟，点击打开 App 进入评分`,
       group: 'fatboy-quest',
     };
   },
@@ -146,6 +173,14 @@ export const messages = {
       title: `📊 ${childName} 本周战报`,
       body: `完成 ${tasks} 项作业，获得 ${points} 积分`,
       group: 'fatboy-quest',
+    };
+  },
+  help(childName: string, taskTitle: string): PushPayload {
+    return {
+      title: `🙋 ${childName} 需要帮助`,
+      body: `当前任务：${taskTitle}`,
+      group: 'fatboy-quest',
+      sound: 'alarm',
     };
   },
 };

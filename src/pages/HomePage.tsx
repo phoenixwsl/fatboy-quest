@@ -4,17 +4,26 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
 import { db } from '../db';
 import { PetAvatar } from '../components/PetAvatar';
+import { ChildAddTaskModal } from '../components/ChildAddTaskModal';
 import { todayString, formatChineseDate } from '../lib/time';
 import { totalPoints, getRank, getNextRank } from '../lib/points';
+import { canUndoCompletion } from '../lib/templates';
+import { sounds, syncFromSettings } from '../lib/sounds';
+import { useAppStore } from '../store/useAppStore';
 
 export function HomePage() {
   const nav = useNavigate();
+  const toast = useAppStore(s => s.showToast);
   const today = todayString();
   const pet = useLiveQuery(() => db.pet.get('singleton'));
   const settings = useLiveQuery(() => db.settings.get('singleton'));
   const streak = useLiveQuery(() => db.streak.get('singleton'));
   const todayTasks = useLiveQuery(() => db.tasks.where({ date: today }).toArray(), [today]);
   const pointsEntries = useLiveQuery(() => db.points.toArray());
+  const [addOpen, setAddOpen] = useState(false);
+
+  // 同步音效开关
+  useEffect(() => { syncFromSettings(settings?.soundEnabled); }, [settings?.soundEnabled]);
 
   const total = pointsEntries ? totalPoints(pointsEntries) : 0;
   const rank = getRank(total);
@@ -30,6 +39,7 @@ export function HomePage() {
       setPressProgress(p);
       if (p >= 100) {
         endPress();
+        sounds.play('unlock');
         nav('/parent');
       }
     }, 100);
@@ -44,6 +54,17 @@ export function HomePage() {
   const pendingTasks = todayTasks?.filter(t => t.status === 'pending') ?? [];
   const scheduledOrInProgress = todayTasks?.filter(t => t.status === 'scheduled' || t.status === 'inProgress') ?? [];
   const doneTasks = todayTasks?.filter(t => t.status === 'done' || t.status === 'evaluated') ?? [];
+
+  async function undoComplete(taskId: string) {
+    const t = await db.tasks.get(taskId);
+    if (!t || !canUndoCompletion(t)) return;
+    if (!confirm('确定撤回？这一项会变回"闯关中"，可以重新点完成。')) return;
+    await db.tasks.update(taskId, { status: 'scheduled', completedAt: undefined });
+    sounds.play('undo');
+    toast('已撤回 ↩', 'info');
+  }
+
+  const childCanAdd = settings?.childCanAddTasks !== false;
 
   return (
     <div className="min-h-full p-4 pb-24 text-white">
@@ -93,16 +114,21 @@ export function HomePage() {
 
       {/* 今日任务区 */}
       <div className="mt-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-bold">今日小怪 ({(pendingTasks.length + scheduledOrInProgress.length + doneTasks.length) || 0})</h2>
-          <button onClick={() => nav('/shop')} className="space-btn-ghost text-sm">🎁 奖励商店</button>
+          <div className="flex gap-2">
+            {childCanAdd && (
+              <button onClick={() => { sounds.play('tap'); setAddOpen(true); }} className="space-btn-ghost text-sm">+ 加一个</button>
+            )}
+            <button onClick={() => { sounds.play('tap'); nav('/shop'); }} className="space-btn-ghost text-sm">🎁 商店</button>
+          </div>
         </div>
 
         {todayTasks && todayTasks.length === 0 && (
           <div className="space-card p-6 mt-3 text-center text-white/60">
             <div className="text-4xl mb-2">🌙</div>
             <div>今天还没有作业</div>
-            <div className="text-xs mt-1 text-white/40">让家长进入家长模式来添加</div>
+            <div className="text-xs mt-1 text-white/40">让家长添加，或者你自己加一个 ✨</div>
           </div>
         )}
 
@@ -114,13 +140,16 @@ export function HomePage() {
                 <div key={t.id} className="space-card p-3 flex items-center gap-3">
                   <SubjectIcon subject={t.subject} />
                   <div className="flex-1">
-                    <div className="font-medium">{t.title}</div>
+                    <div className="font-medium flex items-center gap-2">
+                      {t.title}
+                      {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">我加的</span>}
+                    </div>
                     <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟 · {t.basePoints} 积分</div>
                   </div>
                 </div>
               ))}
             </div>
-            <button onClick={() => nav('/schedule')} className="space-btn w-full mt-3">📅 去规划今天</button>
+            <button onClick={() => { sounds.play('tap'); nav('/schedule'); }} className="space-btn w-full mt-3">📅 去规划今天</button>
           </div>
         )}
 
@@ -138,7 +167,7 @@ export function HomePage() {
                 </div>
               ))}
             </div>
-            <button onClick={() => nav('/quest')} className="space-btn w-full mt-3">⚔️ 进入闯关</button>
+            <button onClick={() => { sounds.play('tap'); nav('/quest'); }} className="space-btn w-full mt-3">⚔️ 进入闯关</button>
           </div>
         )}
 
@@ -147,20 +176,28 @@ export function HomePage() {
             <div className="text-sm text-emerald-300 mb-2">✓ 今日已击败 ({doneTasks.length})</div>
             <div className="space-y-2">
               {doneTasks.map(t => (
-                <div key={t.id} className="space-card p-3 flex items-center gap-3 opacity-70">
+                <div key={t.id} className="space-card p-3 flex items-center gap-3 opacity-80">
                   <SubjectIcon subject={t.subject} />
                   <div className="flex-1">
                     <div className="font-medium line-through">{t.title}</div>
                     <div className="text-xs text-white/50">
-                      {t.status === 'evaluated' ? '已评分 ✓' : '等待家长评分...'}
+                      {t.status === 'evaluated' ? '已评分 ✓（积分已入账）' : '等待家长评分...'}
                     </div>
                   </div>
+                  {canUndoCompletion(t) && (
+                    <button onClick={() => undoComplete(t.id)}
+                      className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
+                      ↩ 撤回
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
+
+      <ChildAddTaskModal open={addOpen} onClose={() => setAddOpen(false)} settings={settings} />
     </div>
   );
 }
