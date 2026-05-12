@@ -31,6 +31,8 @@ export function ParentDashboard() {
     { label: '🎁 奖励商店', desc: '管理可兑换奖励', to: '/parent/shop' },
     { label: '📱 通知接收人', desc: '配置 Bark 推送', to: '/parent/recipients' },
     { label: '⚙️ 设置', desc: 'PIN / 密保 / 通知 / 重置', to: '/parent/settings' },
+    { label: '📅 贡献日历', desc: '月度热力图 + 长图导出', to: '/calendar' },
+    { label: '🏆 成就馆', desc: '50 个成就，已解锁与未解锁', to: '/achievements' },
     { label: '💾 数据', desc: '导出 / 导入备份', to: '/parent/data' },
   ];
 

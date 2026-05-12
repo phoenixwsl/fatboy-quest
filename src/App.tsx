@@ -21,6 +21,9 @@ import { RecurringTasks } from './pages/parent/RecurringTasks';
 import { generateTodayDailyTasks } from './lib/recurrence';
 import { isWeekend, weekendBgClass } from './lib/weekendMode';
 import { RitualMonitor } from './components/RitualMonitor';
+import { CalendarPage } from './pages/CalendarPage';
+import { AchievementsPage } from './pages/AchievementsPage';
+import { AchievementsWatcher } from './components/AchievementsWatcher';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -62,6 +65,8 @@ export default function App() {
                 <Route path="/schedule" element={<SchedulePage />} />
                 <Route path="/quest" element={<QuestPage />} />
                 <Route path="/shop" element={<ShopPage />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/achievements" element={<AchievementsPage />} />
                 <Route path="/parent" element={<ParentGate />} />
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />
                 <Route path="/parent/tasks" element={<TaskManager />} />
@@ -79,6 +84,7 @@ export default function App() {
       </div>
       <Toast />
       {settings.setupComplete && <RitualMonitor />}
+      {settings.setupComplete && <AchievementsWatcher />}
     </div>
   );
 }
