@@ -10,6 +10,7 @@ import { totalPoints, getRank, getNextRank } from '../lib/points';
 import { canUndoCompletion } from '../lib/templates';
 import { sounds, syncFromSettings } from '../lib/sounds';
 import { useAppStore } from '../store/useAppStore';
+import { APP_VERSION } from '../version';
 
 export function HomePage() {
   const nav = useNavigate();
@@ -199,6 +200,10 @@ export function HomePage() {
       </div>
 
       <ChildAddTaskModal open={addOpen} onClose={() => setAddOpen(false)} settings={settings} />
+
+      <div className="mt-6 text-center text-[10px] text-white/30">
+        🚀 肥仔大闯关 · {APP_VERSION}
+      </div>
     </div>
   );
 }

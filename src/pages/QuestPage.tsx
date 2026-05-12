@@ -59,9 +59,15 @@ export function QuestPage() {
   // === 音效同步 ===
   useEffect(() => { syncFromSettings(settings?.soundEnabled); }, [settings?.soundEnabled]);
 
+  // === 休息块跳过状态 ===
+  // 注意必须放在 activeIdx useMemo 之前，且加进 deps，否则点跳过不生效
+  const [skippedRests, setSkippedRests] = useState<Set<number>>(new Set());
+
   // === 找当前 active item ===
-  // 规则：按 schedule.items 顺序找第一个未完成的；若是 task：active 就是它
-  // 若是 rest：rest 的"激活"条件：前面所有 task 都 done 或 evaluated
+  // 规则：按 schedule.items 顺序：
+  //   - task 未完成 → 它是 active
+  //   - rest 块"激活"需满足：前面所有 task 已完成 + 未被手动跳过 + 后面没有任何
+  //     task 已经开始或完成（这样刷新页面后也能正确判定"已经路过了"）
   const activeIdx = useMemo(() => {
     if (!schedule) return -1;
     for (let i = 0; i < schedule.items.length; i++) {
@@ -71,24 +77,27 @@ export function QuestPage() {
         if (!t) continue;
         if (t.status !== 'done' && t.status !== 'evaluated') return i;
       } else {
-        // rest: 当前是 rest 仅当前面所有 task 都已 done
+        if (skippedRests.has(i)) continue;
         const allBeforeDone = schedule.items.slice(0, i).every(prev =>
           prev.kind !== 'task' || (prev.taskId && (() => {
             const t = taskMap.get(prev.taskId!);
             return t && (t.status === 'done' || t.status === 'evaluated');
           })()),
         );
-        if (allBeforeDone && !isRestSkipped(it, i)) return i;
+        if (!allBeforeDone) continue;
+        // 如果后面任何 task 已被启动或完成 → 这个 rest 已经被路过了
+        const someAfterTouched = schedule.items.slice(i + 1).some(next =>
+          next.kind === 'task' && next.taskId && (() => {
+            const t = taskMap.get(next.taskId!);
+            return !!(t && (t.actualStartedAt !== undefined || t.status === 'inProgress' || t.status === 'done' || t.status === 'evaluated'));
+          })(),
+        );
+        if (someAfterTouched) continue;
+        return i;
       }
     }
     return -1;
-  }, [schedule, taskMap]);
-
-  // === 休息块跳过状态（本地组件状态，离开页面会丢，但 rest 是过渡性的，没关系） ===
-  const [skippedRests, setSkippedRests] = useState<Set<number>>(new Set());
-  function isRestSkipped(_item: ScheduleItem, idx: number): boolean {
-    return skippedRests.has(idx);
-  }
+  }, [schedule, taskMap, skippedRests]);
   // 休息块开始时间：前一个 task 完成时间。**故意不依赖 now**：
   // 进入 rest 后这个值必须稳定，否则 RestBlock 内部的计时会被反复重置
   // 没找到前置任务（rest 在最前面）时用一个 ref 缓存"首次进入时刻"

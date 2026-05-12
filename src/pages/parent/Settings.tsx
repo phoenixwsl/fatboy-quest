@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, hashAnswer } from '../../db';
+import { db, hashAnswer, initializeDB } from '../../db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensurePermission } from '../../lib/notifications';
+import { APP_VERSION, APP_BUILD_DATE } from '../../version';
 
 export function ParentSettings() {
   const nav = useNavigate();
@@ -98,12 +99,88 @@ export function ParentSettings() {
         </div>
       </div>
 
+      <div className="space-card p-4 mb-3 border border-rose-500/30">
+        <div className="text-sm text-white/70 mb-2 text-rose-300">⚠️ 重置全部数据</div>
+        <div className="text-xs text-white/50 mb-3">
+          删除所有任务、积分、连击、商店、推送配置、蛋仔。<b className="text-rose-300">不可恢复</b>。
+          建议先去「数据」页导出备份。
+        </div>
+        <ResetAllButton />
+      </div>
+
       <div className="space-card p-4 mb-3">
         <div className="text-sm text-white/70 mb-2">关于</div>
-        <div className="text-xs text-white/50">
-          Schema 版本：v{settings.schemaVersion}<br/>
-          App 版本：Round 1 MVP
+        <div className="text-xs text-white/50 space-y-0.5">
+          <div>App 版本：<b className="text-amber-300">{APP_VERSION}</b>（构建 {APP_BUILD_DATE}）</div>
+          <div>数据库 schema：v{settings.schemaVersion}</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ResetAllButton() {
+  const nav = useNavigate();
+  const toast = useAppStore(s => s.showToast);
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [confirmText, setConfirmText] = useState('');
+
+  async function doReset() {
+    if (confirmText !== '重置') { toast('请输入"重置"二字以确认', 'warn'); return; }
+    // 清空所有表
+    await db.transaction('rw',
+      [db.tasks, db.evaluations, db.schedules, db.points, db.streak, db.pet,
+       db.badges, db.shop, db.redemptions, db.recipients, db.settings, db.templateHidden] as any,
+      async () => {
+        await Promise.all([
+          db.tasks.clear(), db.evaluations.clear(), db.schedules.clear(),
+          db.points.clear(), db.streak.clear(), db.pet.clear(),
+          db.badges.clear(), db.shop.clear(), db.redemptions.clear(),
+          db.recipients.clear(), db.settings.clear(), db.templateHidden.clear(),
+        ]);
+      });
+    // 重新初始化
+    await initializeDB();
+    toast('✓ 已重置，回到引导页', 'success');
+    setTimeout(() => { nav('/'); window.location.reload(); }, 500);
+  }
+
+  if (step === 0) {
+    return (
+      <button onClick={() => setStep(1)}
+        className="w-full px-4 py-2 rounded-xl bg-rose-500/30 border border-rose-300/50 text-rose-100 active:scale-95">
+        🗑 一键重置所有数据
+      </button>
+    );
+  }
+  if (step === 1) {
+    return (
+      <div className="space-y-2">
+        <div className="text-rose-200 text-sm font-bold">真的要清空全部数据？</div>
+        <div className="text-xs text-white/60">
+          以下都会被删除：所有任务、所有积分流水、连击天数、蛋仔（名字皮肤等级）、徽章、商店配置、Bark 接收人配置、孩子昵称、PIN、密保。
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setStep(0)} className="space-btn-ghost flex-1">不了</button>
+          <button onClick={() => setStep(2)} className="flex-1 px-3 py-2 rounded-xl bg-rose-500/40 text-rose-100">我确定</button>
+        </div>
+      </div>
+    );
+  }
+  // step === 2: 终极确认
+  return (
+    <div className="space-y-2">
+      <div className="text-rose-200 text-sm font-bold">最后确认：在下方输入「重置」二字</div>
+      <input value={confirmText} onChange={e => setConfirmText(e.target.value)}
+        placeholder="输入 重置"
+        className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none text-center" />
+      <div className="flex gap-2">
+        <button onClick={() => { setStep(0); setConfirmText(''); }} className="space-btn-ghost flex-1">取消</button>
+        <button onClick={doReset}
+          disabled={confirmText !== '重置'}
+          className="flex-1 px-3 py-2 rounded-xl bg-rose-600 text-white disabled:opacity-40">
+          🗑 删除全部
+        </button>
       </div>
     </div>
   );
