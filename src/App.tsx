@@ -17,13 +17,22 @@ import { ShopManager } from './pages/parent/ShopManager';
 import { Recipients } from './pages/parent/Recipients';
 import { ParentSettings } from './pages/parent/Settings';
 import { DataExport } from './pages/parent/DataExport';
+import { RecurringTasks } from './pages/parent/RecurringTasks';
+import { generateTodayDailyTasks } from './lib/recurrence';
+import { isWeekend, weekendBgClass } from './lib/weekendMode';
+import { RitualMonitor } from './components/RitualMonitor';
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const settings = useLiveQuery(() => db.settings.get('singleton'));
 
   useEffect(() => {
-    initializeDB().then(() => setReady(true));
+    (async () => {
+      await initializeDB();
+      // 启动时补齐今日的"每日必做"实例（一次性，幂等）
+      try { await generateTodayDailyTasks(db as any); } catch {}
+      setReady(true);
+    })();
   }, []);
 
   if (!ready || settings === undefined) {
@@ -34,8 +43,10 @@ export default function App() {
     );
   }
 
+  const weekendActive = !!(settings.weekendModeEnabled !== false && isWeekend(new Date()));
+
   return (
-    <div className="relative h-full overflow-hidden">
+    <div className={`relative h-full overflow-hidden ${weekendActive ? weekendBgClass : ''}`}>
       <SpaceBackground />
       <div className="relative z-10 h-full overflow-y-auto">
         <HashRouter>
@@ -54,6 +65,7 @@ export default function App() {
                 <Route path="/parent" element={<ParentGate />} />
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />
                 <Route path="/parent/tasks" element={<TaskManager />} />
+                <Route path="/parent/recurring" element={<RecurringTasks />} />
                 <Route path="/parent/evaluations" element={<Evaluations />} />
                 <Route path="/parent/shop" element={<ShopManager />} />
                 <Route path="/parent/recipients" element={<Recipients />} />
@@ -66,6 +78,7 @@ export default function App() {
         </HashRouter>
       </div>
       <Toast />
+      {settings.setupComplete && <RitualMonitor />}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db';
 import { todayString } from '../../lib/time';
 import { totalPoints } from '../../lib/points';
+import { analyzeWeek } from '../../lib/analyze';
 import {
   PointsTrendCard, SubjectPieCard, TimeAccuracyCard, RatingRadarCard,
 } from '../../components/charts/ChartCards';
@@ -17,18 +18,32 @@ export function ParentDashboard() {
   const points = useLiveQuery(() => db.points.toArray());
   const evaluations = useLiveQuery(() => db.evaluations.toArray());
   const streak = useLiveQuery(() => db.streak.get('singleton'));
+  const settings = useLiveQuery(() => db.settings.get('singleton'));
 
   const total = points ? totalPoints(points) : 0;
-  const [showCharts, setShowCharts] = useState(true);
+  const [showCharts, setShowCharts] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
 
   const tiles = [
-    { label: '📝 任务管理', desc: '添加 / 编辑作业 / 模板', to: '/parent/tasks' },
+    { label: '📝 一次性任务', desc: '指定日期的作业', to: '/parent/tasks' },
+    { label: '🔁 循环任务', desc: '每日必做 / 每周 N 次 / 每周一次', to: '/parent/recurring' },
     { label: '⭐ 待评分', desc: `${pendingReview?.length ?? 0} 项等你评分`, to: '/parent/evaluations', urgent: (pendingReview?.length ?? 0) > 0 },
     { label: '🎁 奖励商店', desc: '管理可兑换奖励', to: '/parent/shop' },
     { label: '📱 通知接收人', desc: '配置 Bark 推送', to: '/parent/recipients' },
-    { label: '⚙️ 设置', desc: 'PIN / 密保 / 通知', to: '/parent/settings' },
+    { label: '⚙️ 设置', desc: 'PIN / 密保 / 通知 / 重置', to: '/parent/settings' },
     { label: '💾 数据', desc: '导出 / 导入备份', to: '/parent/data' },
   ];
+
+  function runAnalysis() {
+    const text = analyzeWeek({
+      tasks: allTasks ?? [],
+      evaluations: evaluations ?? [],
+      points: points ?? [],
+      childName: settings?.childName ?? '肥仔',
+      streakDays: streak?.currentStreak ?? 0,
+    });
+    setAnalysis(text);
+  }
 
   return (
     <div className="min-h-full p-4 pb-24 text-white">
@@ -54,10 +69,24 @@ export function ParentDashboard() {
         </div>
       </div>
 
-      <button onClick={() => setShowCharts(!showCharts)}
-        className="text-sm text-white/60 mb-2 active:scale-95">
-        {showCharts ? '▼' : '▶'} 数据图表
-      </button>
+      <div className="flex gap-2 mb-3">
+        <button onClick={runAnalysis} className="space-btn flex-1 text-sm">✨ 一键分析（本周）</button>
+        <button onClick={() => setShowCharts(!showCharts)} className="space-btn-ghost flex-1 text-sm">
+          {showCharts ? '▼ 收起图表' : '▶ 展开图表'}
+        </button>
+      </div>
+
+      {analysis && (
+        <div className="space-card p-4 mb-3 bg-gradient-to-br from-space-nebula/20 to-space-plasma/10">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-bold text-amber-300">本周分析</div>
+            <button onClick={() => setAnalysis(null)} className="text-white/40 text-xs">✕</button>
+          </div>
+          <pre className="text-sm whitespace-pre-wrap font-kid text-white/90 leading-relaxed">
+            {analysis}
+          </pre>
+        </div>
+      )}
 
       {showCharts && (
         <div className="space-y-3 mb-4">

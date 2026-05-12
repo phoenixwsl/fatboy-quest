@@ -99,11 +99,18 @@ export function ParentSettings() {
         </div>
       </div>
 
-      <div className="space-card p-4 mb-3 border border-rose-500/30">
-        <div className="text-sm text-white/70 mb-2 text-rose-300">⚠️ 重置全部数据</div>
+      <div className="space-card p-4 mb-3 border border-amber-500/30">
+        <div className="text-sm text-white/70 mb-2 text-amber-300">🧹 快速重置（测试用）</div>
         <div className="text-xs text-white/50 mb-3">
-          删除所有任务、积分、连击、商店、推送配置、蛋仔。<b className="text-rose-300">不可恢复</b>。
-          建议先去「数据」页导出备份。
+          单击确认即重置全部数据。建议测试场景使用。
+        </div>
+        <QuickResetButton />
+      </div>
+
+      <div className="space-card p-4 mb-3 border border-rose-500/30">
+        <div className="text-sm text-white/70 mb-2 text-rose-300">⚠️ 重置全部数据（严谨版）</div>
+        <div className="text-xs text-white/50 mb-3">
+          3 步确认 + 输入"重置"。建议先去「数据」页导出备份。
         </div>
         <ResetAllButton />
       </div>
@@ -119,6 +126,49 @@ export function ParentSettings() {
   );
 }
 
+async function clearAllData() {
+  await db.transaction('rw',
+    [db.tasks, db.evaluations, db.schedules, db.points, db.streak, db.pet,
+     db.badges, db.shop, db.redemptions, db.recipients, db.settings,
+     db.templateHidden, db.taskDefinitions, db.ritualLogs] as any,
+    async () => {
+      await Promise.all([
+        db.tasks.clear(), db.evaluations.clear(), db.schedules.clear(),
+        db.points.clear(), db.streak.clear(), db.pet.clear(),
+        db.badges.clear(), db.shop.clear(), db.redemptions.clear(),
+        db.recipients.clear(), db.settings.clear(),
+        db.templateHidden.clear(), db.taskDefinitions.clear(), db.ritualLogs.clear(),
+      ]);
+    });
+  await initializeDB();
+}
+
+function QuickResetButton() {
+  const nav = useNavigate();
+  const toast = useAppStore(s => s.showToast);
+  const [confirming, setConfirming] = useState(false);
+
+  async function doReset() {
+    await clearAllData();
+    toast('✓ 已重置，回到引导页', 'success');
+    setTimeout(() => { nav('/'); window.location.reload(); }, 500);
+  }
+  if (!confirming) {
+    return (
+      <button onClick={() => setConfirming(true)}
+        className="w-full px-4 py-2 rounded-xl bg-amber-500/30 border border-amber-300/50 text-amber-100 active:scale-95">
+        🧹 一键重置（单确认）
+      </button>
+    );
+  }
+  return (
+    <div className="flex gap-2">
+      <button onClick={() => setConfirming(false)} className="space-btn-ghost flex-1">不了</button>
+      <button onClick={doReset} className="flex-1 px-3 py-2 rounded-xl bg-amber-600 text-white">确定，清空</button>
+    </div>
+  );
+}
+
 function ResetAllButton() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
@@ -127,20 +177,7 @@ function ResetAllButton() {
 
   async function doReset() {
     if (confirmText !== '重置') { toast('请输入"重置"二字以确认', 'warn'); return; }
-    // 清空所有表
-    await db.transaction('rw',
-      [db.tasks, db.evaluations, db.schedules, db.points, db.streak, db.pet,
-       db.badges, db.shop, db.redemptions, db.recipients, db.settings, db.templateHidden] as any,
-      async () => {
-        await Promise.all([
-          db.tasks.clear(), db.evaluations.clear(), db.schedules.clear(),
-          db.points.clear(), db.streak.clear(), db.pet.clear(),
-          db.badges.clear(), db.shop.clear(), db.redemptions.clear(),
-          db.recipients.clear(), db.settings.clear(), db.templateHidden.clear(),
-        ]);
-      });
-    // 重新初始化
-    await initializeDB();
+    await clearAllData();
     toast('✓ 已重置，回到引导页', 'success');
     setTimeout(() => { nav('/'); window.location.reload(); }, 500);
   }

@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   Task, Evaluation, Schedule, PointsEntry, StreakState, Pet,
   Badge, ShopItem, Redemption, BarkRecipient, Settings, TemplateHidden,
+  TaskDefinition, RitualLog,
 } from '../types';
 import { SCHEMA_VERSION } from '../types';
 
@@ -17,12 +18,13 @@ export class FatboyDB extends Dexie {
   redemptions!: Table<Redemption, string>;
   recipients!: Table<BarkRecipient, string>;
   settings!: Table<Settings, 'singleton'>;
-  templateHidden!: Table<TemplateHidden, string>;  // v3
+  templateHidden!: Table<TemplateHidden, string>;
+  taskDefinitions!: Table<TaskDefinition, string>;
+  ritualLogs!: Table<RitualLog, string>;
 
   constructor() {
     super('FatboyQuestDB');
 
-    // v1: initial
     this.version(1).stores({
       tasks: 'id, date, status, [date+status]',
       evaluations: 'id, taskId, evaluatedAt',
@@ -37,10 +39,6 @@ export class FatboyDB extends Dexie {
       settings: 'id',
     });
 
-    // v2: no schema change, only new optional fields
-    // (Dexie 不需要单独升级 statement，老数据兼容)
-
-    // v3: 新增 templateHidden 表
     this.version(3).stores({
       tasks: 'id, date, status, [date+status]',
       evaluations: 'id, taskId, evaluatedAt',
@@ -54,6 +52,33 @@ export class FatboyDB extends Dexie {
       recipients: 'id, enabled',
       settings: 'id',
       templateHidden: 'title, hiddenAt',
+    });
+
+    // v4
+    this.version(4).stores({
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+    }).upgrade(async (tx) => {
+      const recipients = await tx.table('recipients').toArray();
+      for (const r of recipients) {
+        await tx.table('recipients').update(r.id, {
+          subTaskDone: true,    // v4: 默认开启每项通知
+          subShopPurchase: r.subShopPurchase ?? true,
+          subStreakAlert: r.subStreakAlert ?? true,
+        });
+      }
     });
   }
 }
@@ -71,6 +96,17 @@ export async function initializeDB() {
       if (existing.warnMinutesBeforeEnd === undefined) patch.warnMinutesBeforeEnd = 3;
       if (existing.restEndSoundLeadSec === undefined) patch.restEndSoundLeadSec = 60;
       if (existing.helpButtonEnabled === undefined) patch.helpButtonEnabled = true;
+      if (existing.weekendModeEnabled === undefined) patch.weekendModeEnabled = true;
+      if (existing.eveningSummaryHour === undefined) patch.eveningSummaryHour = 21;
+      if (existing.eveningSummaryMinute === undefined) patch.eveningSummaryMinute = 30;
+      if (existing.streakAlertHour === undefined) patch.streakAlertHour = 19;
+      if (existing.streakAlertMinute === undefined) patch.streakAlertMinute = 30;
+      if (existing.sundayRitualHour === undefined) patch.sundayRitualHour = 21;
+      if (existing.sundayRitualMinute === undefined) patch.sundayRitualMinute = 0;
+      if (existing.soundPack === undefined) patch.soundPack = 'default';
+      if (existing.developerMode === undefined) patch.developerMode = false;
+      if (existing.dailyPointsGoal === undefined) patch.dailyPointsGoal = 0;
+      if (existing.idleNagEnabled === undefined) patch.idleNagEnabled = true;
       await db.settings.update('singleton', patch);
     }
     return;
@@ -92,6 +128,17 @@ export async function initializeDB() {
     warnMinutesBeforeEnd: 3,
     restEndSoundLeadSec: 60,
     helpButtonEnabled: true,
+    weekendModeEnabled: true,
+    eveningSummaryHour: 21,
+    eveningSummaryMinute: 30,
+    streakAlertHour: 19,
+    streakAlertMinute: 30,
+    sundayRitualHour: 21,
+    sundayRitualMinute: 0,
+    soundPack: 'default',
+    developerMode: false,
+    dailyPointsGoal: 0,
+    idleNagEnabled: true,
   });
 
   await db.streak.put({

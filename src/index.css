@@ -57,3 +57,9 @@
   0%, 100% { opacity: 0.2; }
   50% { opacity: 1; }
 }
+
+/* 周末模式：暖橙紫渐变 */
+body.weekend-bg-mode,
+.weekend-bg {
+  background: radial-gradient(ellipse at top, #4a2f6a 0%, #2a1840 40%, #181028 100%) !important;
+}
