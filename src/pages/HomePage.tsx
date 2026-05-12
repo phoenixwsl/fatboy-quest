@@ -137,14 +137,15 @@ export function HomePage() {
             <div className="text-sm text-white/60 mb-2">📋 待安排</div>
             <div className="space-y-2">
               {pendingTasks.map(t => (
-                <div key={t.id} className="space-card p-3 flex items-center gap-3">
+                <div key={t.id} className={`space-card p-3 flex items-center gap-3 ${t.isRequired ? 'ring-1 ring-rose-400/60' : ''}`}>
                   <SubjectIcon subject={t.subject} />
                   <div className="flex-1">
-                    <div className="font-medium flex items-center gap-2">
+                    <div className="font-medium flex items-center gap-2 flex-wrap">
                       {t.title}
+                      {t.isRequired && <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
                       {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">我加的</span>}
                     </div>
-                    <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟 · {t.basePoints} 积分</div>
+                    <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟{t.basePoints ? ` · ${t.basePoints} 积分` : ' · 积分由家长评分时给'}</div>
                   </div>
                 </div>
               ))}

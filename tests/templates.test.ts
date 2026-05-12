@@ -128,4 +128,8 @@ describe('canChildDeleteTask', () => {
   it('disallows for parent-added tasks', () => {
     expect(canChildDeleteTask({ status: 'pending', createdBy: 'parent' })).toBe(false);
   });
+  it('disallows for required tasks (v3)', () => {
+    expect(canChildDeleteTask({ status: 'pending', createdBy: 'child', isRequired: true })).toBe(false);
+    expect(canChildDeleteTask({ status: 'pending', createdBy: 'parent', isRequired: true })).toBe(false);
+  });
 });

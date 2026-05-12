@@ -27,6 +27,7 @@ export function TaskManager() {
   const [subject, setSubject] = useState<SubjectType>('math');
   const [points, setPoints] = useState(20);
   const [minutes, setMinutes] = useState(25);
+  const [isRequired, setIsRequired] = useState(false);
 
   const tasksForDate = useLiveQuery(() => db.tasks.where({ date }).toArray(), [date]);
   const allTasks = useLiveQuery(() => db.tasks.toArray());
@@ -65,10 +66,15 @@ export function TaskManager() {
       status: 'pending',
       createdAt: Date.now(),
       createdBy: 'parent',
+      isRequired: isRequired || undefined,
     };
     await db.tasks.add(t);
-    setTitle(''); setDescription('');
-    toast('✓ 已添加', 'success');
+    setTitle(''); setDescription(''); setIsRequired(false);
+    toast(`✓ 已添加${isRequired ? '（必做）' : ''}`, 'success');
+  }
+
+  async function toggleRequired(taskId: string, current: boolean | undefined) {
+    await db.tasks.update(taskId, { isRequired: !current });
   }
 
   async function delTask(id: string) {
@@ -177,6 +183,12 @@ export function TaskManager() {
               className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none" />
           </label>
         </div>
+        <button onClick={() => setIsRequired(!isRequired)}
+          className={`w-full mt-3 px-3 py-2 rounded-xl text-sm flex items-center justify-center gap-2 ${
+            isRequired ? 'bg-rose-500/30 ring-1 ring-rose-300/60' : 'bg-white/5'
+          }`}>
+          {isRequired ? '🔴 必做（孩子不能删）' : '○ 选填'}
+        </button>
         <button onClick={addTask} className="space-btn w-full mt-3">+ 添加</button>
       </div>
 
@@ -201,14 +213,19 @@ export function TaskManager() {
           <div key={t.id} className="space-card p-3 flex items-center gap-3">
             <SubjectIcon subject={t.subject} />
             <div className="flex-1">
-              <div className="font-medium flex items-center gap-2">
+              <div className="font-medium flex items-center gap-2 flex-wrap">
                 {t.title}
+                {t.isRequired && <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
                 {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">孩子加的</span>}
               </div>
               <div className="text-xs text-white/50">
                 {t.estimatedMinutes}分 · {t.basePoints || '积分待评分'} · {t.status}
               </div>
             </div>
+            <button onClick={() => toggleRequired(t.id, t.isRequired)}
+              className={`px-2 py-1 rounded text-xs ${t.isRequired ? 'bg-rose-500/30 text-rose-200' : 'bg-white/10'}`}>
+              {t.isRequired ? '取消必做' : '设为必做'}
+            </button>
             <button onClick={() => delTask(t.id)} className="text-rose-400 active:scale-90 px-2">🗑</button>
           </div>
         ))}

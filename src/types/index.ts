@@ -32,6 +32,7 @@ export interface Task {
   completedAt?: number;
   evaluationId?: string;
   createdBy?: 'parent' | 'child';   // v2
+  isRequired?: boolean;             // v3: 家长指定的必做任务，孩子不能删
 
   // v3: 执行记录
   actualStartedAt?: number;     // 孩子点"我要开始"的时间

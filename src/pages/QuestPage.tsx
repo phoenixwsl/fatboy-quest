@@ -89,12 +89,17 @@ export function QuestPage() {
   function isRestSkipped(_item: ScheduleItem, idx: number): boolean {
     return skippedRests.has(idx);
   }
-  // 休息块开始时间：前一个 task 完成时间（如果存在）
+  // 休息块开始时间：前一个 task 完成时间。**故意不依赖 now**：
+  // 进入 rest 后这个值必须稳定，否则 RestBlock 内部的计时会被反复重置
+  // 没找到前置任务（rest 在最前面）时用一个 ref 缓存"首次进入时刻"
+  const restEnterFallbackRef = useRef<{ idx: number; ts: number } | null>(null);
   const restStartedAt = useMemo(() => {
     if (!schedule || activeIdx < 0) return 0;
     const active = schedule.items[activeIdx];
-    if (active.kind !== 'rest') return 0;
-    // 找前面最后一个 task 的 completedAt
+    if (active.kind !== 'rest') {
+      restEnterFallbackRef.current = null;
+      return 0;
+    }
     for (let i = activeIdx - 1; i >= 0; i--) {
       const it = schedule.items[i];
       if (it.kind === 'task' && it.taskId) {
@@ -102,8 +107,13 @@ export function QuestPage() {
         if (t?.completedAt) return t.completedAt;
       }
     }
-    return Date.now();
-  }, [schedule, activeIdx, taskMap, now]);
+    // fallback: 首次进入这个 rest 时记一下，之后稳定返回
+    if (!restEnterFallbackRef.current || restEnterFallbackRef.current.idx !== activeIdx) {
+      restEnterFallbackRef.current = { idx: activeIdx, ts: Date.now() };
+    }
+    return restEnterFallbackRef.current.ts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schedule, activeIdx, taskMap]);
 
   // === 3 分钟硬提醒 ===
   const [warning3MinFor, setWarning3MinFor] = useState<string | null>(null);
@@ -576,9 +586,30 @@ function TaskActiveCard({
 function ScoreDetail({
   schedule, taskMap, onUndo, activeIdx,
 }: { schedule: Schedule; taskMap: Map<string, Task>; onUndo: (id: string) => void; activeIdx: number }) {
+  // 算一下本轮累计积分
+  const taskIds = schedule.items.filter(i => i.kind === 'task' && i.taskId).map(i => i.taskId!);
+  const evs = useLiveQuery(() =>
+    db.evaluations.where('taskId').anyOf(taskIds).toArray(),
+    [taskIds.join(',')],
+  );
+  const earlyEntries = useLiveQuery(() =>
+    db.points.where('reason').equals('early_bonus').filter(p => p.refId !== undefined && taskIds.includes(p.refId)).toArray(),
+    [taskIds.join(',')],
+  );
+  const coreSum = (evs ?? []).reduce((s, e) => s + e.finalPoints, 0);
+  const earlySum = (earlyEntries ?? []).reduce((s, p) => s + p.delta, 0);
+  const totalEarned = coreSum + earlySum + (schedule.comboBonusPoints ?? 0);
+  const evaluatedCount = evs?.length ?? 0;
+  const totalCount = taskIds.length;
+
   return (
     <div className="mt-6">
-      <div className="text-sm text-white/60 mb-2">📋 今日得分明细</div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm text-white/60">📋 今日得分明细</div>
+        <div className="text-xs text-amber-300">
+          已得 <b className="text-lg">{totalEarned}</b> 分（{evaluatedCount}/{totalCount} 评分）
+        </div>
+      </div>
       {schedule.items.map((it: ScheduleItem, idx: number) => {
         if (it.kind === 'rest') {
           return (
@@ -603,16 +634,19 @@ function ScoreDetail({
           '待开始';
 
         return (
-          <div key={t.id} className={`space-card p-3 my-2 ${isActive ? 'ring-2 ring-space-plasma' : ''}`}>
+          <div key={t.id} className={`space-card p-3 my-2 ${isActive ? 'ring-2 ring-space-plasma' : ''} ${t.isRequired ? 'border-l-4 border-l-rose-500' : ''}`}>
             <div className="flex items-center gap-3">
               <div className="text-lg">{statusEmoji}</div>
               <SubjectIcon subject={t.subject} />
               <div className="flex-1">
-                <div className={t.status === 'evaluated' || t.status === 'done' ? 'line-through opacity-70' : ''}>
+                <div className={`flex items-center gap-1.5 flex-wrap ${t.status === 'evaluated' || t.status === 'done' ? 'line-through opacity-70' : ''}`}>
                   {t.title}
+                  {t.isRequired && <span className="text-[10px] px-1 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
+                  {t.createdBy === 'child' && <span className="text-[10px] px-1 py-0.5 rounded bg-cyan-500/30">我加的</span>}
                 </div>
                 <div className="text-xs text-white/50">{statusText}</div>
               </div>
+              {t.status === 'evaluated' && <EvaluatedPointsBadge taskId={t.id} />}
               {t.status === 'done' && (
                 <button onClick={() => onUndo(t.id)}
                   className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
@@ -624,6 +658,32 @@ function ScoreDetail({
           </div>
         );
       })}
+      {(schedule.comboBonusPoints ?? 0) > 0 && (
+        <div className="space-card p-3 my-2 bg-gradient-to-r from-amber-500/20 to-rose-500/20">
+          <div className="flex items-center gap-2">
+            <div className="text-2xl">⚡</div>
+            <div className="flex-1 text-sm">{schedule.comboPeakInRound ?? 0} 连击加成</div>
+            <div className="font-bold text-amber-300">+{schedule.comboBonusPoints} 分</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EvaluatedPointsBadge({ taskId }: { taskId: string }) {
+  const ev = useLiveQuery(() => db.evaluations.where({ taskId }).first(), [taskId]);
+  const earlyEntry = useLiveQuery(() =>
+    db.points.where('reason').equals('early_bonus').filter(p => p.refId === taskId).first(),
+    [taskId],
+  );
+  if (!ev) return null;
+  const early = earlyEntry?.delta ?? 0;
+  const total = ev.finalPoints + early;
+  return (
+    <div className="text-right">
+      <div className="text-amber-300 font-bold">+{total}</div>
+      <div className="text-[10px] text-white/40">积分</div>
     </div>
   );
 }

@@ -70,7 +70,10 @@ export function canUndoCompletion(task: Pick<Task, 'status'>): boolean {
  * 孩子能否删除自己加的任务：
  * - createdBy === 'child'
  * - 未评分（status !== 'evaluated'）
+ * - 不是家长指定的"必做"任务（即便由孩子加，但被家长改为必做也不能删；
+ *   实际上 isRequired 只能由家长设置，孩子加的任务不会有此字段）
  */
-export function canChildDeleteTask(task: Pick<Task, 'status' | 'createdBy'>): boolean {
+export function canChildDeleteTask(task: Pick<Task, 'status' | 'createdBy' | 'isRequired'>): boolean {
+  if (task.isRequired) return false;
   return task.createdBy === 'child' && task.status !== 'evaluated';
 }
