@@ -1,0 +1,173 @@
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { motion } from 'framer-motion';
+import { db } from '../db';
+import { PetAvatar } from '../components/PetAvatar';
+import { todayString, formatChineseDate } from '../lib/time';
+import { totalPoints, getRank, getNextRank } from '../lib/points';
+
+export function HomePage() {
+  const nav = useNavigate();
+  const today = todayString();
+  const pet = useLiveQuery(() => db.pet.get('singleton'));
+  const settings = useLiveQuery(() => db.settings.get('singleton'));
+  const streak = useLiveQuery(() => db.streak.get('singleton'));
+  const todayTasks = useLiveQuery(() => db.tasks.where({ date: today }).toArray(), [today]);
+  const pointsEntries = useLiveQuery(() => db.points.toArray());
+
+  const total = pointsEntries ? totalPoints(pointsEntries) : 0;
+  const rank = getRank(total);
+  const next = getNextRank(total);
+
+  // 长按右上角进入家长模式
+  const pressTimer = useRef<number | null>(null);
+  const [pressProgress, setPressProgress] = useState(0);
+  const startPress = () => {
+    let p = 0;
+    pressTimer.current = window.setInterval(() => {
+      p += 100 / 30; // 3 秒
+      setPressProgress(p);
+      if (p >= 100) {
+        endPress();
+        nav('/parent');
+      }
+    }, 100);
+  };
+  const endPress = () => {
+    if (pressTimer.current) clearInterval(pressTimer.current);
+    pressTimer.current = null;
+    setPressProgress(0);
+  };
+  useEffect(() => () => { if (pressTimer.current) clearInterval(pressTimer.current); }, []);
+
+  const pendingTasks = todayTasks?.filter(t => t.status === 'pending') ?? [];
+  const scheduledOrInProgress = todayTasks?.filter(t => t.status === 'scheduled' || t.status === 'inProgress') ?? [];
+  const doneTasks = todayTasks?.filter(t => t.status === 'done' || t.status === 'evaluated') ?? [];
+
+  return (
+    <div className="min-h-full p-4 pb-24 text-white">
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <div className="text-xs text-white/50">{formatChineseDate(today)}</div>
+          <div className="text-2xl font-bold glow-text">你好，{settings?.childName ?? '肥仔'} ✨</div>
+        </div>
+        <div
+          onPointerDown={startPress}
+          onPointerUp={endPress}
+          onPointerLeave={endPress}
+          onPointerCancel={endPress}
+          className="relative w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 select-none"
+        >
+          <span className="text-xl">⚙️</span>
+          {pressProgress > 0 && (
+            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="22" fill="none" stroke="rgba(124,92,255,0.8)"
+                strokeWidth="3" strokeDasharray={138} strokeDashoffset={138 - (138 * pressProgress / 100)}
+                strokeLinecap="round" />
+            </svg>
+          )}
+        </div>
+      </div>
+
+      {/* 蛋仔 + 段位 */}
+      <motion.div
+        className="space-card p-6 mt-4 flex items-center gap-4"
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+      >
+        <PetAvatar skinId={pet?.skinId} size={96} mood="happy" />
+        <div className="flex-1">
+          <div className="text-lg font-bold">{pet?.name ?? '蛋仔'}</div>
+          <div className={`text-sm ${rank.color}`}>{rank.emoji} {rank.name}</div>
+          <div className="text-xs text-white/60 mt-1">⭐ {total} 积分</div>
+          {next && (
+            <div className="text-xs text-white/40 mt-0.5">
+              距离 {next.name} 还差 {next.minPoints - total} 分
+            </div>
+          )}
+          <div className="text-xs text-amber-300/80 mt-1">
+            🔥 连击 {streak?.currentStreak ?? 0} 天 · 🛡️ {streak?.guardCards ?? 0} 张守护卡
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 今日任务区 */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">今日小怪 ({(pendingTasks.length + scheduledOrInProgress.length + doneTasks.length) || 0})</h2>
+          <button onClick={() => nav('/shop')} className="space-btn-ghost text-sm">🎁 奖励商店</button>
+        </div>
+
+        {todayTasks && todayTasks.length === 0 && (
+          <div className="space-card p-6 mt-3 text-center text-white/60">
+            <div className="text-4xl mb-2">🌙</div>
+            <div>今天还没有作业</div>
+            <div className="text-xs mt-1 text-white/40">让家长进入家长模式来添加</div>
+          </div>
+        )}
+
+        {pendingTasks.length > 0 && (
+          <div className="mt-3">
+            <div className="text-sm text-white/60 mb-2">📋 待安排</div>
+            <div className="space-y-2">
+              {pendingTasks.map(t => (
+                <div key={t.id} className="space-card p-3 flex items-center gap-3">
+                  <SubjectIcon subject={t.subject} />
+                  <div className="flex-1">
+                    <div className="font-medium">{t.title}</div>
+                    <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟 · {t.basePoints} 积分</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => nav('/schedule')} className="space-btn w-full mt-3">📅 去规划今天</button>
+          </div>
+        )}
+
+        {scheduledOrInProgress.length > 0 && (
+          <div className="mt-4">
+            <div className="text-sm text-white/60 mb-2">⏱️ 闯关中</div>
+            <div className="space-y-2">
+              {scheduledOrInProgress.map(t => (
+                <div key={t.id} className="space-card p-3 flex items-center gap-3">
+                  <SubjectIcon subject={t.subject} />
+                  <div className="flex-1">
+                    <div className="font-medium">{t.title}</div>
+                    <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟 · {t.basePoints} 积分</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => nav('/quest')} className="space-btn w-full mt-3">⚔️ 进入闯关</button>
+          </div>
+        )}
+
+        {doneTasks.length > 0 && (
+          <div className="mt-4">
+            <div className="text-sm text-emerald-300 mb-2">✓ 今日已击败 ({doneTasks.length})</div>
+            <div className="space-y-2">
+              {doneTasks.map(t => (
+                <div key={t.id} className="space-card p-3 flex items-center gap-3 opacity-70">
+                  <SubjectIcon subject={t.subject} />
+                  <div className="flex-1">
+                    <div className="font-medium line-through">{t.title}</div>
+                    <div className="text-xs text-white/50">
+                      {t.status === 'evaluated' ? '已评分 ✓' : '等待家长评分...'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SubjectIcon({ subject }: { subject: string }) {
+  const map: Record<string, string> = {
+    math: '🔢', chinese: '📖', english: '🔤', reading: '📚', writing: '✏️', other: '⭐',
+  };
+  return <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xl">{map[subject] ?? '⭐'}</div>;
+}

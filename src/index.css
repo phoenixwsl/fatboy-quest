@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: radial-gradient(ellipse at top, #1a1f4a 0%, #0b1026 40%, #050818 100%);
+  }
+}
+
+@layer components {
+  .space-card {
+    @apply bg-space-card/70 backdrop-blur-md border border-space-border rounded-2xl shadow-2xl;
+  }
+  .space-btn {
+    @apply px-4 py-2 rounded-xl bg-gradient-to-br from-space-nebula to-space-plasma
+           text-white font-semibold shadow-lg active:scale-95 transition-transform
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .space-btn-ghost {
+    @apply px-4 py-2 rounded-xl bg-white/5 text-white border border-white/10
+           active:scale-95 transition-transform;
+  }
+  .glow-text {
+    text-shadow: 0 0 12px rgba(124, 92, 255, 0.8);
+  }
+}
+
+/* 星空背景动画 */
+.stars-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.stars-layer .star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.7;
+  animation: twinkle 3s ease-in-out infinite;
+}
+.stars-layer .star.big {
+  width: 3px;
+  height: 3px;
+  box-shadow: 0 0 6px rgba(255,255,255,0.8);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
