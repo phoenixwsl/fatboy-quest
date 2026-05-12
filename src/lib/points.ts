@@ -102,6 +102,33 @@ export function makePointsEntry(
 }
 
 /**
+ * 计算评分比例（基于 basePointsAtEval 作为 100%）
+ * - 满 5/5/5 = 120%（公式天花板）
+ * - 加上提前奖 / combo 可超过 120%
+ * - 低分态度差 = 较低百分比
+ */
+export function scoreRatio(basePointsAtEval: number, finalPoints: number, extraBonus = 0): number {
+  if (basePointsAtEval <= 0) return 0;
+  return Math.round(((finalPoints + extraBonus) / basePointsAtEval) * 100);
+}
+
+/**
+ * 比例对应的颜色档位：
+ *   <60%  : 红（不达标）
+ *   60-89 : 黄（一般）
+ *   90-109: 绿（达标）
+ *   110-129: 蓝（优秀）
+ *   >=130 : 金（超神）
+ */
+export function ratioColorClass(ratio: number): string {
+  if (ratio >= 130) return 'text-amber-300';
+  if (ratio >= 110) return 'text-sky-300';
+  if (ratio >= 90)  return 'text-emerald-300';
+  if (ratio >= 60)  return 'text-yellow-300';
+  return 'text-rose-300';
+}
+
+/**
  * 给任务生成评分对象
  * @param basePointsAtEval 家长在评分时确认或修改的基础积分（v3）
  */

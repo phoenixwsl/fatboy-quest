@@ -76,6 +76,31 @@ describe('ensureDailyTasksForDate', () => {
   });
 });
 
+describe('hasInstanceToday', () => {
+  it('returns false when no tasks', async () => {
+    const { hasInstanceToday } = await import('../src/lib/recurrence');
+    expect(hasInstanceToday('d1', '2026-05-12', [])).toBe(false);
+  });
+  it('returns true when an instance exists for today (any status)', async () => {
+    const { hasInstanceToday } = await import('../src/lib/recurrence');
+    expect(hasInstanceToday('d1', '2026-05-12', [
+      task({ definitionId: 'd1', date: '2026-05-12', status: 'pending' }),
+    ])).toBe(true);
+    expect(hasInstanceToday('d1', '2026-05-12', [
+      task({ definitionId: 'd1', date: '2026-05-12', status: 'evaluated' }),
+    ])).toBe(true);
+  });
+  it('returns false for different date or different def', async () => {
+    const { hasInstanceToday } = await import('../src/lib/recurrence');
+    expect(hasInstanceToday('d1', '2026-05-12', [
+      task({ definitionId: 'd1', date: '2026-05-11' }),
+    ])).toBe(false);
+    expect(hasInstanceToday('d1', '2026-05-12', [
+      task({ definitionId: 'd2', date: '2026-05-12' }),
+    ])).toBe(false);
+  });
+});
+
 describe('makeWeeklyInstance', () => {
   it('creates a task tied to the weekly def', () => {
     const t = makeWeeklyInstance(def({ id: 'w1', type: 'weekly-min', weeklyMinTimes: 3 }), '2026-05-12');

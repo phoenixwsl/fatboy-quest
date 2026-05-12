@@ -13,7 +13,8 @@ import { useAppStore } from '../store/useAppStore';
 import { APP_VERSION } from '../version';
 import { HeatmapStrip } from '../components/HeatmapStrip';
 import { isWeekend } from '../lib/weekendMode';
-import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance } from '../lib/recurrence';
+import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance, hasInstanceToday } from '../lib/recurrence';
+import { scoreRatio, ratioColorClass } from '../lib/points';
 
 export function HomePage() {
   const nav = useNavigate();
@@ -27,6 +28,7 @@ export function HomePage() {
   const pointsEntries = useLiveQuery(() => db.points.toArray());
   const taskDefs = useLiveQuery(() => db.taskDefinitions.toArray());
   const [addOpen, setAddOpen] = useState(false);
+  const [doneCollapsed, setDoneCollapsed] = useState(true);
   const weekendMode = !!(settings?.weekendModeEnabled !== false && isWeekend(new Date()));
 
   // 同步音效开关
@@ -131,7 +133,7 @@ export function HomePage() {
         </div>
       </motion.div>
 
-      {/* 今日任务区 */}
+      {/* 今日任务区（R1.3.1 重排序：待安排/闯关中/本周任务 在前；已击败折叠在后） */}
       <div className="mt-6">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-bold">今日小怪 ({(pendingTasks.length + scheduledOrInProgress.length + doneTasks.length) || 0})</h2>
@@ -193,34 +195,26 @@ export function HomePage() {
             <button onClick={() => { sounds.play('tap'); nav('/quest'); }} className="space-btn w-full mt-3">⚔️ 进入闯关</button>
           </div>
         )}
-
-        {doneTasks.length > 0 && (
-          <div className="mt-4">
-            <div className="text-sm text-emerald-300 mb-2">✓ 今日已击败 ({doneTasks.length})</div>
-            <div className="space-y-2">
-              {doneTasks.map(t => (
-                <div key={t.id} className="space-card p-3 flex items-center gap-3 opacity-80">
-                  <SubjectIcon subject={t.subject} />
-                  <div className="flex-1">
-                    <div className="font-medium line-through">{t.title}</div>
-                    <div className="text-xs text-white/50">
-                      {t.status === 'evaluated' ? '已评分 ✓（积分已入账）' : '等待家长评分...'}
-                    </div>
-                  </div>
-                  {canUndoCompletion(t) && (
-                    <button onClick={() => undoComplete(t.id)}
-                      className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
-                      ↩ 撤回
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      <WeeklyTasksPanel defs={taskDefs ?? []} allTasks={allTasks ?? []} />
+      <WeeklyTasksPanel defs={taskDefs ?? []} allTasks={allTasks ?? []} todayTasks={todayTasks ?? []} />
+
+      {doneTasks.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => { sounds.play('tap'); setDoneCollapsed(c => !c); }}
+            className="w-full flex items-center justify-between text-emerald-300 mb-2 active:scale-95"
+          >
+            <span className="text-sm">✓ 今日已击败 ({doneTasks.length})</span>
+            <span className="text-xs">{doneCollapsed ? '▶ 展开' : '▼ 收起'}</span>
+          </button>
+          {!doneCollapsed && (
+            <div className="space-y-2">
+              {doneTasks.map(t => <DoneTaskCard key={t.id} task={t} onUndo={undoComplete} />)}
+            </div>
+          )}
+        </div>
+      )}
 
       <ChildAddTaskModal open={addOpen} onClose={() => setAddOpen(false)} settings={settings} />
 
@@ -259,13 +253,19 @@ function PetPanelExtras({ todayTasks, defs, allTasks }: { todayTasks: any[]; def
   );
 }
 
-function WeeklyTasksPanel({ defs, allTasks }: { defs: any[]; allTasks: any[] }) {
+function WeeklyTasksPanel({ defs, allTasks, todayTasks }: { defs: any[]; allTasks: any[]; todayTasks: any[] }) {
   const toast = useAppStore(s => s.showToast);
   const weeklyDefs = activeWeeklyDefinitions(defs);
   if (weeklyDefs.length === 0) return null;
+  const today = todayString();
 
   async function doOne(def: any) {
-    const inst = makeWeeklyInstance(def, todayString());
+    if (hasInstanceToday(def.id, today, todayTasks)) {
+      toast('今天已经做过一次了，明天再来 😊', 'warn');
+      sounds.play('error');
+      return;
+    }
+    const inst = makeWeeklyInstance(def, today);
     await db.tasks.add(inst);
     sounds.play('unlock');
     toast(`已加到今日：${def.title}`, 'success');
@@ -278,6 +278,7 @@ function WeeklyTasksPanel({ defs, allTasks }: { defs: any[]; allTasks: any[] }) 
         {weeklyDefs.map(d => {
           const p = weeklyProgress(d, allTasks);
           const isMin = d.type === 'weekly-min';
+          const doneToday = hasInstanceToday(d.id, today, todayTasks);
           return (
             <div key={d.id} className={`space-card p-3 flex items-center gap-3 ${isMin ? 'border-l-4 border-l-fuchsia-500' : 'border-l-4 border-l-sky-500'}`}>
               <SubjectIcon subject={d.subject} />
@@ -287,17 +288,60 @@ function WeeklyTasksPanel({ defs, allTasks }: { defs: any[]; allTasks: any[] }) 
                   <span className={`text-[10px] px-1.5 py-0.5 rounded ${isMin ? 'bg-fuchsia-500/40 text-fuchsia-100' : 'bg-sky-500/40 text-sky-100'}`}>
                     {isMin ? `本周 ${p.done}/${p.target}` : (p.achieved ? '本周已完成' : '本周未完成')}
                   </span>
+                  {doneToday && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200">今日已做</span>}
                 </div>
                 <div className="text-xs text-white/50">{d.estimatedMinutes}分 · {d.basePoints}积分</div>
               </div>
-              {!p.achieved && (
+              {!p.achieved && !doneToday && (
                 <button onClick={() => doOne(d)} className="space-btn-ghost text-sm">+ 做一次</button>
               )}
-              {p.achieved && <div className="text-emerald-300 text-sm">✓</div>}
+              {(p.achieved || doneToday) && <div className="text-emerald-300 text-sm">✓</div>}
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function DoneTaskCard({ task: t, onUndo }: { task: any; onUndo: (id: string) => void }) {
+  const ev = useLiveQuery(async () => {
+    if (!t.evaluationId) return undefined;
+    return await db.evaluations.get(t.evaluationId);
+  }, [t.evaluationId]);
+  const earlyBonus = useLiveQuery(() =>
+    db.points.where('reason').equals('early_bonus').filter(p => p.refId === t.id).toArray(),
+    [t.id],
+  );
+  const earlySum = (earlyBonus ?? []).reduce((s, p) => s + p.delta, 0);
+  const tt = (t.taskType ?? 'normal') as keyof typeof TASK_TYPE_BORDER;
+  const ratio = ev ? scoreRatio(ev.basePointsAtEval, ev.finalPoints, earlySum) : 0;
+  const ratioCls = ratioColorClass(ratio);
+  return (
+    <div className={`space-card p-3 flex items-center gap-3 opacity-90 ${TASK_TYPE_BORDER[tt]}`}>
+      <SubjectIcon subject={t.subject} />
+      <div className="flex-1">
+        <div className="font-medium line-through">{t.title}</div>
+        {ev ? (
+          <div className="text-xs text-white/50 mt-0.5 flex items-center gap-1">
+            预期 {ev.basePointsAtEval} · 实得 <b className="text-white">{ev.finalPoints + earlySum}</b>
+            <span className={`ml-1 font-bold ${ratioCls}`}>({ratio}%)</span>
+            {ratio >= 130 && <span className="text-amber-300 ml-1">🌟</span>}
+            {ratio >= 110 && ratio < 130 && <span className="text-sky-300 ml-1">✨</span>}
+            {ratio < 60 && <span className="text-rose-300 ml-1">💧</span>}
+          </div>
+        ) : (
+          <div className="text-xs text-white/50">等待家长评分...</div>
+        )}
+      </div>
+      {ev ? (
+        <div className={`text-2xl font-black tabular-nums ${ratioCls}`}>{ratio}%</div>
+      ) : canUndoCompletion(t) ? (
+        <button onClick={() => onUndo(t.id)}
+          className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
+          ↩ 撤回
+        </button>
+      ) : null}
     </div>
   );
 }

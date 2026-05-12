@@ -65,6 +65,18 @@ export function ensureDailyTasksForDate(
 }
 
 /**
+ * 判断同一个 definition 今天是否已经有过实例（用于"一天只能做一次"限制）
+ * 任意状态都算（pending / scheduled / inProgress / done / evaluated）
+ */
+export function hasInstanceToday(
+  definitionId: string,
+  date: string,
+  tasks: Task[],
+): boolean {
+  return tasks.some(t => t.definitionId === definitionId && t.date === date);
+}
+
+/**
  * 创建一个 weekly 任务的实例（"今天做一次"）
  */
 export function makeWeeklyInstance(def: TaskDefinition, date: string): Task {
