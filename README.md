@@ -150,14 +150,24 @@ jobs:
 ## 本地开发
 
 ```bash
-npm install        # 安装依赖
+npm install        # 安装依赖（自动通过 prepare 脚本安装 pre-commit 钩子）
 npm run dev        # 本地开发服务器（http://localhost:5173）
 npm test           # 跑所有单元测试
 npm run test:watch # 监听模式
 npm run typecheck  # 仅类型检查
 npm run build      # 构建生产包到 dist/
 npm run preview    # 预览构建产物
+npm run verify     # 一次跑 typecheck + 测试 + 构建（pre-commit 同款）
 ```
+
+### Pre-commit 钩子（防破窗）
+
+每次 `git commit` 自动跑 TypeScript 类型检查 + Vitest + Vite 构建，**任一失败拒绝提交**。
+
+- 首次 clone 后运行 `npm install`（会自动设置 `core.hooksPath=.githooks`）
+- 也可手动设置：`npm run setup-hooks`
+- 仅 docs 改动会自动跳过（README、md 文件不触发完整验证）
+- 紧急绕过：`git commit --no-verify`（不推荐，CI 仍会拦下）
 
 ---
 

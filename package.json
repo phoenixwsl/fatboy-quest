@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "deploy": "npm run build && gh-pages -d dist"
+    "deploy": "npm run build && gh-pages -d dist",
+    "setup-hooks": "git config core.hooksPath .githooks && echo '✓ pre-commit hook installed'",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "verify": "npx tsc -b && npx vitest run && npx vite build --outDir /tmp/fatboy-verify --emptyOutDir && rm -rf /tmp/fatboy-verify"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

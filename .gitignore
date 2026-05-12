@@ -1,6 +1,10 @@
 node_modules
 dist
 dist-ssr
+.build-check
+
+# 沙盒测试遗留（手动删 src/bad-test.tsx 即可）
+src/bad-test.tsx
 *.local
 .DS_Store
 .vscode/*
