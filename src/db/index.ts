@@ -223,6 +223,65 @@ export async function initializeDB() {
     { id: 'preset-mixue', name: '蜜雪冰城券', emoji: '🥤', costPoints: 150, stockPerWeek: 2, redeemedThisWeek: 0, weekKey: null, enabled: true },
     { id: 'preset-guard', name: '守护卡（保护连击）', emoji: '🛡️', costPoints: 0, stockPerWeek: 99, redeemedThisWeek: 0, weekKey: null, enabled: true },
   ]);
+
+  // R3.0.1: 内置爸爸 / 妈妈 Bark 接收人
+  await ensureDefaultRecipients();
+}
+
+// R3.0.1: 内置默认 Bark 接收人（首次初始化 + 老用户兜底）
+// R3.0.2: 修正 — 之前 mom / dad 的 key 写反了，加自动纠正
+export async function ensureDefaultRecipients() {
+  // 正确对应关系
+  const MOM_KEY = 'DfjzKiUDcfdWLcnMeR6jXf';
+  const DAD_KEY = 'aWEsiXKUPXgZAPNiz6r835';
+
+  const DEFAULTS = [
+    {
+      id: 'preset-mom',
+      label: '妈妈',
+      emoji: '👩',
+      serverUrl: 'https://api.day.app',
+      key: MOM_KEY,
+    },
+    {
+      id: 'preset-dad',
+      label: '爸爸',
+      emoji: '👨',
+      serverUrl: 'https://api.day.app',
+      key: DAD_KEY,
+    },
+  ];
+
+  const existing = await db.recipients.toArray();
+
+  // R3.0.2 一次性纠正：如果 preset-mom / preset-dad 存在但 key 反了 → 修
+  for (const d of DEFAULTS) {
+    const found = existing.find(r => r.id === d.id);
+    if (found && found.key !== d.key) {
+      await db.recipients.update(d.id, { key: d.key, label: d.label, emoji: d.emoji });
+    }
+  }
+
+  // 首次添加（如果还没有这条预置）
+  const refreshed = await db.recipients.toArray();
+  const existingIds = new Set(refreshed.map(r => r.id));
+  const existingKeys = new Set(refreshed.map(r => r.key));
+  for (const d of DEFAULTS) {
+    if (existingIds.has(d.id)) continue;
+    if (existingKeys.has(d.key)) continue; // 用户自己加过同 key（自定义 id）→ 跳过
+    await db.recipients.add({
+      ...d,
+      subTaskDone: true,
+      subRoundDone: true,
+      subMilestone: true,
+      subPendingReview: true,
+      subWeeklyReport: true,
+      subHelp: true,
+      subStreakAlert: true,
+      subShopPurchase: true,
+      enabled: true,
+    } as any);
+  }
 }
 
 export function hashAnswer(answer: string): string {

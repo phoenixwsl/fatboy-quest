@@ -65,6 +65,7 @@ function SortableRow({ item, onRemove, onAdjust }: {
 export function SchedulePage() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const today = todayString();
   const pendingTasks = useLiveQuery(() => db.tasks.where({ date: today, status: 'pending' }).toArray(), [today]);
   const inFlightTasks = useLiveQuery(() => db.tasks.where({ date: today }).filter(t => t.status === 'scheduled' || t.status === 'inProgress').toArray(), [today]);
@@ -162,11 +163,26 @@ export function SchedulePage() {
 
   async function lockAndStart() {
     if (taskCount === 0) { toast('至少安排 1 项作业', 'warn'); sounds.play('error'); return; }
+
+    // R3.0.1: 加二次确认，防止误锁定（一旦锁定 task 进 scheduled，需要撤回才能改）
+    const taskTitles = board
+      .filter(b => b.kind === 'task' && b.task)
+      .map(b => `• ${b.task!.title}（${b.duration} 分）`)
+      .join('\n');
+    const restCount = board.filter(b => b.kind === 'rest').length;
+    const totalMin = board.reduce((s, b) => s + b.duration, 0);
+    const ok = await confirmModal({
+      title: `锁定 ${taskCount} 项任务的时间轴？`,
+      body: `${taskTitles}${restCount > 0 ? `\n（含 ${restCount} 个休息块）` : ''}\n\n总用时约 ${totalMin} 分钟。锁定后会进入闯关。`,
+      emoji: '🔒',
+      tone: 'info',
+      confirmLabel: '锁定并开始',
+    });
+    if (!ok) return;
+
     const items: ScheduleItem[] = timed.map(t => ({
       kind: t.kind, taskId: t.taskId, startMinute: t.start, durationMinutes: t.duration,
     }));
-    // R2.3.2: round 真递增（之前硬编码 1 导致 QuestPage 排序退化为 id 字典序，
-    // 在某些时序下选错 schedule，R2.2.6 已有兜底）
     const existingToday = await db.schedules.where({ date: today }).toArray();
     const nextRound = (existingToday.reduce((max, s) => Math.max(max, s.round ?? 0), 0)) + 1;
     const scheduleId = `${today}_round_${nextRound}_${Date.now()}`;

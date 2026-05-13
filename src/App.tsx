@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, initializeDB } from './db';
+import { db, initializeDB, ensureDefaultRecipients } from './db';
 import { BackgroundCanvas, type TimePeriod } from './components/BackgroundCanvas';
 import { Toast } from './components/Toast';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -58,6 +58,8 @@ export default function App() {
     (async () => {
       // R2.3.4: 全局错误收集需要在 DB 初始化后挂（写日志要 DB 就绪）
       await initializeDB();
+      // R3.0.1: 老用户兜底 — 确保爸爸 / 妈妈预置 Bark key 存在
+      try { await ensureDefaultRecipients(); } catch {}
       installGlobalErrorLogger();
       // 启动时补齐今日的"每日必做"实例（一次性，幂等）
       try { await generateTodayDailyTasks(db as any); } catch {}

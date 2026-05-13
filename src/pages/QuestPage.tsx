@@ -931,7 +931,14 @@ function TaskActiveCard({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
       className="p-6 text-center rounded-[var(--radius-lg)]"
-      style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-md)' }}
+      style={{
+        // R3.0.1: 运行中卡片加暖黄渐变背景 + 暖边，跟白底页面拉开对比
+        background: overtime
+          ? 'linear-gradient(180deg, #FFF0F0, #FFE0E0)'
+          : 'linear-gradient(180deg, var(--fatboy-50), #FFFAF0)',
+        boxShadow: 'var(--shadow-md)',
+        border: `3px solid ${overtime ? 'var(--danger)' : 'var(--fatboy-500)'}`,
+      }}
     >
       {/* 顶部并排：肥仔 + 小怪 受损态 */}
       <div className="flex items-center justify-center gap-3 mb-2">
@@ -950,25 +957,40 @@ function TaskActiveCard({
           })()}
         </div>
       </div>
-      <div className="text-sm" style={{ color: 'var(--ink-muted)' }}>当前小怪</div>
+      <div className="text-sm font-medium" style={{ color: 'var(--ink-muted)' }}>当前小怪</div>
       <div className="text-xl font-bold mt-0.5" style={{ color: 'var(--ink)' }}>{task.title}</div>
 
       {/* R2.5.A: 4 颗专注⭐ */}
       <FocusStars usedMs={elapsedMs} totalMs={totalSec * 1000} />
 
-      {/* 倒计时大字 — Fredoka tabular */}
+      {/* R3.0.1: 倒计时大字 — 加深色背景框 + Fredoka tabular，从远处看清楚 */}
       <div
-        className="text-num text-6xl font-bold my-4"
+        className="my-4 mx-auto inline-block px-6 py-3 rounded-[var(--radius-lg)]"
         style={{
-          color: overtime ? 'var(--danger)' : paused ? 'var(--fatboy-700)' : 'var(--ink)',
+          background: overtime
+            ? 'var(--danger)'
+            : paused
+            ? 'var(--fatboy-300)'
+            : 'var(--ink)',                       // 倒计时正常时用墨色深底
+          boxShadow: 'var(--shadow-md)',
           ...(overtime ? { animation: 'fb-shake 0.45s ease-in-out infinite' } : {}),
         }}
       >
-        {paused
-          ? `${Math.floor(pauseRemainSec / 60)}:${String(pauseRemainSec % 60).padStart(2, '0')}`
-          : overtime
-          ? `+${String(overtimeMin).padStart(2, '0')}:${String(overtimeSecOnly).padStart(2, '0')}`
-          : `${String(remMin).padStart(2, '0')}:${String(remSecOnly).padStart(2, '0')}`}
+        <div
+          className="text-num font-bold leading-none"
+          style={{
+            color: '#fff',
+            fontSize: 72,                          // 比之前 text-6xl(60px) 还大
+            letterSpacing: '0.01em',
+            textShadow: '0 2px 8px rgba(0,0,0,0.25)',
+          }}
+        >
+          {paused
+            ? `${Math.floor(pauseRemainSec / 60)}:${String(pauseRemainSec % 60).padStart(2, '0')}`
+            : overtime
+            ? `+${String(overtimeMin).padStart(2, '0')}:${String(overtimeSecOnly).padStart(2, '0')}`
+            : `${String(remMin).padStart(2, '0')}:${String(remSecOnly).padStart(2, '0')}`}
+        </div>
       </div>
       <div
         className="text-xs"
