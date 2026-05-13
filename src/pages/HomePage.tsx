@@ -15,6 +15,7 @@ import { HeatmapStrip } from '../components/HeatmapStrip';
 import { isWeekend } from '../lib/weekendMode';
 import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance, hasInstanceToday } from '../lib/recurrence';
 import { scoreRatio, ratioColorClass } from '../lib/points';
+import { detectHealActions, isHealNeeded } from '../lib/heal';
 
 export function HomePage() {
   const nav = useNavigate();
@@ -25,11 +26,42 @@ export function HomePage() {
   const streak = useLiveQuery(() => db.streak.get('singleton'));
   const todayTasks = useLiveQuery(() => db.tasks.where({ date: today }).toArray(), [today]);
   const allTasks = useLiveQuery(() => db.tasks.toArray());
+  const todaySchedules = useLiveQuery(() => db.schedules.where({ date: today }).toArray(), [today]);
   const pointsEntries = useLiveQuery(() => db.points.toArray());
   const taskDefs = useLiveQuery(() => db.taskDefinitions.toArray());
   const [addOpen, setAddOpen] = useState(false);
   const [doneCollapsed, setDoneCollapsed] = useState(true);
   const weekendMode = !!(settings?.weekendModeEnabled !== false && isWeekend(new Date()));
+
+  // R2.0.2: 自愈死锁 - 检测并修复状态不一致
+  useEffect(() => {
+    if (!allTasks || !todaySchedules) return;
+    const plan = detectHealActions(allTasks, todaySchedules, today);
+    if (!isHealNeeded(plan)) return;
+    (async () => {
+      for (const sid of plan.uncompleteScheduleIds) {
+        await db.schedules.update(sid, {
+          completedAt: undefined,
+          comboPeakInRound: undefined,
+          comboBonusPoints: undefined,
+          reportShownAt: undefined,
+        });
+      }
+      for (const tid of plan.resetTaskIds) {
+        await db.tasks.update(tid, {
+          status: 'pending',
+          actualStartedAt: undefined,
+          pausedAt: undefined,
+          completedAt: undefined,
+        });
+      }
+      const total = plan.uncompleteScheduleIds.length + plan.resetTaskIds.length;
+      if (total > 0) {
+        toast(`🔧 自动修复了 ${total} 处状态异常，请重新规划`, 'info');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTasks?.length, todaySchedules?.length, today]);
 
   // 同步音效开关
   useEffect(() => { syncFromSettings(settings?.soundEnabled); }, [settings?.soundEnabled]);
