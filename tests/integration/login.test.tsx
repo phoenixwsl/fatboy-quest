@@ -149,40 +149,25 @@ describe('L · ParentGate PIN 门禁', () => {
 
   it('L8: 忘记 PIN → 答对密保 + 输入新 PIN → settings.pin 更新', async () => {
     renderGate();
-    fireEvent.click(await screen.findByRole('button', { name: /忘记 PIN/ }));
+    // 等"忘记 PIN？"按钮出现（settings useLiveQuery 加载完）
+    const forgotBtn = await screen.findByRole('button', { name: /忘记 PIN/ });
+    fireEvent.click(forgotBtn);
 
-    // ParentGate 切到忘记 PIN 表单，包含密保答案 + 新 PIN
-    // 由于内部 input 没明确的 placeholder，找输入框时按顺序拿
-    const inputs = screen.getAllByRole('textbox');
-    expect(inputs.length).toBeGreaterThan(0);
+    // 等忘记 PIN 表单的占位符出现（state 切换 + 重新渲染完成）
+    const answerInput = await screen.findByPlaceholderText('密保答案');
+    const newPinInput = await screen.findByPlaceholderText(/设置新的 4 位 PIN/);
 
-    // 找到 password 类型的 input（新 PIN）
-    const allInputs = document.querySelectorAll('input');
-    // 密保答案是 type=text，新 PIN 是 type=password 或 inputMode=numeric
-    let answerEl: HTMLInputElement | undefined;
-    let newPinEl: HTMLInputElement | undefined;
-    allInputs.forEach((el) => {
-      if (el.type === 'password' || el.inputMode === 'numeric') newPinEl = el as HTMLInputElement;
-      else if (el.type === 'text') answerEl = el as HTMLInputElement;
-    });
-    expect(answerEl).toBeDefined();
-    expect(newPinEl).toBeDefined();
-
-    // Mock window.alert (ParentGate 用了 alert)
+    // 屏蔽 ParentGate.resetPin 里的 window.alert
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    fireEvent.change(answerEl!, { target: { value: '答案' } });
-    fireEvent.change(newPinEl!, { target: { value: '9999' } });
-    const resetBtns = screen.getAllByRole('button');
-    const resetBtn = resetBtns.find(b => /重置|确定/.test(b.textContent ?? '') && b.textContent !== '确定');
-    // 应有一个"重置 PIN"按钮
-    const finalBtn = resetBtns.find(b => b.textContent?.includes('重置')) ?? resetBtn;
-    if (finalBtn) fireEvent.click(finalBtn);
+    fireEvent.change(answerInput, { target: { value: '答案' } });
+    fireEvent.change(newPinInput, { target: { value: '9999' } });
+    fireEvent.click(screen.getByRole('button', { name: '重置 PIN' }));
 
     await waitFor(async () => {
       const s = await db.settings.get('singleton');
       expect(s?.pin).toBe('9999');
-    });
+    }, { timeout: 3000 });
 
     alertSpy.mockRestore();
   });

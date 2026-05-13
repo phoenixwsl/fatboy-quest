@@ -85,15 +85,12 @@ describe('HP · HomePage 渲染', () => {
 
     renderHome();
 
-    // 待安排
+    // 全部断言在 waitFor 里 — useLiveQuery 在 CI 上慢
     await waitFor(() => {
       expect(screen.getByText('pending-task')).toBeInTheDocument();
-    });
-    // 闯关中
-    expect(screen.getByText('scheduled-task')).toBeInTheDocument();
-    // 已击败（默认折叠，但 header 计数可见 — "✓ 今日已击败 (1)"）
-    expect(screen.getByText(/今日已击败/)).toBeInTheDocument();
-    expect(screen.getByText(/今日已击败 \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText('scheduled-task')).toBeInTheDocument();
+      expect(screen.getByText(/今日已击败 \(1\)/)).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it('HP2: scheduledOrInProgress > 0 时显示"未完成闯关"横幅', async () => {
@@ -106,8 +103,8 @@ describe('HP · HomePage 渲染', () => {
     renderHome();
     await waitFor(() => {
       expect(screen.getByText(/你有未完成的闯关/)).toBeInTheDocument();
-    });
-    expect(screen.getByText(/1 个小怪还在等你/)).toBeInTheDocument();
+      expect(screen.getByText(/1 个小怪还在等你/)).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it('HP3: 点"📅 去规划今天" → nav 到 /schedule', async () => {
@@ -155,11 +152,12 @@ describe('SP · SchedulePage 流程', () => {
 
     renderSchedule();
 
+    // 把所有断言都放进 waitFor — useLiveQuery 在 CI 上比本地慢
     await waitFor(() => {
       expect(screen.getByText(/待安排/)).toBeInTheDocument();
-    });
-    expect(screen.getByText('语文')).toBeInTheDocument();
-    expect(screen.getByText('数学')).toBeInTheDocument();
+      expect(screen.getByText('语文')).toBeInTheDocument();
+      expect(screen.getByText('数学')).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   it('SP2: 有 inFlight（scheduled/inProgress）任务时自动跳 /quest', async () => {

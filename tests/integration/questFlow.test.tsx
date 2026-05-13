@@ -86,19 +86,17 @@ describe('QuestPage 渲染（核心 happy path 回归）', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('raz阅读').length).toBeGreaterThan(0);
+      expect(screen.getByText(/我要开始/)).toBeInTheDocument();
     }, { timeout: 3000 });
-    expect(screen.getByText(/我要开始/)).toBeInTheDocument();
   });
 
   it('没有任何 schedule → 渲染 fallback（不是空白页）', async () => {
     renderQuest();
-    // 至少要看到 fallback 的文案，不能整页空白
     await waitFor(() => {
       expect(screen.getByText(/这里没有进行中的闯关/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /去规划/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /回首页/ })).toBeInTheDocument();
     }, { timeout: 3000 });
-    // fallback 应该有"去规划"和"回首页"按钮
-    expect(screen.getByRole('button', { name: /去规划/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /回首页/ })).toBeInTheDocument();
   });
 
   it('schedule 存在但 completedAt 已设 → 应当 fallback（被视为完成）', async () => {
@@ -205,8 +203,8 @@ describe('QuestPage 渲染（核心 happy path 回归）', () => {
     // QuestPage 应当跳过 t1 / t3（evaluated）找到 t2（scheduled）作为 active
     await waitFor(() => {
       expect(screen.getByText(/我要开始/)).toBeInTheDocument();
+      expect(screen.getAllByText('task B').length).toBeGreaterThan(0);
     }, { timeout: 3000 });
-    expect(screen.getAllByText('task B').length).toBeGreaterThan(0);
   });
 
   it('已 evaluated 的任务不能撤回 — 但若 schedule.completedAt 被人为清掉，QuestPage 仍渲染"全部击败"而不是空白', async () => {
