@@ -8,6 +8,7 @@ import type { Task } from '../types';
 import { calcFinalPoints, makeEvaluation } from './points';
 import { earlyBonus } from './earlyBonus';
 import { calcCombo, comboBonusPoints } from './combo';
+import { difficultyBonus } from './difficulty';
 import { newId } from './ids';
 
 export interface EvalInput {
@@ -25,6 +26,7 @@ export interface EvalResult {
   finalPoints: number;
   earlyBonusPoints: number;
   comboBonusPoints?: number;
+  difficultyBonusPoints?: number;
 }
 
 /**
@@ -62,6 +64,9 @@ export async function evaluateTaskOnce(
     qualityStars: input.quality,
   });
 
+  // R3.2: 难度奖（1 星 +0 / 2 星 +5 / 3 星 +10）
+  const difficultyBonusPts = difficultyBonus(task.difficulty);
+
   let comboBonus = 0;
 
   await db.transaction('rw', db.evaluations, db.tasks, db.points, db.schedules, async () => {
@@ -81,6 +86,13 @@ export async function evaluateTaskOnce(
         id: newId('pt'), ts: Date.now(), delta: earlyBonusPts,
         reason: 'early_bonus', refId: task.id,
       });
+    }
+    // R3.2: 难度奖
+    if (difficultyBonusPts > 0) {
+      await db.points.add({
+        id: newId('pt'), ts: Date.now(), delta: difficultyBonusPts,
+        reason: 'difficulty_bonus', refId: task.id,
+      } as any);
     }
     // 检查所属 schedule 是否所有任务都已评分 → combo 加分
     const schedules = await db.schedules.where({ date: task.date }).toArray();
@@ -116,6 +128,7 @@ export async function evaluateTaskOnce(
     finalPoints: ev.finalPoints,
     earlyBonusPoints: earlyBonusPts,
     comboBonusPoints: comboBonus > 0 ? comboBonus : undefined,
+    difficultyBonusPoints: difficultyBonusPts > 0 ? difficultyBonusPts : undefined,
   };
 }
 

@@ -111,6 +111,12 @@ export function ParentSettings() {
         <div className="text-xs text-white/40 mt-2">点选项可试听</div>
       </div>
 
+      {/* R3.1: 外观主题 */}
+      <div className="space-card p-4 mb-3">
+        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>🎨 外观主题</div>
+        <ThemePicker />
+      </div>
+
       <div className="space-card p-4 mb-3">
         <div className="text-sm text-white/70 mb-2">💤 Idle Nag（5 分钟无操作蛋仔催）</div>
         <button
@@ -369,6 +375,77 @@ function ResetAllButton() {
           🗑 删除全部
         </button>
       </div>
+    </div>
+  );
+}
+
+// R3.1: 主题选择
+const THEMES = [
+  {
+    id: 'cozy' as const,
+    name: '温馨',
+    desc: '黄色调',
+    preview: { bg: 'linear-gradient(135deg, #FFF6D0, #FFE082)', dot: '#F4C752' },
+  },
+  {
+    id: 'starry' as const,
+    name: '星空',
+    desc: '蓝色调',
+    preview: { bg: 'linear-gradient(135deg, #1B2547, #0E1226)', dot: '#5B4FE9' },
+  },
+  {
+    id: 'mecha' as const,
+    name: '机械',
+    desc: '深炭金属',
+    preview: { bg: 'linear-gradient(135deg, #1F2532, #0E121E)', dot: '#00D4FF' },
+  },
+];
+
+function ThemePicker() {
+  const settings = useLiveQuery(() => db.settings.get('singleton'));
+  const current =
+    settings?.themeId === 'space' ? 'starry' :
+    (settings?.themeId as 'cozy' | 'starry' | 'mecha' | undefined) ?? 'cozy';
+
+  async function pick(id: 'cozy' | 'starry' | 'mecha') {
+    await db.settings.update('singleton', { themeId: id });
+    sounds.play('tap');
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {THEMES.map(t => {
+        const active = t.id === current;
+        return (
+          <button
+            key={t.id}
+            onClick={() => pick(t.id)}
+            className="p-3 rounded-[var(--radius-md)] text-center transition-all active:scale-95"
+            style={{
+              background: 'var(--paper)',
+              border: `2px solid ${active ? 'var(--fatboy-500)' : 'var(--fog)'}`,
+              ...(active ? { boxShadow: 'var(--glow-fatboy)' } : {}),
+            }}
+          >
+            <div
+              className="h-12 rounded-[var(--radius-sm)] mb-2 relative"
+              style={{ background: t.preview.bg }}
+            >
+              <span
+                className="absolute right-2 top-2 w-3 h-3 rounded-full"
+                style={{ background: t.preview.dot, boxShadow: `0 0 8px ${t.preview.dot}` }}
+              />
+            </div>
+            <div className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{t.name}</div>
+            <div className="text-[10px]" style={{ color: 'var(--ink-muted)' }}>{t.desc}</div>
+            {active && (
+              <div className="text-[10px] mt-1 font-bold" style={{ color: 'var(--fatboy-700)' }}>
+                ✓ 当前
+              </div>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

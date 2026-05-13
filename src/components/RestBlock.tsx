@@ -87,32 +87,73 @@ export function RestBlock({ durationMinutes, startedAt, leadInSec = 60, onComple
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`space-card p-6 text-center ${ended ? 'ring-4 ring-emerald-400 animate-pulse' : urgent ? 'ring-2 ring-amber-400' : ''}`}
+      className="p-6 text-center rounded-[var(--radius-lg)]"
+      style={{
+        // R3.0.3: 跟 TaskActiveCard 一致：暖蓝渐变 + 描边
+        background: ended
+          ? 'linear-gradient(180deg, #E8FBF1, #C9F2DD)'
+          : 'linear-gradient(180deg, #E8F5FB, #C8E0EF)',
+        boxShadow: 'var(--shadow-md)',
+        border: `3px solid ${ended ? 'var(--success)' : 'var(--sky-500)'}`,
+        ...(ended ? { animation: 'fb-bouncing 2s ease-in-out infinite' } : {}),
+      }}
     >
       <div className="text-5xl mb-2">{ended ? '🔔' : '☕'}</div>
-      <div className="text-lg text-white/70 mb-1">{ended ? '休息结束啦！' : '休息中'}</div>
-      <div className={`text-7xl font-black my-3 tabular-nums ${
-        ended ? 'text-emerald-300' :
-        urgent ? 'text-amber-300 animate-pulse' : 'text-white'
-      }`}>
-        {ended
-          ? '🎉'
-          : `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`}
+      <div className="text-base font-medium mb-1" style={{ color: 'var(--ink)' }}>
+        {ended ? '休息结束啦！' : '休息中'}
       </div>
-      <div className="text-sm text-white/50 mb-4">
+      {/* 倒计时大字 — 跟 TaskActiveCard 一致 */}
+      <div
+        className="my-3 mx-auto inline-block px-6 py-3 rounded-[var(--radius-lg)]"
+        style={{
+          background: ended
+            ? 'var(--success)'
+            : urgent
+            ? 'var(--fatboy-500)'
+            : 'var(--sky-700)',
+          boxShadow: 'var(--shadow-md)',
+          ...(urgent && !ended ? { animation: 'fb-shake 0.45s ease-in-out infinite' } : {}),
+        }}
+      >
+        <div
+          className="text-num font-bold leading-none"
+          style={{
+            color: '#fff',
+            fontSize: 72,
+            letterSpacing: '0.01em',
+            textShadow: '0 2px 8px rgba(0,0,0,0.25)',
+          }}
+        >
+          {ended ? '🎉' : `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`}
+        </div>
+      </div>
+      <div className="text-sm mb-4" style={{ color: 'var(--ink-muted)' }}>
         {ended
           ? `准备好开始下一项 ${ringCount > 0 ? `(响铃 ${ringCount}/${MAX_RING_REPEATS})` : ''}`
           : urgent ? '休息快结束啦' : '放松眼睛 · 喝口水'}
       </div>
-      <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+      <div
+        className="h-2 rounded-full overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.5)' }}
+      >
         <motion.div
-          className={`h-full ${ended ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-cyan-400 to-cyan-200'}`}
+          className="h-full"
+          style={{
+            background: ended
+              ? 'linear-gradient(90deg, var(--success), #A0E6A0)'
+              : 'linear-gradient(90deg, var(--sky-500), var(--sky-300))',
+          }}
           animate={{ width: `${pct}%` }}
         />
       </div>
-      <button onClick={handleEndRest} className={`w-full text-lg mt-4 ${ended ? 'space-btn animate-pulse-glow' : 'space-btn'}`}>
-        {ended ? '🚀 开始下一项' : '▶ 跳过休息，开始下一项'}
-      </button>
+      <div className="flex justify-center mt-4">
+        <button onClick={handleEndRest} className="primary-btn">
+          <span className="primary-btn-bottom" aria-hidden />
+          <span className="primary-btn-top" style={{ fontSize: 16 }}>
+            {ended ? '🚀 开始下一项' : '▶ 跳过休息'}
+          </span>
+        </button>
+      </div>
     </motion.div>
   );
 }

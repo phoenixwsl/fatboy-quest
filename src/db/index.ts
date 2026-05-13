@@ -184,7 +184,7 @@ export async function initializeDB() {
     pin: '',
     securityQuestion: '',
     securityAnswer: '',
-    themeId: 'space',
+    themeId: 'cozy',                  // R3.1 默认温馨黄
     notificationsEnabled: false,
     childName: '肥仔',
     setupComplete: false,

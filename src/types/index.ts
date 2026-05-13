@@ -66,6 +66,8 @@ export interface Task {
   overtimeSoundPlayedAt?: number;   // 第一次进入超时时声音已响起的时间（防重）
   // R2.4.3: 完成后家长长时间未评分的提醒
   unevaluatedNotifySentAt?: number; // 防重戳
+  // R3.2: 难度（1-3 星，仅家长可设，默认 1）
+  difficulty?: 1 | 2 | 3;
 }
 
 // v4: 循环任务定义
@@ -83,6 +85,8 @@ export interface TaskDefinition {
   createdAt: number;
   archivedAt?: number;
   lastGeneratedFor?: string;        // 最近一次生成实例时的日期/周
+  // R3.2: 难度（1-3 星）
+  difficulty?: 1 | 2 | 3;
 }
 
 export interface Evaluation {
@@ -201,7 +205,8 @@ export interface Settings {
   pin: string;
   securityQuestion: string;
   securityAnswer: string;
-  themeId: 'space' | string;
+  // R3.1: 主题 — 'cozy'(温馨黄) | 'starry'(星空蓝) | 'mecha'(机械灰)；旧 'space' 自动迁移到 'starry'
+  themeId: 'cozy' | 'starry' | 'mecha' | 'space' | string;
   notificationsEnabled: boolean;
   childName: string;
   setupComplete: boolean;

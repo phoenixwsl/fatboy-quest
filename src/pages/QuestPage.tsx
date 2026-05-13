@@ -17,6 +17,8 @@ import { nextExtensionOffer, canShowExtensionButton } from '../lib/extension';
 import { calcCombo } from '../lib/combo';
 import { summarizeExecution } from '../lib/earlyBonus';
 import { focusStarsCount, shouldGrantLuckyBonus, LUCKY_BONUS_POINTS } from '../lib/microRewards';
+import { DifficultyStars } from '../components/DifficultyStars';
+import { useWakeLock } from '../lib/wakeLock';
 import {
   HandHelping, ArrowLeft, Swords, Play, Zap, Pause, Clock,
   ChevronDown, ChevronUp, Lock,
@@ -306,6 +308,9 @@ export function QuestPage() {
   const activeItem = schedule && activeIdx >= 0 ? schedule.items[activeIdx] : null;
   const activeTask = activeItem?.kind === 'task' && activeItem.taskId
     ? taskMap.get(activeItem.taskId) : null;
+
+  // R3.3: 任务执行中（in-progress 且未暂停）保持屏幕长亮，防止 iPad 自动锁屏
+  useWakeLock(!!activeTask && activeTask.status === 'inProgress' && !activeTask.pausedAt);
 
   // R2.1.1: 跟踪"进入这一项已经多久"——孩子点开始之前的等待计时
   useEffect(() => {
@@ -1092,10 +1097,16 @@ function ScoreDetail({
     db.points.where('reason').equals('lucky_bonus').filter(p => p.refId !== undefined && allTodayTaskIds.includes(p.refId)).toArray(),
     [allTodayTaskIds.join(',')],
   );
+  // R3.2: difficulty_bonus 累计
+  const difficultyEntries = useLiveQuery(() =>
+    db.points.where('reason').equals('difficulty_bonus').filter(p => p.refId !== undefined && allTodayTaskIds.includes(p.refId)).toArray(),
+    [allTodayTaskIds.join(',')],
+  );
   const coreSum = (evs ?? []).reduce((s, e) => s + e.finalPoints, 0);
   const earlySum = (earlyEntries ?? []).reduce((s, p) => s + p.delta, 0);
   const luckySum = (luckyEntries ?? []).reduce((s, p) => s + p.delta, 0);
-  const totalEarned = coreSum + earlySum + luckySum + (schedule.comboBonusPoints ?? 0);
+  const difficultySum = (difficultyEntries ?? []).reduce((s, p) => s + p.delta, 0);
+  const totalEarned = coreSum + earlySum + luckySum + difficultySum + (schedule.comboBonusPoints ?? 0);
   const evaluatedCount = evs?.length ?? 0;
   const totalCount = (todayTasks ?? []).filter(t => t.status === 'done' || t.status === 'evaluated').length;
 
@@ -1156,6 +1167,18 @@ function ScoreDetail({
             蛋仔彩蛋（今日 <span className="text-num">{luckyEntries?.length ?? 0}</span> 次）
           </div>
           <div className="font-bold text-num" style={{ color: 'var(--magic)' }}>+{luckySum} ⭐</div>
+        </div>
+      )}
+      {difficultySum > 0 && (
+        <div
+          className="p-3 my-2 flex items-center gap-2 rounded-[var(--radius-md)]"
+          style={{ background: 'var(--fatboy-50)', border: '2px solid var(--fatboy-300)' }}
+        >
+          <div className="text-2xl">⭐</div>
+          <div className="flex-1 text-sm" style={{ color: 'var(--ink)' }}>
+            难度挑战奖（今日 <span className="text-num">{difficultyEntries?.length ?? 0}</span> 项）
+          </div>
+          <div className="font-bold text-num" style={{ color: 'var(--fatboy-700)' }}>+{difficultySum} ⭐</div>
         </div>
       )}
     </div>
@@ -1236,6 +1259,7 @@ export function ScoreDetailRow({
             }}
           >
             {t.title}
+            <DifficultyStars difficulty={t.difficulty} />
             {t.isRequired && (
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded"

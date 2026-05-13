@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, initializeDB, ensureDefaultRecipients } from './db';
-import { BackgroundCanvas, type TimePeriod } from './components/BackgroundCanvas';
+import { BackgroundCanvas, type TimePeriod, type ThemeId } from './components/BackgroundCanvas';
 import { Toast } from './components/Toast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { UpdateBanner } from './components/UpdateBanner';
@@ -54,6 +54,15 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
+  // R3.1: 主题切换 — body[data-theme] 由 settings.themeId 决定（旧 'space' → 'starry'）
+  useEffect(() => {
+    if (!settings) return;
+    let theme = settings.themeId;
+    if (!theme || theme === 'space') theme = 'starry';   // 老数据迁移
+    if (!['cozy', 'starry', 'mecha'].includes(theme)) theme = 'cozy';
+    document.body.dataset.theme = theme;
+  }, [settings?.themeId]);
+
   useEffect(() => {
     (async () => {
       // R2.3.4: 全局错误收集需要在 DB 初始化后挂（写日志要 DB 就绪）
@@ -87,7 +96,17 @@ export default function App() {
 
   return (
     <div className={`relative h-full overflow-hidden ${weekendActive ? weekendBgClass : ''}`}>
-      <BackgroundCanvas period={period} />
+      <BackgroundCanvas
+        period={period}
+        theme={
+          (() => {
+            const t = settings.themeId;
+            if (!t || t === 'space') return 'starry';
+            if (['cozy', 'starry', 'mecha'].includes(t)) return t as ThemeId;
+            return 'cozy';
+          })()
+        }
+      />
       <div className="relative z-10 h-full overflow-y-auto">
         <HashRouter>
           <Routes>

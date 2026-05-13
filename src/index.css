@@ -79,10 +79,106 @@
   --font-en:       'Inter', sans-serif;
 }
 
-/* 时段切换 default + 三态 */
-body[data-time-period="day"]   { --bg-from: var(--bg-day-from);   --bg-to: var(--bg-day-to); }
-body[data-time-period="dusk"]  { --bg-from: var(--bg-dusk-from);  --bg-to: var(--bg-dusk-to); }
-body[data-time-period="night"] { --bg-from: var(--bg-night-from); --bg-to: var(--bg-night-to); }
+/* ============================================================
+   R3.1 主题系统 — 3 套 token 覆盖
+   组件代码不动，token 值随 body[data-theme] 切换
+   ============================================================ */
+
+/* ===== 🌻 温馨黄（cozy，默认）===== */
+/* 默认 :root 已是 cozy 配色，这里只接 bg 时段渐变 */
+body[data-theme="cozy"][data-time-period="day"],
+body:not([data-theme])[data-time-period="day"]    { --bg-from: var(--bg-day-from);   --bg-to: var(--bg-day-to); }
+body[data-theme="cozy"][data-time-period="dusk"],
+body:not([data-theme])[data-time-period="dusk"]   { --bg-from: var(--bg-dusk-from);  --bg-to: var(--bg-dusk-to); }
+body[data-theme="cozy"][data-time-period="night"],
+body:not([data-theme])[data-time-period="night"]  { --bg-from: var(--bg-night-from); --bg-to: var(--bg-night-to); }
+
+/* ===== 🌌 星空蓝（starry）===== */
+body[data-theme="starry"] {
+  /* 主色 → 深紫 + 金色 accent */
+  --fatboy-50:      #2A2347;
+  --fatboy-300:     #4A3DB8;
+  --fatboy-500:     #5B4FE9;
+  --fatboy-700:     #FFD93D;          /* 金色对比 */
+  --sky-100:        rgba(0,212,255,0.18);
+  --sky-300:        rgba(0,212,255,0.4);
+  --sky-500:        #00D4FF;
+  --sky-700:        #00B0E0;
+
+  /* 卡片色（dark glass） */
+  --paper:          #1F2A40;
+  --mist:           #2C3A52;
+  --fog:            #3A4A62;
+  --ink:            #F0F4FF;
+  --ink-muted:      #A8B8D0;
+  --ink-faint:      #7888A0;
+
+  --success:        #5BE890;
+  --danger:         #FF6BD6;
+  --magic:          #B8AAFA;
+
+  --rainbow-1:      #FF6BD6;
+  --rainbow-2:      #FFD93D;
+  --rainbow-3:      #00D4FF;
+  --rainbow-4:      #5BE890;
+
+  /* 深底用淡发光阴影 */
+  --shadow-sm:      0 2px 4px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
+  --shadow-lg:      0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+  --glow-fatboy:    0 0 32px rgba(91,79,233,0.5);
+  --glow-sky:       0 0 24px rgba(0,212,255,0.4);
+
+  /* bg 不依赖时段 — 始终深夜空 */
+  --bg-from:        #0E1226;
+  --bg-to:          #1B2547;
+}
+
+/* ===== ⚙️ 机械灰（mecha — 深炭金属 + 霓虹）===== */
+body[data-theme="mecha"] {
+  /* 主色 → 钢灰 + 霓虹蓝 accent */
+  --fatboy-50:      #3A3F4A;
+  --fatboy-300:     #4D5566;
+  --fatboy-500:     #5B6478;
+  --fatboy-700:     #00D4FF;          /* 霓虹蓝主强调 */
+  --sky-100:        rgba(0,212,255,0.15);
+  --sky-300:        rgba(0,212,255,0.35);
+  --sky-500:        #00D4FF;
+  --sky-700:        #0099B8;
+
+  /* 卡片色（deep carbon） */
+  --paper:          #1F2532;
+  --mist:           #252C3D;
+  --fog:            #3A4254;
+  --ink:            #E8EEF7;
+  --ink-muted:      #9BA9BC;
+  --ink-faint:      #6B7B8C;
+
+  --success:        #00FF9C;          /* 霓虹绿 */
+  --danger:         #FF3D5D;
+  --magic:          #BB88FF;
+
+  --rainbow-1:      #FF3D5D;
+  --rainbow-2:      #FF9D3D;
+  --rainbow-3:      #FFD93D;
+  --rainbow-4:      #00FF9C;
+
+  --shadow-sm:      0 2px 4px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,212,255,0.08);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.12);
+  --shadow-lg:      0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.18);
+  --glow-fatboy:    0 0 24px rgba(0,212,255,0.5);
+  --glow-sky:       0 0 24px rgba(0,212,255,0.45);
+
+  /* 机械灰圆角变小，强调棱角 */
+  --radius-xs:      6px;
+  --radius-sm:      10px;
+  --radius-md:      14px;
+  --radius-lg:      18px;
+  --radius-xl:      24px;
+
+  --bg-from:        #1A1F2E;
+  --bg-to:          #0E121E;
+}
 
 @layer base {
   html, body, #root {
@@ -93,6 +189,7 @@ body[data-time-period="night"] { --bg-from: var(--bg-night-from); --bg-to: var(-
   body {
     background: linear-gradient(180deg, var(--bg-from, var(--bg-day-from)), var(--bg-to, var(--bg-day-to)));
     transition: background 60s ease-in-out;
+    color: var(--ink);
   }
 }
 

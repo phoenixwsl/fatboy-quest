@@ -11,6 +11,7 @@ import { extractTemplates, type TaskTemplate } from '../../lib/templates';
 import { TASK_TYPE_LABEL, TASK_TYPE_BORDER, TASK_TYPE_BADGE, weeklyProgress } from '../../lib/recurrence';
 import { useAppStore } from '../../store/useAppStore';
 import { SubjectIcon } from '../HomePage';
+import { DifficultyStars } from '../../components/DifficultyStars';
 import type { SubjectType, Task, TaskDefinition, TaskType } from '../../types';
 
 type FilterKind = 'all' | 'normal' | 'daily-required' | 'weekly-min' | 'weekly-once';
@@ -49,6 +50,7 @@ export function TaskManager() {
   const [date, setDate] = useState(todayString());
   const [isRequired, setIsRequired] = useState(false);
   const [weeklyMinTimes, setWeeklyMinTimes] = useState(3);
+  const [difficulty, setDifficulty] = useState<1 | 2 | 3>(1);  // R3.2 难度
 
   const templates = (() => {
     if (!allTasks) return [];
@@ -92,6 +94,7 @@ export function TaskManager() {
         createdBy: 'parent',
         isRequired: isRequired || undefined,
         taskType: 'normal',
+        difficulty,                       // R3.2
       };
       await db.tasks.add(t);
       toast(`✓ 已添加一次性任务${isRequired ? '（必做）' : ''}`, 'success');
@@ -108,6 +111,7 @@ export function TaskManager() {
         createdAt: Date.now(),
         isRequired: taskType === 'daily-required' ? true : undefined,
         weeklyMinTimes: taskType === 'weekly-min' ? Math.max(1, weeklyMinTimes) : undefined,
+        difficulty,                       // R3.2
       };
       await db.taskDefinitions.add(d);
       toast(`✓ 已添加循环任务：${TASK_TYPE_LABEL[taskType]}`, 'success');
@@ -275,6 +279,32 @@ export function TaskManager() {
             </label>
           )}
 
+          {/* R3.2: 难度选择 — 仅家长可见 */}
+          <div className="mt-3">
+            <div className="text-xs mb-1.5" style={{ color: 'var(--ink-muted)' }}>
+              难度（仅家长可设）
+            </div>
+            <div className="flex gap-2">
+              {[1, 2, 3].map(d => {
+                const active = difficulty === d;
+                const bonus = d === 1 ? '默认' : d === 2 ? '+5 ⭐' : '+10 ⭐';
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setDifficulty(d as 1 | 2 | 3)}
+                    aria-pressed={active}
+                    className={`tag-btn flex-1 ${active ? 'active' : ''}`}
+                  >
+                    {'⭐'.repeat(d)}{'☆'.repeat(3 - d)}
+                    <span className="ml-1 text-[10px]" style={{ color: active ? 'var(--fatboy-700)' : 'var(--ink-faint)' }}>
+                      {bonus}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex justify-center mt-4">
             <button onClick={submitNew} className="primary-btn">
               <span className="primary-btn-bottom" aria-hidden />
@@ -293,6 +323,8 @@ export function TaskManager() {
               <div className="flex-1">
                 <div className="font-medium flex items-center gap-2 flex-wrap">
                   {t.title}
+                  {/* R3.2: 难度星 */}
+                  <DifficultyStars difficulty={t.difficulty} />
                   {t.isRequired && <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
                   {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">孩子加的</span>}
                 </div>

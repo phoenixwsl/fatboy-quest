@@ -26,6 +26,7 @@ import {
 import { newId } from '../lib/ids';
 import { todayString as todayStr } from '../lib/time';
 import { ScoreDetailRow } from './QuestPage';
+import { DifficultyStars } from '../components/DifficultyStars';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
 
@@ -514,6 +515,7 @@ function PendingTaskCard({ task: t, tt, badge }: { task: any; tt: any; badge: an
       <div className="flex-1">
         <div className="font-medium flex items-center gap-2 flex-wrap" style={{ color: 'var(--ink)' }}>
           {t.title}
+          <DifficultyStars difficulty={t.difficulty} />
           {badge && <span className={`text-xs px-1.5 py-0.5 rounded ${badge.class}`}>{badge.label}</span>}
           {t.createdBy === 'child' && (
             <span className="text-xs px-1.5 py-0.5 rounded"
