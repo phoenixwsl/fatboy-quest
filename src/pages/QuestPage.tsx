@@ -207,6 +207,47 @@ export function QuestPage() {
 
   const [waitNagBubble, setWaitNagBubble] = useState<string | null>(null);
 
+  // ============================================================
+  // R2.2.4 核心修复：active 计算 + 两个跟踪 useEffect 必须放在所有
+  // 早返回之前，否则 schedule 从 undefined → 加载完成时 hook 数量变化
+  // 触发 "Rendered more hooks than during the previous render"，整页空白。
+  // ============================================================
+  const activeItem = schedule && activeIdx >= 0 ? schedule.items[activeIdx] : null;
+  const activeTask = activeItem?.kind === 'task' && activeItem.taskId
+    ? taskMap.get(activeItem.taskId) : null;
+
+  // R2.1.1: 跟踪"进入这一项已经多久"——孩子点开始之前的等待计时
+  useEffect(() => {
+    if (!activeItem || activeItem.kind !== 'task' || !activeTask) return;
+    if (activeTask.status !== 'scheduled') return;
+    if (activeTask.firstEncounteredAt) return;
+    db.tasks.update(activeTask.id, { firstEncounteredAt: Date.now() });
+  }, [activeItem, activeTask?.id, activeTask?.status, activeTask?.firstEncounteredAt]);
+
+  useEffect(() => {
+    if (!activeTask || activeTask.status !== 'scheduled') return;
+    if (!activeTask.firstEncounteredAt) return;
+    if (activeTask.startNagSentAt) return;
+    const elapsedSec = (now - activeTask.firstEncounteredAt) / 1000;
+    if (elapsedSec >= 180) {
+      (async () => {
+        await db.tasks.update(activeTask.id, { startNagSentAt: Date.now() });
+        const recipients = await db.recipients.toArray();
+        const childName = settings?.childName ?? '肥仔';
+        const startedAtStr = new Date(activeTask.firstEncounteredAt!).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        pushToRecipients(
+          recipients.filter(r => r.subStreakAlert !== false), 'help' as any, {
+          title: `🕰 ${childName} 在【${activeTask.title}】发呆 3 分钟还没开始`,
+          body: `进入时间：${startedAtStr}，建议你过去看看`,
+          group: 'fatboy-quest',
+        }).catch(() => {});
+      })();
+      setWaitNagBubble('在想什么呢？');
+      setTimeout(() => setWaitNagBubble(null), 10_000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, activeTask?.id, activeTask?.firstEncounteredAt, activeTask?.startNagSentAt]);
+
   // === 启动任务 ===
   async function startTask(taskId: string) {
     const t = await db.tasks.get(taskId);
@@ -492,41 +533,8 @@ export function QuestPage() {
     );
   }
 
-  const activeItem = activeIdx >= 0 ? schedule.items[activeIdx] : null;
-  const activeTask = activeItem?.kind === 'task' && activeItem.taskId
-    ? taskMap.get(activeItem.taskId) : null;
-
-  // R2.1.1: 跟踪"进入这一项已经多久"——孩子点开始之前的等待计时
-  useEffect(() => {
-    if (!activeItem || activeItem.kind !== 'task' || !activeTask) return;
-    if (activeTask.status !== 'scheduled') return;
-    if (activeTask.firstEncounteredAt) return;
-    db.tasks.update(activeTask.id, { firstEncounteredAt: Date.now() });
-  }, [activeItem, activeTask?.id, activeTask?.status, activeTask?.firstEncounteredAt]);
-
-  useEffect(() => {
-    if (!activeTask || activeTask.status !== 'scheduled') return;
-    if (!activeTask.firstEncounteredAt) return;
-    if (activeTask.startNagSentAt) return;
-    const elapsedSec = (now - activeTask.firstEncounteredAt) / 1000;
-    if (elapsedSec >= 180) {
-      (async () => {
-        await db.tasks.update(activeTask.id, { startNagSentAt: Date.now() });
-        const recipients = await db.recipients.toArray();
-        const childName = settings?.childName ?? '肥仔';
-        const startedAtStr = new Date(activeTask.firstEncounteredAt!).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-        pushToRecipients(
-          recipients.filter(r => r.subStreakAlert !== false), 'help' as any, {
-          title: `🕰 ${childName} 在【${activeTask.title}】发呆 3 分钟还没开始`,
-          body: `进入时间：${startedAtStr}，建议你过去看看`,
-          group: 'fatboy-quest',
-        }).catch(() => {});
-      })();
-      setWaitNagBubble('在想什么呢？');
-      setTimeout(() => setWaitNagBubble(null), 10_000);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [now, activeTask?.id, activeTask?.firstEncounteredAt, activeTask?.startNagSentAt]);
+  // 注：activeItem / activeTask 和它们对应的两个 useEffect 已经移到
+  // `if (!schedule) return ...` 之前（修复 "Rendered more hooks" bug）
 
   return (
     <div className="min-h-full p-4 pb-24 text-white">

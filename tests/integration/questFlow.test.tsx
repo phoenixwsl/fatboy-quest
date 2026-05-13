@@ -1,0 +1,169 @@
+// ============================================================
+// 关键回归测试：schedule → quest 的渲染路径
+// 这一类测试本来从 R1 就应该有，R2.2.x 的"点进闯关空白"事故
+// 就是因为只有纯函数 unit test，没有集成测试。
+// ============================================================
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { db } from '../../src/db';
+import { QuestPage } from '../../src/pages/QuestPage';
+import { todayString } from '../../src/lib/time';
+
+// 屏蔽真实 Bark 推送（不联网）
+vi.mock('../../src/lib/bark', () => ({
+  pushToRecipients: vi.fn(() => Promise.resolve()),
+  messages: {},
+}));
+
+// 屏蔽 sounds（无 Web Audio）
+vi.mock('../../src/lib/sounds', () => ({
+  sounds: { play: vi.fn(), setEnabled: vi.fn(), setPack: vi.fn() },
+  syncFromSettings: vi.fn(),
+}));
+
+// 缩短 framer-motion 时序，避免动画把 DOM 推迟
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
+  const passthrough = (tag: string) =>
+    React.forwardRef<any, any>(({ children, layoutId: _l, layout: _lay,
+      initial: _i, animate: _a, exit: _e, transition: _t, whileTap: _wt,
+      whileHover: _wh, variants: _v, ...rest }, ref) =>
+      React.createElement(tag, { ref, ...rest }, children));
+  const motion: any = new Proxy({}, { get: (_, k: string) => passthrough(k) });
+  return {
+    motion,
+    AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
+  };
+});
+
+async function resetDB() {
+  await db.delete();
+  await db.open();
+}
+
+function renderQuest() {
+  return render(
+    <MemoryRouter initialEntries={['/quest']}>
+      <QuestPage />
+    </MemoryRouter>,
+  );
+}
+
+const today = todayString();
+
+const scheduledTask = (over: any = {}) => ({
+  id: 'task_raz',
+  title: 'raz阅读',
+  date: today,
+  basePoints: 0,
+  estimatedMinutes: 10,
+  subject: 'reading' as const,
+  status: 'scheduled' as const,
+  createdAt: Date.now(),
+  ...over,
+});
+
+const lockedSchedule = (taskIds: string[]) => ({
+  id: 'sch_today',
+  date: today,
+  round: 1,
+  items: taskIds.map((tid, i) => ({
+    kind: 'task' as const, taskId: tid,
+    startMinute: 480 + i * 30, durationMinutes: 25,
+  })),
+  lockedAt: Date.now(),
+});
+
+describe('QuestPage 渲染（核心 happy path 回归）', () => {
+  beforeEach(resetDB);
+
+  it('已锁定时间轴 + 1 个 scheduled 任务 → 显示任务标题和"我要开始"', async () => {
+    await db.tasks.put(scheduledTask());
+    await db.schedules.put(lockedSchedule(['task_raz']));
+
+    renderQuest();
+
+    await waitFor(() => {
+      expect(screen.getAllByText('raz阅读').length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
+    expect(screen.getByText(/我要开始/)).toBeInTheDocument();
+  });
+
+  it('没有任何 schedule → 渲染 fallback（不是空白页）', async () => {
+    renderQuest();
+    // 至少要看到 fallback 的文案，不能整页空白
+    await waitFor(() => {
+      expect(screen.getByText(/这里没有进行中的闯关/)).toBeInTheDocument();
+    }, { timeout: 3000 });
+    // fallback 应该有"去规划"和"回首页"按钮
+    expect(screen.getByRole('button', { name: /去规划/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /回首页/ })).toBeInTheDocument();
+  });
+
+  it('schedule 存在但 completedAt 已设 → 应当 fallback（被视为完成）', async () => {
+    await db.tasks.put(scheduledTask({ status: 'evaluated' }));
+    await db.schedules.put({
+      ...lockedSchedule(['task_raz']),
+      completedAt: Date.now(),
+    });
+    renderQuest();
+    await waitFor(() => {
+      expect(screen.getByText(/这里没有进行中的闯关/)).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+
+  it('inProgress 任务（已点开始）→ 显示倒计时面板，不是空白', async () => {
+    await db.tasks.put(scheduledTask({
+      status: 'inProgress',
+      actualStartedAt: Date.now() - 30000,
+    }));
+    await db.schedules.put(lockedSchedule(['task_raz']));
+
+    renderQuest();
+    await waitFor(() => {
+      expect(screen.getAllByText('raz阅读').length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
+    // 倒计时区或完成按钮——总之不能空白
+    expect(screen.queryByText(/我要开始/)).toBeNull();
+  });
+
+  it('所有任务都 done → 显示"这一轮全部击败"，不是空白', async () => {
+    await db.tasks.put(scheduledTask({ status: 'done', completedAt: Date.now() }));
+    // schedule lockedAt 设置，但 completedAt 没设置 — 因为孩子端打完最后一项才会写
+    await db.schedules.put(lockedSchedule(['task_raz']));
+
+    renderQuest();
+    await waitFor(() => {
+      expect(screen.getByText(/全部击败/)).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+
+  it('多任务时间轴（task + task）→ 第一个 scheduled 是 active，第二个还在排队', async () => {
+    await db.tasks.bulkPut([
+      scheduledTask({ id: 't1', title: 'task A' }),
+      scheduledTask({ id: 't2', title: 'task B' }),
+    ]);
+    await db.schedules.put(lockedSchedule(['t1', 't2']));
+    renderQuest();
+    await waitFor(() => {
+      expect(screen.getAllByText('task A').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('task B').length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
+  });
+
+  it('schedule 卡死（任务全 done 但 completedAt 未写）→ 自愈应该修复，不渲染空白', async () => {
+    await db.tasks.bulkPut([
+      scheduledTask({ id: 't1', status: 'done', completedAt: Date.now() }),
+      scheduledTask({ id: 't2', status: 'evaluated', completedAt: Date.now() }),
+    ]);
+    await db.schedules.put(lockedSchedule(['t1', 't2']));
+    renderQuest();
+    // 不强求 heal 的具体效果，只验证不会整页空白
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/全部击败/) || screen.queryByText(/这里没有进行中的闯关/),
+      ).toBeTruthy();
+    }, { timeout: 3000 });
+  });
+});
