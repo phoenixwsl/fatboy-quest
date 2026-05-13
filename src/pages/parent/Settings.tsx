@@ -7,6 +7,9 @@ import { ensurePermission } from '../../lib/notifications';
 import { APP_VERSION, APP_BUILD_DATE } from '../../version';
 import { SOUND_PACK_LABELS, sounds } from '../../lib/sounds';
 import type { SoundPack } from '../../lib/sounds';
+import {
+  planCurrentStateReset, isResetNeeded, taskResetPatch, scheduleResetPatch,
+} from '../../lib/reset';
 
 export function ParentSettings() {
   const nav = useNavigate();
@@ -129,6 +132,17 @@ export function ParentSettings() {
         </div>
       </div>
 
+      {/* R2.2.3: 仅重置当前任务状态（保留所有历史） */}
+      <div className="space-card p-4 mb-3 border border-emerald-500/30">
+        <div className="text-sm text-white/70 mb-2 text-emerald-300">🔄 仅重置当前任务状态</div>
+        <div className="text-xs text-white/50 mb-3">
+          闯关卡住、找不到任务时点这里。把所有"待开始/进行中"的任务恢复为"待安排"，
+          清掉错误标记完成的时间轴。
+          <b className="text-emerald-200"> 不影响积分、连击、评分历史、徽章、商店</b>。
+        </div>
+        <ResetCurrentStateButton />
+      </div>
+
       <div className="space-card p-4 mb-3 border border-amber-500/30">
         <div className="text-sm text-white/70 mb-2 text-amber-300">🧹 快速重置（测试用）</div>
         <div className="text-xs text-white/50 mb-3">
@@ -171,6 +185,65 @@ async function clearAllData() {
       ]);
     });
   await initializeDB();
+}
+
+// R2.2.3: 仅重置当前任务状态（保留所有历史）
+function ResetCurrentStateButton() {
+  const nav = useNavigate();
+  const toast = useAppStore(s => s.showToast);
+  const tasks = useLiveQuery(() => db.tasks.toArray());
+  const schedules = useLiveQuery(() => db.schedules.toArray());
+  const [confirming, setConfirming] = useState(false);
+
+  const plan = (tasks && schedules)
+    ? planCurrentStateReset(tasks, schedules)
+    : { taskIdsToReset: [], scheduleIdsToUncomplete: [] };
+  const needed = isResetNeeded(plan);
+
+  async function doReset() {
+    await db.transaction('rw', db.tasks, db.schedules, async () => {
+      for (const id of plan.taskIdsToReset) {
+        await db.tasks.update(id, taskResetPatch());
+      }
+      for (const id of plan.scheduleIdsToUncomplete) {
+        await db.schedules.update(id, scheduleResetPatch());
+      }
+    });
+    toast(`✓ 已重置 ${plan.taskIdsToReset.length} 个任务 + ${plan.scheduleIdsToUncomplete.length} 个时间轴`, 'success');
+    setConfirming(false);
+    setTimeout(() => nav('/'), 600);
+  }
+
+  if (!needed) {
+    return (
+      <div className="px-4 py-2 rounded-xl bg-white/5 text-white/40 text-sm text-center">
+        ✨ 没有卡住的任务，状态正常
+      </div>
+    );
+  }
+
+  if (!confirming) {
+    return (
+      <button onClick={() => setConfirming(true)}
+        className="w-full px-4 py-2 rounded-xl bg-emerald-500/30 border border-emerald-300/50 text-emerald-100 active:scale-95">
+        🔄 重置 {plan.taskIdsToReset.length} 个卡住的任务
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <div className="text-xs text-white/70 bg-white/5 rounded-lg p-2">
+        即将执行：<br/>
+        • 重置 <b>{plan.taskIdsToReset.length}</b> 个待开始/进行中的任务 → 待安排<br/>
+        • 清除 <b>{plan.scheduleIdsToUncomplete.length}</b> 个被误标完成的时间轴<br/>
+        <span className="text-emerald-300">✓ 历史评分 / 积分 / 连击 / 徽章全部保留</span>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={() => setConfirming(false)} className="space-btn-ghost flex-1">取消</button>
+        <button onClick={doReset} className="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white">确定重置</button>
+      </div>
+    </div>
+  );
 }
 
 function QuickResetButton() {
