@@ -225,6 +225,43 @@ describe('QuestPage 渲染（核心 happy path 回归）', () => {
     }, { timeout: 3000 });
   });
 
+  // R2.2.6 回归：今天有 2 个 lockedAt && !completedAt 的 schedule —
+  // 一个含全 evaluated 任务，一个含活跃 scheduled 任务
+  // QuestPage 必须选择含活跃任务的那个（不能因为 id/round 顺序选错）
+  it('R2.2.6: 多 schedule — 必须选含活跃任务的那个，不能选全 evaluated 的', async () => {
+    // 故意让"全 evaluated 的 schedule" id 字典序更大
+    // （触发 reverse().sortBy('round') 的弱点：DESC by id 时它排在前）
+    await db.tasks.put(scheduledTask({
+      id: 't_raz', title: 'raz阅读',
+      status: 'evaluated', completedAt: Date.now() - 600_000,
+    }));
+    await db.schedules.put({
+      id: 'zzz_old_all_evaluated',      // 字典序大
+      date: today, round: 1,
+      items: [{ kind: 'task', taskId: 't_raz', startMinute: 0, durationMinutes: 10 }],
+      lockedAt: Date.now() - 700_000,
+      // completedAt 被某次撤回级联清掉
+    } as any);
+
+    await db.tasks.put(scheduledTask({
+      id: 't_shen', title: '神机妙算', status: 'scheduled',
+    }));
+    await db.schedules.put({
+      id: 'aaa_with_active_task',        // 字典序小
+      date: today, round: 1,
+      items: [{ kind: 'task', taskId: 't_shen', startMinute: 30, durationMinutes: 25 }],
+      lockedAt: Date.now() - 60_000,
+    } as any);
+
+    renderQuest();
+
+    await waitFor(() => {
+      expect(screen.getByText(/我要开始/)).toBeInTheDocument();
+      expect(screen.getAllByText('神机妙算').length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
+    expect(screen.queryByText(/全部击败/)).toBeNull();
+  });
+
   it('schedule 卡死（任务全 done 但 completedAt 未写）→ 自愈应该修复，不渲染空白', async () => {
     await db.tasks.bulkPut([
       scheduledTask({ id: 't1', status: 'done', completedAt: Date.now() }),

@@ -34,9 +34,33 @@ export function QuestPage() {
   const points = useLiveQuery(() => db.points.toArray());
   const streak = useLiveQuery(() => db.streak.get('singleton'));
 
+  // R2.2.6 修复：今天可能有多个 lockedAt && !completedAt 的 schedule（撤回任务级联清
+  // completedAt 留下的残留）。原来的 `reverse().sortBy('round')` 在 id 字典序倒置时会
+  // 选中"全 evaluated 的老 schedule" → activeIdx=-1 → 错误显示"全部击败"。
+  // 修复：优先选**含活跃 (scheduled/inProgress) 任务**的 schedule。
   const schedule = useLiveQuery(async () => {
-    const all = await db.schedules.where({ date: today }).reverse().sortBy('round');
-    return all.find(s => s.lockedAt && !s.completedAt);
+    const all = await db.schedules.where({ date: today }).toArray();
+    const candidates = all.filter(s => s.lockedAt && !s.completedAt);
+    if (candidates.length === 0) return null;
+    if (candidates.length === 1) return candidates[0];
+
+    // 多个候选：优先选含活跃任务的
+    const allTasks = await db.tasks.toArray();
+    const tasksById = new Map(allTasks.map(t => [t.id, t]));
+    const hasActiveTask = (s: typeof candidates[0]) =>
+      s.items.some(i => {
+        if (i.kind !== 'task' || !i.taskId) return false;
+        const t = tasksById.get(i.taskId);
+        return !!t && (t.status === 'scheduled' || t.status === 'inProgress');
+      });
+
+    const withActive = candidates.filter(hasActiveTask);
+    if (withActive.length > 0) {
+      // 多个都含活跃任务时，选 id 字典序最大的（一般是最新创建的）
+      return [...withActive].sort((a, b) => String(b.id).localeCompare(String(a.id)))[0];
+    }
+    // 都没活跃任务（全 done/evaluated）→ 任选一个（让"全部击败"页正常显示）
+    return [...candidates].sort((a, b) => String(b.id).localeCompare(String(a.id)))[0];
   }, [today]);
 
   // R2.2.1: 自愈死锁——QuestPage 也加上（之前只在 HomePage 跑，用户点 banner 跳进来时
