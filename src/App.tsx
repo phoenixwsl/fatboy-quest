@@ -70,7 +70,8 @@ export default function App() {
                 <Route path="/parent" element={<ParentGate />} />
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />
                 <Route path="/parent/tasks" element={<TaskManager />} />
-                <Route path="/parent/recurring" element={<RecurringTasks />} />
+                {/* R2.0.1: /parent/recurring 重定向到合并后的 tasks 页 */}
+                <Route path="/parent/recurring" element={<TaskManager />} />
                 <Route path="/parent/evaluations" element={<Evaluations />} />
                 <Route path="/parent/shop" element={<ShopManager />} />
                 <Route path="/parent/recipients" element={<Recipients />} />

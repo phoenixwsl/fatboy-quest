@@ -68,7 +68,25 @@ export function HomePage() {
     const t = await db.tasks.get(taskId);
     if (!t || !canUndoCompletion(t)) return;
     if (!confirm('确定撤回？这一项会变回"闯关中"，可以重新点完成。')) return;
-    await db.tasks.update(taskId, { status: 'scheduled', completedAt: undefined });
+    await db.tasks.update(taskId, {
+      status: 'scheduled',
+      completedAt: undefined,
+      undoCount: (t.undoCount ?? 0) + 1,
+    });
+    // Bug 修复：撤回后必须清掉本日所有 schedule 的 completedAt + combo，
+    // 否则 QuestPage 找不到"活动中"的 schedule（lockedAt && !completedAt 失败）
+    // 导致孩子既不能进闯关也不能再规划
+    const schedules = await db.schedules.where({ date: t.date }).toArray();
+    for (const sch of schedules) {
+      if (sch.completedAt && sch.items.some(it => it.taskId === taskId)) {
+        await db.schedules.update(sch.id, {
+          completedAt: undefined,
+          comboPeakInRound: undefined,
+          comboBonusPoints: undefined,
+          reportShownAt: undefined,
+        });
+      }
+    }
     sounds.play('undo');
     toast('已撤回 ↩', 'info');
   }
@@ -82,23 +100,56 @@ export function HomePage() {
           <div className="text-xs text-white/50">{formatChineseDate(today)}</div>
           <div className="text-2xl font-bold glow-text">你好，{settings?.childName ?? '肥仔'} ✨</div>
         </div>
-        <div
-          onPointerDown={startPress}
-          onPointerUp={endPress}
-          onPointerLeave={endPress}
-          onPointerCancel={endPress}
-          className="relative w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 select-none"
-        >
-          <span className="text-xl">⚙️</span>
-          {pressProgress > 0 && (
-            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="22" fill="none" stroke="rgba(124,92,255,0.8)"
-                strokeWidth="3" strokeDasharray={138} strokeDashoffset={138 - (138 * pressProgress / 100)}
-                strokeLinecap="round" />
-            </svg>
-          )}
+        <div className="flex items-center gap-2">
+          <button onClick={() => { sounds.play('tap'); nav('/achievements'); }}
+            className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-300/40 flex items-center justify-center active:scale-90">
+            <span className="text-xl">🏆</span>
+          </button>
+          <div
+            onPointerDown={startPress}
+            onPointerUp={endPress}
+            onPointerLeave={endPress}
+            onPointerCancel={endPress}
+            className="relative w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 select-none"
+          >
+            <span className="text-xl">⚙️</span>
+            {pressProgress > 0 && (
+              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="22" fill="none" stroke="rgba(124,92,255,0.8)"
+                  strokeWidth="3" strokeDasharray={138} strokeDashoffset={138 - (138 * pressProgress / 100)}
+                  strokeLinecap="round" />
+              </svg>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* R2.0.1: 大号 stats banner - 三个核心数字，最醒目位置 */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+        className="space-card p-4 mt-3 bg-gradient-to-br from-space-nebula/30 via-space-plasma/15 to-amber-500/15"
+      >
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <div className="text-[10px] text-white/60 uppercase tracking-wide">今日</div>
+            <div className="text-3xl font-black tabular-nums">
+              {todayTasks?.filter((t: any) => t.status === 'done' || t.status === 'evaluated').length ?? 0}
+              <span className="text-base text-white/40 font-normal">/{todayTasks?.length ?? 0}</span>
+            </div>
+            <div className="text-[10px] text-white/40">作业</div>
+          </div>
+          <div className="border-l border-r border-white/10">
+            <div className="text-[10px] text-amber-300/80 uppercase tracking-wide">积分</div>
+            <div className="text-3xl font-black text-amber-300 tabular-nums">⭐{total}</div>
+            <div className="text-[10px] text-white/40">累计</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-rose-300/80 uppercase tracking-wide">连击</div>
+            <div className="text-3xl font-black text-rose-300 tabular-nums">{streak?.currentStreak ?? 0}</div>
+            <div className="text-[10px] text-white/40">🔥 天</div>
+          </div>
+        </div>
+      </motion.div>
 
       {weekendMode && (
         <div className="space-card p-3 mt-4 bg-gradient-to-r from-amber-500/20 to-fuchsia-500/20 ring-1 ring-amber-300/40">
@@ -118,12 +169,11 @@ export function HomePage() {
           <div className="flex-1">
             <div className="text-lg font-bold">{pet?.name ?? '蛋仔'}</div>
             <div className={`text-sm ${rank.color}`}>{rank.emoji} {rank.name}</div>
-            <div className="text-xs text-white/60 mt-1">⭐ {total} 积分</div>
             {next && (
-              <div className="text-xs text-white/40 mt-0.5">距离 {next.name} 还差 {next.minPoints - total} 分</div>
+              <div className="text-xs text-white/40 mt-1">距离 {next.name} 还差 {next.minPoints - total} 分</div>
             )}
-            <div className="text-xs text-amber-300/80 mt-1">
-              🔥 连击 {streak?.currentStreak ?? 0} 天 · 🛡️ {streak?.guardCards ?? 0} 张
+            <div className="text-xs text-white/60 mt-1">
+              🛡️ {streak?.guardCards ?? 0} 张守护卡
             </div>
           </div>
         </div>

@@ -25,18 +25,18 @@ export function ParentDashboard() {
   const [analysis, setAnalysis] = useState<string | null>(null);
 
   const tiles = [
-    { label: '📝 一次性任务', desc: '指定日期的作业', to: '/parent/tasks' },
-    { label: '🔁 循环任务', desc: '每日必做 / 每周 N 次 / 每周一次', to: '/parent/recurring' },
+    { label: '📝 任务管理', desc: '一次性 + 循环（一站式）', to: '/parent/tasks' },
     { label: '⭐ 待评分', desc: `${pendingReview?.length ?? 0} 项等你评分`, to: '/parent/evaluations', urgent: (pendingReview?.length ?? 0) > 0 },
     { label: '🎁 奖励商店', desc: '管理可兑换奖励', to: '/parent/shop' },
     { label: '📱 通知接收人', desc: '配置 Bark 推送', to: '/parent/recipients' },
     { label: '⚙️ 设置', desc: 'PIN / 密保 / 通知 / 重置', to: '/parent/settings' },
     { label: '📅 贡献日历', desc: '月度热力图 + 长图导出', to: '/calendar' },
-    { label: '🏆 成就馆', desc: '50 个成就，已解锁与未解锁', to: '/achievements' },
     { label: '💾 数据', desc: '导出 / 导入备份', to: '/parent/data' },
   ];
 
   function runAnalysis() {
+    // toggle: 已经显示则收起
+    if (analysis) { setAnalysis(null); return; }
     const text = analyzeWeek({
       tasks: allTasks ?? [],
       evaluations: evaluations ?? [],
@@ -72,7 +72,9 @@ export function ParentDashboard() {
       </div>
 
       <div className="flex gap-2 mb-3">
-        <button onClick={runAnalysis} className="space-btn flex-1 text-sm">✨ 一键分析（本周）</button>
+        <button onClick={runAnalysis} className={`flex-1 text-sm ${analysis ? 'space-btn-ghost' : 'space-btn'}`}>
+          {analysis ? '▼ 收起分析' : '✨ 一键分析（本周）'}
+        </button>
         <button onClick={() => setShowCharts(!showCharts)} className="space-btn-ghost flex-1 text-sm">
           {showCharts ? '▼ 收起图表' : '▶ 展开图表'}
         </button>
@@ -80,13 +82,17 @@ export function ParentDashboard() {
 
       {analysis && (
         <div className="space-card p-4 mb-3 bg-gradient-to-br from-space-nebula/20 to-space-plasma/10">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-bold text-amber-300">本周分析</div>
-            <button onClick={() => setAnalysis(null)} className="text-white/40 text-xs">✕</button>
+            <button onClick={() => setAnalysis(null)}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 text-white text-lg flex items-center justify-center">
+              ✕
+            </button>
           </div>
           <pre className="text-sm whitespace-pre-wrap font-kid text-white/90 leading-relaxed">
             {analysis}
           </pre>
+          <button onClick={() => setAnalysis(null)} className="space-btn-ghost w-full mt-3 text-sm">关闭</button>
         </div>
       )}
 
