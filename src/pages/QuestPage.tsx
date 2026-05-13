@@ -426,25 +426,68 @@ export function QuestPage() {
   }
 
   if (!schedule) {
-    // R2.2.1: 区分两种空状态
-    //   - 有 inFlight task 但 schedule 异常（自愈中）→ "正在恢复"
-    //   - 没有 inFlight task → 正常的"去规划"提示
-    const hasInFlight = (allTasksForHeal ?? []).some(t =>
-      t.date === today && (t.status === 'scheduled' || t.status === 'inProgress'),
-    );
+    // R2.2.2: 诊断模式 - 用 emoji 替代 PetAvatar 避免任何渲染问题
+    //         显示真实数据状态便于排查
+    const todayTasksSnapshot = (allTasksForHeal ?? []).filter(t => t.date === today);
+    const inFlightTasks = todayTasksSnapshot.filter(t => t.status === 'scheduled' || t.status === 'inProgress');
+    const schedulesCount = (todaySchedulesForHeal ?? []).length;
+    const lockedNotCompleted = (todaySchedulesForHeal ?? []).filter(s => s.lockedAt && !s.completedAt).length;
+    const lockedCompleted = (todaySchedulesForHeal ?? []).filter(s => s.lockedAt && s.completedAt).length;
+
+    async function emergencyResetTasksToPending() {
+      if (!confirm(`把今日 ${inFlightTasks.length} 个卡住的任务全部重置为"待安排"？\n这样你可以重新规划。不影响已完成/已评分的任务。`)) return;
+      for (const t of inFlightTasks) {
+        await db.tasks.update(t.id, {
+          status: 'pending',
+          actualStartedAt: undefined,
+          pausedAt: undefined,
+          firstEncounteredAt: undefined,
+          startNagSentAt: undefined,
+        });
+      }
+      // 顺便清掉所有 completedAt（防止下次又卡）
+      for (const s of (todaySchedulesForHeal ?? [])) {
+        if (s.completedAt) {
+          await db.schedules.update(s.id, { completedAt: undefined });
+        }
+      }
+      toast('✓ 已重置，回首页重新规划', 'success');
+      setTimeout(() => nav('/'), 500);
+    }
+
     return (
       <div className="min-h-full flex flex-col items-center justify-center text-white p-6 text-center">
-        <PetAvatar mood="sleepy" />
-        {hasInFlight ? (
-          <>
-            <div className="mt-4 text-amber-300 font-bold">🔧 正在恢复任务状态...</div>
-            <div className="mt-2 text-white/50 text-sm">如果几秒后还没好，回首页重新规划即可</div>
-          </>
-        ) : (
-          <div className="mt-4 text-white/60">还没有锁定的时间轴</div>
+        <div className="text-6xl mb-3">😴</div>
+        <div className="text-xl font-bold mb-2">这里没有进行中的闯关</div>
+
+        <div className="space-card p-4 mt-4 w-full max-w-sm text-left text-xs">
+          <div className="text-amber-300 font-bold mb-2">📊 当前状态</div>
+          <div>📅 今日任务总数：<b>{todayTasksSnapshot.length}</b></div>
+          <div>⏱ 待开始/进行中：<b className={inFlightTasks.length > 0 ? 'text-amber-300' : ''}>{inFlightTasks.length}</b></div>
+          <div>📋 今日时间轴：<b>{schedulesCount}</b></div>
+          <div>✓ 已锁定且未完成：<b className={lockedNotCompleted > 0 ? 'text-emerald-300' : ''}>{lockedNotCompleted}</b></div>
+          <div>🏁 已锁定且已完成：<b>{lockedCompleted}</b></div>
+        </div>
+
+        {inFlightTasks.length > 0 && (
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/20 border border-rose-300/40 text-sm">
+            <div className="font-bold text-rose-200">⚠️ 检测到 {inFlightTasks.length} 个任务卡住了</div>
+            <div className="text-xs text-white/70 mt-1">
+              任务还在"待开始"，但时间轴异常。点下面按钮一键修复。
+            </div>
+          </div>
         )}
-        <button onClick={() => nav('/schedule')} className="space-btn mt-4">📅 去规划</button>
-        <button onClick={() => nav('/')} className="space-btn-ghost mt-2">回首页</button>
+
+        <div className="flex flex-col gap-2 mt-5 w-full max-w-xs">
+          {inFlightTasks.length > 0 && (
+            <button onClick={emergencyResetTasksToPending}
+              className="px-4 py-3 rounded-xl bg-rose-500 text-white font-bold active:scale-95">
+              🔧 紧急修复（重置卡住的任务）
+            </button>
+          )}
+          <button onClick={() => nav('/schedule')} className="space-btn">📅 去规划</button>
+          <button onClick={() => nav('/')} className="space-btn-ghost">回首页</button>
+        </div>
       </div>
     );
   }
