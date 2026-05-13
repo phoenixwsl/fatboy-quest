@@ -57,6 +57,9 @@ export interface Task {
   taskType?: TaskType;              // 默认 'normal'（老数据兜底）
   definitionId?: string;            // 关联到 TaskDefinition（如果是循环生成的实例）
   parentReminderForNext?: string;   // 家长在上次评分留的"下次提醒"
+  // R2.1.1: 进入闯关后还没点"开始"的等待计时
+  firstEncounteredAt?: number;      // 在 quest 页第一次成为"当前小怪"的时间
+  startNagSentAt?: number;          // 3 分钟未开始的 Bark 推送已发送时间（防重）
 }
 
 // v4: 循环任务定义

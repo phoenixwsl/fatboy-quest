@@ -222,6 +222,22 @@ export function HomePage() {
         </div>
       </motion.div>
 
+      {/* R2.1.1: 检测到正在进行的闯关，强引导回去 */}
+      {scheduledOrInProgress.length > 0 && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          onClick={() => { sounds.play('tap'); nav('/quest'); }}
+          className="w-full mt-4 p-4 rounded-2xl bg-gradient-to-r from-rose-500/40 to-amber-500/40 ring-2 ring-amber-300/60 animate-pulse-glow flex items-center gap-3 active:scale-95"
+        >
+          <div className="text-3xl">⚔️</div>
+          <div className="flex-1 text-left">
+            <div className="font-bold text-white">你有未完成的闯关</div>
+            <div className="text-xs text-white/80">{scheduledOrInProgress.length} 个小怪还在等你</div>
+          </div>
+          <div className="text-white">→</div>
+        </motion.button>
+      )}
+
       {/* 今日任务区（R1.3.1 重排序：待安排/闯关中/本周任务 在前；已击败折叠在后） */}
       <div className="mt-6">
         <div className="flex items-center justify-between gap-2">

@@ -16,6 +16,7 @@ import { nextExtensionOffer, canShowExtensionButton } from '../lib/extension';
 import { calcCombo } from '../lib/combo';
 import { summarizeExecution } from '../lib/earlyBonus';
 import { HardWarning } from '../components/HardWarning';
+import { SpeechBubble } from '../components/SpeechBubble';
 import { RestBlock } from '../components/RestBlock';
 import { BattleReport } from '../components/BattleReport';
 import { newId } from '../lib/ids';
@@ -172,6 +173,8 @@ export function QuestPage() {
   const [reportData, setReportData] = useState<{
     killCount: number; totalMinutes: number; comboPeak: number; bestFastTitle?: string;
   } | null>(null);
+
+  const [waitNagBubble, setWaitNagBubble] = useState<string | null>(null);
 
   // === 启动任务 ===
   async function startTask(taskId: string) {
@@ -406,10 +409,48 @@ export function QuestPage() {
   const activeTask = activeItem?.kind === 'task' && activeItem.taskId
     ? taskMap.get(activeItem.taskId) : null;
 
+  // R2.1.1: 跟踪"进入这一项已经多久"——孩子点开始之前的等待计时
+  useEffect(() => {
+    if (!activeItem || activeItem.kind !== 'task' || !activeTask) return;
+    if (activeTask.status !== 'scheduled') return;
+    if (activeTask.firstEncounteredAt) return;
+    db.tasks.update(activeTask.id, { firstEncounteredAt: Date.now() });
+  }, [activeItem, activeTask?.id, activeTask?.status, activeTask?.firstEncounteredAt]);
+
+  useEffect(() => {
+    if (!activeTask || activeTask.status !== 'scheduled') return;
+    if (!activeTask.firstEncounteredAt) return;
+    if (activeTask.startNagSentAt) return;
+    const elapsedSec = (now - activeTask.firstEncounteredAt) / 1000;
+    if (elapsedSec >= 180) {
+      (async () => {
+        await db.tasks.update(activeTask.id, { startNagSentAt: Date.now() });
+        const recipients = await db.recipients.toArray();
+        const childName = settings?.childName ?? '肥仔';
+        const startedAtStr = new Date(activeTask.firstEncounteredAt!).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        pushToRecipients(
+          recipients.filter(r => r.subStreakAlert !== false), 'help' as any, {
+          title: `🕰 ${childName} 在【${activeTask.title}】发呆 3 分钟还没开始`,
+          body: `进入时间：${startedAtStr}，建议你过去看看`,
+          group: 'fatboy-quest',
+        }).catch(() => {});
+      })();
+      setWaitNagBubble('在想什么呢？');
+      setTimeout(() => setWaitNagBubble(null), 10_000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, activeTask?.id, activeTask?.firstEncounteredAt, activeTask?.startNagSentAt]);
+
   return (
     <div className="min-h-full p-4 pb-24 text-white">
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => nav('/')} className="space-btn-ghost">← 首页</button>
+        {activeItem ? (
+          <div className="px-3 py-2 rounded-xl bg-white/5 text-white/40 text-sm flex items-center gap-1.5">
+            🔒 闯关中
+          </div>
+        ) : (
+          <button onClick={() => nav('/')} className="space-btn-ghost">← 首页</button>
+        )}
         <div className="text-xl font-bold flex-1">⚔️ 闯关</div>
         {settings?.helpButtonEnabled !== false && activeTask && (
           <button onClick={() => sendHelp(activeTask.title)}
@@ -421,6 +462,13 @@ export function QuestPage() {
       </div>
 
       <HardWarning show={!!warning3MinFor} message={warning3MinFor ?? ''} onDismiss={() => setWarning3MinFor(null)} />
+
+      {/* R2.1.1: 蛋仔头顶冒泡（"在想什么呢"提示） */}
+      {waitNagBubble && (
+        <div className="flex justify-center -mb-2">
+          <SpeechBubble text={waitNagBubble} tone="warn" />
+        </div>
+      )}
 
       {/* === 当前块 === */}
       <AnimatePresence mode="wait">
@@ -512,15 +560,27 @@ function TaskActiveCard({
 
   // 没开始：显示开始按钮
   if (task.status === 'scheduled') {
+    // R2.1.1: 进入这一项已经多久（"在想什么呢"计时）
+    const waitSec = task.firstEncounteredAt ? Math.floor((now - task.firstEncounteredAt) / 1000) : 0;
+    const waitMin = Math.floor(waitSec / 60);
+    const waitSecRem = waitSec % 60;
+    const overdue = waitSec >= 180;
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-        className="space-card p-6 text-center"
+        className={`space-card p-6 text-center ${overdue ? 'ring-2 ring-amber-400/60' : ''}`}
       >
-        <PetAvatar skinId={petSkinId} size={120} mood="normal" />
+        <PetAvatar skinId={petSkinId} size={120} mood={overdue ? 'sleepy' : 'normal'} />
         <div className="mt-3 text-sm text-white/60">下一只小怪</div>
         <div className="text-2xl font-bold mt-1">{task.title}</div>
         <div className="text-sm text-white/60 mt-1">⏱ 预估 {task.estimatedMinutes} 分钟 · ⭐ {task.basePoints || '由家长评分时定'}</div>
+        {task.firstEncounteredAt && (
+          <div className={`mt-3 text-xs tabular-nums ${overdue ? 'text-amber-300' : 'text-white/40'}`}>
+            {overdue
+              ? `⏰ 已等待 ${waitMin}:${String(waitSecRem).padStart(2, '0')}（已通知家长）`
+              : `等待中 ${waitMin}:${String(waitSecRem).padStart(2, '0')} / 03:00 后通知家长`}
+          </div>
+        )}
         <button onClick={onStart} className="space-btn w-full mt-6 text-lg animate-pulse-glow">
           ▶ 我要开始
         </button>

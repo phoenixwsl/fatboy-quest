@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
 import { db } from '../db';
-import { aggregateMonth, DAY_LEVEL_COLOR } from '../lib/calendar';
+import { aggregateMonth, DAY_LEVEL_COLOR, buildDayDetail } from '../lib/calendar';
+import { scoreRatio, ratioColorClass } from '../lib/points';
+import { SubjectIcon } from './HomePage';
 import { useAppStore } from '../store/useAppStore';
 import { toPng } from 'html-to-image';
 
@@ -120,14 +122,80 @@ export function CalendarPage() {
       </div>
 
       {selectedDay && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-card p-3 mt-3">
-          <div className="text-sm font-bold mb-1">{selectedDay.date}</div>
-          <div className="text-xs text-white/60">
-            完成 {selectedDay.completed}/{selectedDay.total} 项 · 获得 {selectedDay.pointsEarned} 积分
-            {selectedDay.perfectDay && ' ⭐ 完美一天'}
-          </div>
-        </motion.div>
+        <DayDetailPanel
+          date={selectedDay.date}
+          tasks={tasks ?? []}
+          evals={evals ?? []}
+          points={points ?? []}
+          perfectDay={selectedDay.perfectDay}
+        />
       )}
     </div>
+  );
+}
+
+// R2.1.1: 详细任务列表面板
+function DayDetailPanel({ date, tasks, evals, points, perfectDay }: {
+  date: string; tasks: any[]; evals: any[]; points: any[]; perfectDay: boolean;
+}) {
+  const detail = buildDayDetail(date, tasks, evals, points);
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-card p-4 mt-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-bold">📅 {date}</div>
+        <div className="text-xs text-amber-300">
+          ⭐ {detail.totalPoints} 积分
+          {perfectDay && ' · 🌟 完美一天'}
+        </div>
+      </div>
+
+      {detail.tasks.length === 0 ? (
+        <div className="text-xs text-white/40 text-center py-3">这一天没有作业</div>
+      ) : (
+        <div className="space-y-2">
+          {detail.tasks.map(t => {
+            const ev = t.evaluation;
+            const earlyBonus = t.earlyBonus ?? 0;
+            const totalEarned = ev ? ev.finalPoints + earlyBonus : 0;
+            const ratio = ev ? scoreRatio(ev.basePointsAtEval, ev.finalPoints, earlyBonus) : 0;
+            const ratioCls = ev ? ratioColorClass(ratio) : 'text-white/50';
+            const stateEmoji =
+              t.status === 'evaluated' ? '✅' :
+              t.status === 'done' ? '❓' :
+              t.status === 'inProgress' ? '⏳' :
+              t.status === 'scheduled' ? '⏸' : '○';
+            return (
+              <div key={t.id} className="bg-white/5 rounded-lg p-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span>{stateEmoji}</span>
+                  <SubjectIcon subject={t.subject} />
+                  <span className="flex-1 font-medium">{t.title}</span>
+                  {ev && (
+                    <span className={`font-bold ${ratioCls}`}>+{totalEarned} ({ratio}%)</span>
+                  )}
+                </div>
+                {ev && (
+                  <div className="mt-1 ml-12 text-white/60 flex gap-2 text-[10px]">
+                    <span>完成 {'⭐'.repeat(ev.completion)}</span>
+                    <span>质量 {'⭐'.repeat(ev.quality)}</span>
+                    <span>态度 {'⭐'.repeat(ev.attitude)}</span>
+                  </div>
+                )}
+                {ev?.note && (
+                  <div className="mt-1 ml-12 text-[10px] text-amber-200/80">💬 {ev.note}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {detail.comboBonus && detail.comboBonus > 0 && (
+        <div className="mt-3 pt-2 border-t border-white/10 text-xs flex justify-between">
+          <span className="text-amber-300">⚡ Combo 加成</span>
+          <span className="font-bold text-amber-300">+{detail.comboBonus}</span>
+        </div>
+      )}
+    </motion.div>
   );
 }
