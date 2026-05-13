@@ -80,6 +80,50 @@ export class FatboyDB extends Dexie {
         });
       }
     });
+
+    // v5: Fatboy v4 集成 - skin_xxx → Fatboy character id 迁移
+    this.version(5).stores({
+      // 表结构不变，仅触发 upgrade
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+    }).upgrade(async (tx) => {
+      // 内联 LEGACY_SKIN_MAP 避免循环 import db→skins→Fatboy→...
+      const map: Record<string, string> = {
+        skin_classic: 'default', skin_explorer: 'astronaut',
+        skin_cyber: 'racer', skin_rocket: 'mario',
+        skin_ninja: 'ninja', skin_dino: 'knight',
+        skin_mecha: 'wizard', skin_pirate: 'pirate',
+      };
+      const norm = (id: string | undefined): string => {
+        if (!id) return 'default';
+        if (map[id]) return map[id];
+        return id;  // 已经是新 id 的话保持原样
+      };
+      const pets = await tx.table('pet').toArray();
+      for (const p of pets) {
+        const newSkinId = norm(p.skinId);
+        const newUnlocked = Array.from(new Set([
+          'default',
+          ...(p.unlockedSkins ?? []).map((s: string) => norm(s)),
+        ]));
+        await tx.table('pet').update(p.id, {
+          skinId: newSkinId,
+          unlockedSkins: newUnlocked,
+        });
+      }
+    });
   }
 }
 

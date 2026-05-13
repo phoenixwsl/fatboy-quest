@@ -18,7 +18,6 @@ import { scoreRatio, ratioColorClass } from '../lib/points';
 import { detectHealActions, isHealNeeded } from '../lib/heal';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
-import { Fatboy } from '../components/fatboy/Fatboy';  // [Stage-0-Verify] 临时测试
 
 export function HomePage() {
   const nav = useNavigate();
@@ -137,8 +136,6 @@ export function HomePage() {
         <div>
           <div className="text-xs text-white/50">{formatChineseDate(today)}</div>
           <div className="text-2xl font-bold glow-text">你好，{settings?.childName ?? '肥仔'} ✨</div>
-          {/* [Stage-0-Verify] R2.2.0 集成验证图 - 确认通过后会删 */}
-          <Fatboy character="racer" state="victory" size={120} autoAnimate />
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => { sounds.play('tap'); nav('/achievements'); }}

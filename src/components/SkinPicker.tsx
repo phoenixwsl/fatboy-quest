@@ -1,9 +1,9 @@
-// 皮肤选择模态
+// 皮肤选择模态 - R2.2: 用 Fatboy v4 character 缩略图
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AnimatePresence, motion } from 'framer-motion';
 import { db } from '../db';
-import { SKINS } from '../lib/skins';
-import { PetAvatar } from './PetAvatar';
+import { SKINS, migrateSkinId } from '../lib/skins';
+import { Fatboy } from './fatboy/Fatboy';
 import { sounds } from '../lib/sounds';
 import { useAppStore } from '../store/useAppStore';
 
@@ -15,11 +15,14 @@ interface Props {
 export function SkinPicker({ open, onClose }: Props) {
   const pet = useLiveQuery(() => db.pet.get('singleton'));
   const toast = useAppStore(s => s.showToast);
-  const unlocked = new Set(pet?.unlockedSkins ?? ['skin_classic']);
-  const currentId = pet?.skinId ?? 'skin_classic';
+  const unlockedRaw = pet?.unlockedSkins ?? ['default'];
+  // 兼容老格式：每个 id 经 migrate 得到新 character id
+  const unlocked = new Set(unlockedRaw.map(id => migrateSkinId(id)));
+  unlocked.add('default');
+  const currentId = migrateSkinId(pet?.skinId);
 
   async function pick(id: string) {
-    if (!unlocked.has(id)) {
+    if (!unlocked.has(id as any)) {
       sounds.play('error');
       toast('还没解锁哦', 'warn');
       return;
@@ -43,7 +46,7 @@ export function SkinPicker({ open, onClose }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="text-lg font-bold">🥚 选择蛋仔皮肤</div>
+              <div className="text-lg font-bold">🥚 选择肥仔角色</div>
               <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 active:scale-90">✕</button>
             </div>
 
@@ -62,7 +65,7 @@ export function SkinPicker({ open, onClose }: Props) {
                       ${!isUnlocked ? 'opacity-40 grayscale' : 'active:scale-95'}`}
                   >
                     <div className="flex justify-center">
-                      <PetAvatar skinId={s.id} size={72} bobbing={false} mood="happy" />
+                      <Fatboy character={s.id} state="default" size={72} autoAnimate />
                     </div>
                     <div className="mt-2 text-sm font-bold">{s.name}</div>
                     <div className="text-[10px] text-white/50 mt-0.5">{s.desc}</div>

@@ -1,67 +1,111 @@
-// 蛋仔皮肤系统 - R2.1
-// 8 个皮肤，解锁条件 + 标签
-import type { Badge, Pet } from '../types';
+// 蛋仔皮肤系统 - R2.2 (Fatboy v4 integration)
+// 旧 8 个 skin_xxx → 新 8 个 FatboyCharacterId
+// 旧值兼容：通过 migrateSkinId() 映射；DB v5 启动迁移把 pet.skinId 也转新值
+import type { FatboyCharacterId } from '../components/fatboy/Fatboy';
+import { CHARACTER_META, ALL_CHARACTERS } from '../components/fatboy/Fatboy';
+
+export type SkinId = FatboyCharacterId;
 
 export interface Skin {
-  id: string;
+  id: SkinId;
   name: string;
   desc: string;
-  unlockHint: string;          // 未解锁时显示给孩子的提示
-  body: string;                // 主色
-  accent: string;              // 副色
-  decoration?: 'cape' | 'mask' | 'horn' | 'antenna' | 'crown' | 'patch';
+  unlockHint: string;
 }
 
-export const SKINS: Skin[] = [
-  { id: 'skin_classic',  name: '经典金',  desc: '最初的伙伴', unlockHint: '默认就有',
-    body: '#fbbf24', accent: '#f59e0b' },
-  { id: 'skin_explorer', name: '星空紫',  desc: '太空探险家', unlockHint: '连击 7 天解锁',
-    body: '#7c5cff', accent: '#a78bfa', decoration: 'antenna' },
-  { id: 'skin_cyber',    name: '赛博青',  desc: '霓虹机械感', unlockHint: '连击 30 天解锁',
-    body: '#22d3ee', accent: '#06b6d4', decoration: 'mask' },
-  { id: 'skin_rocket',   name: '火箭红',  desc: '一飞冲天',   unlockHint: '连击 100 天解锁',
-    body: '#ef4444', accent: '#fbbf24', decoration: 'horn' },
-  { id: 'skin_ninja',    name: '忍者黑',  desc: '影分身术！', unlockHint: '一周内 3 次 5 星全评',
-    body: '#1a1a2e', accent: '#7c3aed', decoration: 'mask' },
-  { id: 'skin_dino',     name: '恐龙绿',  desc: '远古战士',   unlockHint: '累计完成 50 项作业',
-    body: '#10b981', accent: '#fbbf24', decoration: 'horn' },
-  { id: 'skin_mecha',    name: '机甲银',  desc: '钢铁之心',   unlockHint: '累计获得 2000 积分',
-    body: '#94a3b8', accent: '#06b6d4', decoration: 'antenna' },
-  { id: 'skin_pirate',   name: '海盗棕',  desc: '寻宝大冒险', unlockHint: '首次商店兑换',
-    body: '#a16207', accent: '#fbbf24', decoration: 'patch' },
-];
+// R2.2: 旧 skin id → 新 character id 的映射表
+export const LEGACY_SKIN_MAP: Record<string, FatboyCharacterId> = {
+  skin_classic:  'default',
+  skin_explorer: 'astronaut',
+  skin_cyber:    'racer',
+  skin_rocket:   'mario',
+  skin_ninja:    'ninja',
+  skin_dino:     'knight',
+  skin_mecha:    'wizard',
+  skin_pirate:   'pirate',
+};
+
+/**
+ * 把任意 skin id 规范化为新的 FatboyCharacterId
+ *  - 老格式 (skin_xxx) → 映射
+ *  - 新格式 (default/racer/...) → 原样
+ *  - 未知 → 'default'
+ */
+export function migrateSkinId(id: string | undefined | null): FatboyCharacterId {
+  if (!id) return 'default';
+  if (ALL_CHARACTERS.includes(id as FatboyCharacterId)) return id as FatboyCharacterId;
+  if (LEGACY_SKIN_MAP[id]) return LEGACY_SKIN_MAP[id];
+  return 'default';
+}
+
+/**
+ * 把一组 unlockedSkins（可能混合新旧 id）迁移为去重的新 id 数组
+ */
+export function migrateUnlockedSkins(ids: (string | undefined | null)[]): FatboyCharacterId[] {
+  const out = new Set<FatboyCharacterId>();
+  out.add('default');
+  for (const id of ids) {
+    const newId = migrateSkinId(id);
+    out.add(newId);
+  }
+  return Array.from(out);
+}
+
+// 8 个皮肤的完整元数据（结合 CHARACTER_META + 解锁提示）
+export const SKINS: Skin[] = ALL_CHARACTERS.map(id => {
+  const meta = CHARACTER_META[id];
+  const hints: Record<FatboyCharacterId, string> = {
+    default:   '默认就有',
+    astronaut: '连击 7 天解锁',
+    racer:     '连击 30 天解锁',
+    mario:     '连击 100 天解锁',
+    ninja:     '一周内 3 次 5 星全评',
+    knight:    '累计完成 50 项作业',
+    wizard:    '累计获得 2000 积分',
+    pirate:    '首次商店兑换',
+  };
+  return {
+    id,
+    name: meta.name,
+    desc: meta.tagline,
+    unlockHint: hints[id],
+  };
+});
 
 export function findSkin(id: string): Skin | undefined {
-  return SKINS.find(s => s.id === id);
+  const normalized = migrateSkinId(id);
+  return SKINS.find(s => s.id === normalized);
 }
 
 export interface SkinSnapshot {
   longestStreak: number;
   totalTasksCompleted: number;
   totalPoints: number;
-  fiveStarWeeks: number;       // 简化：算最近一周 5 星评分数（这里偏粗略）
+  fiveStarWeeks: number;
   shopRedeemsCount: number;
 }
 
 /**
- * 给定一份数据，检测哪些皮肤应解锁
+ * 给定一份数据，检测哪些皮肤应解锁（新 id）
  */
-export function detectUnlockedSkins(snap: SkinSnapshot): string[] {
-  const out: string[] = ['skin_classic'];  // 默认皮肤永远解锁
-  if (snap.longestStreak >= 7) out.push('skin_explorer');
-  if (snap.longestStreak >= 30) out.push('skin_cyber');
-  if (snap.longestStreak >= 100) out.push('skin_rocket');
-  if (snap.fiveStarWeeks >= 3) out.push('skin_ninja');
-  if (snap.totalTasksCompleted >= 50) out.push('skin_dino');
-  if (snap.totalPoints >= 2000) out.push('skin_mecha');
-  if (snap.shopRedeemsCount >= 1) out.push('skin_pirate');
+export function detectUnlockedSkins(snap: SkinSnapshot): FatboyCharacterId[] {
+  const out: FatboyCharacterId[] = ['default'];
+  if (snap.longestStreak >= 7) out.push('astronaut');
+  if (snap.longestStreak >= 30) out.push('racer');
+  if (snap.longestStreak >= 100) out.push('mario');
+  if (snap.fiveStarWeeks >= 3) out.push('ninja');
+  if (snap.totalTasksCompleted >= 50) out.push('knight');
+  if (snap.totalPoints >= 2000) out.push('wizard');
+  if (snap.shopRedeemsCount >= 1) out.push('pirate');
   return out;
 }
 
 /**
- * 同步 unlockedSkins 字段：把还没解锁的新皮肤合并进去
+ * 合并：把新检测到的解锁皮肤并入现有列表（去重）
  */
-export function mergeUnlockedSkins(current: string[], detected: string[]): string[] {
-  const set = new Set([...current, ...detected]);
+export function mergeUnlockedSkins(current: string[], detected: FatboyCharacterId[]): FatboyCharacterId[] {
+  const set = new Set<FatboyCharacterId>();
+  for (const c of current) set.add(migrateSkinId(c));
+  for (const d of detected) set.add(d);
   return Array.from(set);
 }

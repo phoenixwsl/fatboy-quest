@@ -4,9 +4,10 @@
 // 并在 db/index.ts 里写迁移逻辑。
 // ============================================================
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 // v2: 新增 Task.createdBy, Settings.soundEnabled
 // v3: 新增 actualStartedAt / pause / extend / undo 字段，templateHidden 表
+// v5: Fatboy v4 集成 - 旧 pet.skinId='skin_xxx' 迁移到新 character id
 // v4: 引入 TaskDefinition 循环任务定义、Task.taskType 颜色区分、Redemption.usedAt 库存、
 //     Settings 周末模式/晚安/分析/声音包 等多个新设置项
 

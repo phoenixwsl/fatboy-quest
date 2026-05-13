@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { db, hashAnswer } from '../db';
-import { PetAvatar, AVAILABLE_SKINS } from '../components/PetAvatar';
+import { PetAvatar } from '../components/PetAvatar';
+import { SKINS } from '../lib/skins';
 
 export function SetupWizard() {
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [childName, setChildName] = useState('肥仔');
   const [petName, setPetName] = useState('');
-  const [skinId, setSkinId] = useState(AVAILABLE_SKINS[0]);
+  const [skinId, setSkinId] = useState<string>(SKINS[0].id);
   const [pin, setPin] = useState('');
   const [pinConfirm, setPinConfirm] = useState('');
   const [securityQuestion, setSecurityQuestion] = useState('我妈妈的小名是？');
@@ -81,16 +82,18 @@ export function SetupWizard() {
             <div className="flex justify-center">
               <PetAvatar skinId={skinId} size={120} mood="happy" />
             </div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {AVAILABLE_SKINS.map(s => (
+            <div className="text-xs text-white/50 text-center">{SKINS.find(s => s.id === skinId)?.desc}</div>
+            <div className="grid grid-cols-4 gap-2">
+              {SKINS.map(s => (
                 <button
-                  key={s}
-                  onClick={() => setSkinId(s)}
-                  className={`w-16 h-16 rounded-xl flex items-center justify-center ${
-                    s === skinId ? 'ring-2 ring-space-plasma bg-space-card' : 'bg-white/5'
+                  key={s.id}
+                  onClick={() => setSkinId(s.id)}
+                  className={`p-2 rounded-xl flex flex-col items-center ${
+                    s.id === skinId ? 'ring-2 ring-space-plasma bg-space-card' : 'bg-white/5'
                   }`}
                 >
-                  <PetAvatar skinId={s} size={48} bobbing={false} />
+                  <PetAvatar skinId={s.id} size={48} bobbing={false} />
+                  <div className="text-[10px] mt-1 text-white/70">{s.name}</div>
                 </button>
               ))}
             </div>
