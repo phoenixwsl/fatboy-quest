@@ -69,11 +69,13 @@ beforeEach(async () => {
 
 // ============================================================
 describe('Q · 闯关不可退出 / 渲染', () => {
-  it('Q1: activeItem 存在时，header 显示"🔒 闯关中"，无"← 首页"按钮', async () => {
+  it('Q1: activeItem 存在时，header 显示"闯关中"标签，无"← 首页"按钮', async () => {
     await setupActiveQuest();
     renderQuest();
     await waitFor(() => {
-      expect(screen.getByText(/🔒 闯关中/)).toBeInTheDocument();
+      // R3.0: emoji 🔒 改成 lucide Lock，文案只剩"闯关中"
+      const lockedLabels = screen.getAllByText(/闯关中/);
+      expect(lockedLabels.length).toBeGreaterThan(0);
     });
     // 退出按钮不应存在
     expect(screen.queryByRole('button', { name: /← 首页/ })).toBeNull();

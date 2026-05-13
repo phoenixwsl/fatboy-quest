@@ -70,13 +70,24 @@ export function ConfirmModal() {
             onClick={() => resolve(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-default"
           />
-          {/* 弹窗主体 */}
+          {/* R3.0 §11: 弹窗主体 — 改成白底 paper */}
           <motion.div
             initial={{ scale: 0.85, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.92, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-            className={`relative z-10 w-full max-w-sm bg-space-card border border-white/15 rounded-3xl p-6 shadow-2xl ${TONE_STYLES[confirm.tone ?? 'info'].ring}`}
+            className="relative z-10 w-full max-w-sm rounded-[var(--radius-xl)] p-6"
+            style={{
+              background: 'var(--paper)',
+              boxShadow: 'var(--shadow-lg)',
+              border: `2px solid ${(() => {
+                const tone = confirm.tone ?? 'info';
+                if (tone === 'danger') return 'var(--danger)';
+                if (tone === 'warn')   return 'var(--fatboy-500)';
+                if (tone === 'help')   return 'var(--danger)';
+                return 'var(--sky-300)';
+              })()}`,
+            }}
           >
             {/* Emoji 大图标 */}
             <div className="text-6xl text-center mb-2 leading-none">
@@ -85,31 +96,69 @@ export function ConfirmModal() {
             {/* 标题 */}
             <div
               id="confirm-title"
-              className={`text-xl font-bold text-center mb-2 ${TONE_STYLES[confirm.tone ?? 'info'].titleColor}`}
+              className="text-xl font-bold text-center mb-2"
+              style={{
+                color: (() => {
+                  const tone = confirm.tone ?? 'info';
+                  if (tone === 'danger') return 'var(--danger)';
+                  if (tone === 'warn')   return 'var(--fatboy-700)';
+                  if (tone === 'help')   return 'var(--danger)';
+                  return 'var(--sky-700)';
+                })(),
+              }}
             >
               {confirm.title}
             </div>
             {/* 详情 */}
             {confirm.body && (
-              <div className="text-sm text-white/70 text-center leading-relaxed mb-5 whitespace-pre-line">
+              <div
+                className="text-sm text-center leading-relaxed mb-5 whitespace-pre-line"
+                style={{ color: 'var(--ink-muted)' }}
+              >
                 {confirm.body}
               </div>
             )}
-            {/* 按钮（大号，最少 56px 高，给孩子按） */}
+            {/* 按钮 */}
             <div className="flex gap-3 mt-4">
               <button
                 onClick={() => resolve(false)}
-                className="flex-1 h-14 rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95 text-base font-medium transition"
+                className="secondary-btn flex-1"
+                style={{ height: 56, padding: 0 }}
               >
                 {confirm.cancelLabel ?? '取消'}
               </button>
-              <button
-                onClick={() => resolve(true)}
-                className={`flex-1 h-14 rounded-2xl active:scale-95 text-base font-bold transition ${TONE_STYLES[confirm.tone ?? 'info'].confirmBtn}`}
-                autoFocus
-              >
-                {confirm.confirmLabel ?? '确定'}
-              </button>
+              {(() => {
+                const tone = confirm.tone ?? 'info';
+                const isDanger = tone === 'danger' || tone === 'help';
+                if (isDanger) {
+                  return (
+                    <button
+                      onClick={() => resolve(true)}
+                      autoFocus
+                      className="danger-btn flex-1"
+                      style={{ height: 56, padding: 0 }}
+                    >
+                      {confirm.confirmLabel ?? '确定'}
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    onClick={() => resolve(true)}
+                    autoFocus
+                    className="primary-btn flex-1"
+                    style={{ height: 56 }}
+                  >
+                    <span className="primary-btn-bottom" aria-hidden />
+                    <span
+                      className="primary-btn-top"
+                      style={{ height: 56, justifyContent: 'center', width: '100%', padding: 0 }}
+                    >
+                      {confirm.confirmLabel ?? '确定'}
+                    </span>
+                  </button>
+                );
+              })()}
             </div>
           </motion.div>
         </motion.div>

@@ -79,19 +79,19 @@ export function ChildAddTaskModal({ open, onClose }: Props) {
         >
           <motion.div
             initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
-            className="space-card p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto p-6 rounded-[var(--radius-xl)]"
+            style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-lg)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-lg font-bold mb-1">✨ 我要加一个任务</div>
-            <div className="text-xs text-white/50 mb-4">积分由家长在评分时给你</div>
+            <div className="text-lg font-bold mb-1" style={{ color: 'var(--ink)' }}>我要加一个任务</div>
+            <div className="text-xs mb-4" style={{ color: 'var(--ink-muted)' }}>积分由家长在评分时给你</div>
 
             {templates.length > 0 && (
               <div className="mb-4">
-                <div className="text-sm text-white/70 mb-2">📋 选一个模板</div>
+                <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>选一个模板</div>
                 <div className="flex flex-wrap gap-1.5">
                   {templates.slice(0, 8).map(tpl => (
-                    <button key={tpl.title} onClick={() => applyTemplate(tpl)}
-                      className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-xs">
+                    <button key={tpl.title} onClick={() => applyTemplate(tpl)} className="tag-btn">
                       <span className="mr-1">{SUBJECTS.find(s => s.id === tpl.subject)?.emoji}</span>
                       {tpl.title}
                     </button>
@@ -102,18 +102,28 @@ export function ChildAddTaskModal({ open, onClose }: Props) {
 
             <div className="space-y-3">
               <div>
-                <div className="text-sm text-white/70 mb-1">任务名字</div>
-                <input value={title} onChange={e => setTitle(e.target.value)}
+                <div className="text-sm mb-1" style={{ color: 'var(--ink-muted)' }}>任务名字</div>
+                <input
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
                   placeholder="例如：背 10 个单词"
-                  className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none" />
+                  className="w-full px-3 py-2 rounded-[var(--radius-sm)] outline-none"
+                  style={{ background: 'var(--mist)', color: 'var(--ink)', border: '2px solid transparent' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--sky-300)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; }}
+                />
               </div>
 
               <div>
-                <div className="text-sm text-white/70 mb-1">类型</div>
+                <div className="text-sm mb-1" style={{ color: 'var(--ink-muted)' }}>类型</div>
                 <div className="flex flex-wrap gap-2">
                   {SUBJECTS.map(s => (
-                    <button key={s.id} onClick={() => { setSubject(s.id); sounds.play('tap'); }}
-                      className={`px-3 py-1.5 rounded-xl text-sm ${subject === s.id ? 'bg-space-nebula' : 'bg-white/10'}`}>
+                    <button
+                      key={s.id}
+                      onClick={() => { setSubject(s.id); sounds.play('tap'); }}
+                      aria-pressed={subject === s.id}
+                      className={`tag-btn ${subject === s.id ? 'active' : ''}`}
+                    >
                       {s.emoji} {s.label}
                     </button>
                   ))}
@@ -121,21 +131,33 @@ export function ChildAddTaskModal({ open, onClose }: Props) {
               </div>
 
               <div>
-                <div className="text-sm text-white/70 mb-1">预计用时</div>
+                <div className="text-sm mb-1" style={{ color: 'var(--ink-muted)' }}>预计用时</div>
                 <div className="flex gap-2 flex-wrap">
                   {[10, 15, 20, 30, 45, 60].map(m => (
-                    <button key={m} onClick={() => { setMinutes(m); sounds.play('tap'); }}
-                      className={`px-3 py-1.5 rounded-xl text-sm ${minutes === m ? 'bg-space-nebula' : 'bg-white/10'}`}>
-                      {m} 分
+                    <button
+                      key={m}
+                      onClick={() => { setMinutes(m); sounds.play('tap'); }}
+                      aria-pressed={minutes === m}
+                      className={`tag-btn ${minutes === m ? 'active' : ''}`}
+                    >
+                      <span className="text-num">{m}</span> 分
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
-              <button onClick={onClose} className="space-btn-ghost flex-1">取消</button>
-              <button onClick={submit} className="space-btn flex-1">添加</button>
+            <div className="flex gap-2 mt-5">
+              <button onClick={onClose} className="secondary-btn flex-1">取消</button>
+              <button onClick={submit} className="primary-btn flex-1">
+                <span className="primary-btn-bottom" aria-hidden />
+                <span
+                  className="primary-btn-top"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  添加
+                </span>
+              </button>
             </div>
           </motion.div>
         </motion.div>

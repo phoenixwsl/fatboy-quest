@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
+import {
+  ArrowLeft, ClipboardList, Star, Gift, Calendar as CalendarIcon,
+  Settings as SettingsIcon, Database, Smartphone, Sparkles,
+  Flame, Target, Clock,
+} from 'lucide-react';
 import { db } from '../../db';
 import { todayString } from '../../lib/time';
 import { totalPoints } from '../../lib/points';
@@ -27,18 +32,23 @@ export function ParentDashboard() {
   const [showCharts, setShowCharts] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
 
-  const tiles = [
-    { label: '📝 任务管理', desc: '一次性 + 循环（一站式）', to: '/parent/tasks' },
-    { label: '⭐ 待评分', desc: `${pendingReview?.length ?? 0} 项等你评分`, to: '/parent/evaluations', urgent: (pendingReview?.length ?? 0) > 0 },
-    { label: '🎁 奖励商店', desc: '管理可兑换奖励', to: '/parent/shop' },
-    { label: '📱 通知接收人', desc: '配置 Bark 推送', to: '/parent/recipients' },
-    { label: '⚙️ 设置', desc: 'PIN / 密保 / 通知 / 重置', to: '/parent/settings' },
-    { label: '📅 贡献日历', desc: '月度热力图 + 长图导出', to: '/calendar' },
-    { label: '💾 数据', desc: '导出 / 导入备份', to: '/parent/data' },
+  const tiles: Array<{
+    Icon: any;
+    label: string;
+    desc: string;
+    to: string;
+    urgent?: boolean;
+  }> = [
+    { Icon: ClipboardList, label: '任务管理', desc: '一次性 + 循环', to: '/parent/tasks' },
+    { Icon: Star, label: '待评分', desc: `${pendingReview?.length ?? 0} 项等你评分`, to: '/parent/evaluations', urgent: (pendingReview?.length ?? 0) > 0 },
+    { Icon: Gift, label: '奖励商店', desc: '管理可兑换奖励', to: '/parent/shop' },
+    { Icon: Smartphone, label: '通知接收人', desc: '配置 Bark 推送', to: '/parent/recipients' },
+    { Icon: SettingsIcon, label: '设置', desc: 'PIN / 密保 / 通知 / 重置', to: '/parent/settings' },
+    { Icon: CalendarIcon, label: '贡献日历', desc: '月度热力图 + 长图导出', to: '/calendar' },
+    { Icon: Database, label: '数据', desc: '导出 / 导入备份', to: '/parent/data' },
   ];
 
   function runAnalysis() {
-    // toggle: 已经显示则收起
     if (analysis) { setAnalysis(null); return; }
     const text = analyzeWeek({
       tasks: allTasks ?? [],
@@ -51,25 +61,41 @@ export function ParentDashboard() {
   }
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => nav('/')} className="space-btn-ghost">← 退出家长模式</button>
-        <div className="text-xl font-bold">👨‍👩 家长面板</div>
+        <button
+          onClick={() => nav('/')}
+          className="secondary-btn flex items-center gap-1"
+          style={{ padding: '8px 14px' }}
+        >
+          <ArrowLeft size={16} /> 退出家长模式
+        </button>
+        <div className="text-xl font-bold" style={{ color: 'var(--ink)' }}>家长面板</div>
       </div>
 
-      <div className="space-card p-4 mb-4">
+      {/* 顶部 3 联统计 */}
+      <div
+        className="p-4 mb-4 rounded-[var(--radius-lg)]"
+        style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
+      >
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <div className="text-xs text-white/50">今日作业</div>
-            <div className="text-2xl font-bold">{todayTasks?.length ?? 0}</div>
+            <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>今日作业</div>
+            <div className="text-2xl font-bold text-num" style={{ color: 'var(--ink)' }}>
+              {todayTasks?.length ?? 0}
+            </div>
           </div>
           <div>
-            <div className="text-xs text-white/50">累计积分</div>
-            <div className="text-2xl font-bold text-amber-300">{total}</div>
+            <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>累计积分</div>
+            <div className="text-2xl font-bold text-num" style={{ color: 'var(--fatboy-700)' }}>
+              {total}
+            </div>
           </div>
           <div>
-            <div className="text-xs text-white/50">连击</div>
-            <div className="text-2xl font-bold text-rose-300">{streak?.currentStreak ?? 0}</div>
+            <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>连击</div>
+            <div className="text-2xl font-bold text-num" style={{ color: 'var(--danger)' }}>
+              {streak?.currentStreak ?? 0}
+            </div>
           </div>
         </div>
       </div>
@@ -78,27 +104,53 @@ export function ParentDashboard() {
       <InsightCards />
 
       <div className="flex gap-2 mb-3">
-        <button onClick={runAnalysis} className={`flex-1 text-sm ${analysis ? 'space-btn-ghost' : 'space-btn'}`}>
-          {analysis ? '▼ 收起分析' : '✨ 一键分析（本周）'}
-        </button>
-        <button onClick={() => setShowCharts(!showCharts)} className="space-btn-ghost flex-1 text-sm">
+        {analysis ? (
+          <button onClick={runAnalysis} className="secondary-btn flex-1 text-sm">
+            ▼ 收起分析
+          </button>
+        ) : (
+          <button onClick={runAnalysis} className="primary-btn flex-1">
+            <span className="primary-btn-bottom" aria-hidden />
+            <span
+              className="primary-btn-top"
+              style={{ padding: '12px 18px', fontSize: 14, width: '100%', justifyContent: 'center' }}
+            >
+              <Sparkles size={16} /> 一键分析（本周）
+            </span>
+          </button>
+        )}
+        <button
+          onClick={() => setShowCharts(!showCharts)}
+          className="secondary-btn flex-1 text-sm"
+        >
           {showCharts ? '▼ 收起图表' : '▶ 展开图表'}
         </button>
       </div>
 
       {analysis && (
-        <div className="space-card p-4 mb-3 bg-gradient-to-br from-space-nebula/20 to-space-plasma/10">
+        <div
+          className="p-4 mb-3 rounded-[var(--radius-lg)]"
+          style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-md)' }}
+        >
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-bold text-amber-300">本周分析</div>
-            <button onClick={() => setAnalysis(null)}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 text-white text-lg flex items-center justify-center">
+            <div className="text-sm font-bold" style={{ color: 'var(--fatboy-700)' }}>本周分析</div>
+            <button
+              onClick={() => setAnalysis(null)}
+              className="w-8 h-8 rounded-full active:scale-90 text-lg flex items-center justify-center"
+              style={{ background: 'var(--mist)', color: 'var(--ink)' }}
+            >
               ✕
             </button>
           </div>
-          <pre className="text-sm whitespace-pre-wrap font-kid text-white/90 leading-relaxed">
+          <pre
+            className="text-sm whitespace-pre-wrap font-kid leading-relaxed"
+            style={{ color: 'var(--ink)' }}
+          >
             {analysis}
           </pre>
-          <button onClick={() => setAnalysis(null)} className="space-btn-ghost w-full mt-3 text-sm">关闭</button>
+          <button onClick={() => setAnalysis(null)} className="secondary-btn w-full mt-3 text-sm">
+            关闭
+          </button>
         </div>
       )}
 
@@ -111,12 +163,24 @@ export function ParentDashboard() {
         </div>
       )}
 
-      <div className="text-sm text-white/60 mb-2">功能入口</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>功能入口</div>
       <div className="grid grid-cols-2 gap-3">
         {tiles.map(t => (
-          <button key={t.to} onClick={() => nav(t.to)} className={`space-card p-4 text-left active:scale-95 transition-transform ${t.urgent ? 'ring-2 ring-amber-400 animate-pulse-glow' : ''}`}>
-            <div className="text-base font-bold">{t.label}</div>
-            <div className="text-xs text-white/50 mt-1">{t.desc}</div>
+          <button
+            key={t.to}
+            onClick={() => nav(t.to)}
+            className="p-4 text-left active:scale-95 transition-transform rounded-[var(--radius-md)]"
+            style={{
+              background: 'var(--paper)',
+              boxShadow: 'var(--shadow-sm)',
+              ...(t.urgent ? { outline: '2px solid var(--fatboy-500)' } : {}),
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <t.Icon size={20} className="" />
+              <div className="text-base font-bold" style={{ color: 'var(--ink)' }}>{t.label}</div>
+            </div>
+            <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>{t.desc}</div>
           </button>
         ))}
       </div>
@@ -140,61 +204,84 @@ function InsightCards() {
     reading: '阅读', writing: '练字', other: '其它',
   };
 
+  const cardStyle = {
+    background: 'var(--paper)',
+    boxShadow: 'var(--shadow-sm)',
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
       {/* 连击趋势 */}
-      <div className="space-card p-3">
-        <div className="text-xs text-white/50 mb-1">🔥 连击</div>
-        <div className="text-2xl font-bold tabular-nums">
+      <div className="p-3 rounded-[var(--radius-md)]" style={cardStyle}>
+        <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>
+          <Flame size={14} /> 连击
+        </div>
+        <div className="text-2xl font-bold text-num" style={{ color: 'var(--ink)' }}>
           {st.current} 天
         </div>
-        <div className={`text-xs mt-1 ${
-          st.status === 'growing' ? 'text-emerald-300' :
-          st.status === 'broken'  ? 'text-rose-300' :
-          st.status === 'stable'  ? 'text-cyan-300' : 'text-white/40'
-        }`}>
+        <div
+          className="text-xs mt-1"
+          style={{
+            color:
+              st.status === 'growing' ? 'var(--success)' :
+              st.status === 'broken'  ? 'var(--danger)'  :
+              st.status === 'stable'  ? 'var(--sky-700)' : 'var(--ink-faint)',
+          }}
+        >
           {st.status === 'growing' ? '⬆️ 在涨' :
            st.status === 'broken'  ? '⚠️ 刚断了' :
            st.status === 'stable'  ? '⏸ 平稳' : '从头开始'}
-          {' · 最长 ' + st.longest}
+          {' · 最长 '}<span className="text-num">{st.longest}</span>
         </div>
       </div>
 
       {/* 本周 vs 上周 */}
-      <div className="space-card p-3">
-        <div className="text-xs text-white/50 mb-1">💯 本周积分</div>
-        <div className="text-2xl font-bold text-amber-300 tabular-nums">
+      <div className="p-3 rounded-[var(--radius-md)]" style={cardStyle}>
+        <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>
+          <Target size={14} /> 本周积分
+        </div>
+        <div className="text-2xl font-bold text-num" style={{ color: 'var(--fatboy-700)' }}>
           {wk.thisWeek}
         </div>
-        <div className={`text-xs mt-1 ${
-          wk.direction === 'up' ? 'text-emerald-300' :
-          wk.direction === 'down' ? 'text-rose-300' : 'text-white/40'
-        }`}>
-          上周 {wk.lastWeek}
-          {wk.direction === 'up' && ` · ⬆️ +${wk.delta}${wk.pct ? ` (${wk.pct}%)` : ''}`}
-          {wk.direction === 'down' && ` · ⬇️ ${wk.delta}`}
+        <div
+          className="text-xs mt-1"
+          style={{
+            color:
+              wk.direction === 'up'   ? 'var(--success)' :
+              wk.direction === 'down' ? 'var(--danger)'  : 'var(--ink-faint)',
+          }}
+        >
+          上周 <span className="text-num">{wk.lastWeek}</span>
+          {wk.direction === 'up' && (
+            <> · ⬆️ +<span className="text-num">{wk.delta}</span>{wk.pct ? ` (${wk.pct}%)` : ''}</>
+          )}
+          {wk.direction === 'down' && <> · ⬇️ <span className="text-num">{wk.delta}</span></>}
           {wk.direction === 'flat' && ' · 持平'}
         </div>
       </div>
 
       {/* 学科效率 */}
-      <div className="space-card p-3">
-        <div className="text-xs text-white/50 mb-1">⏱ 最慢学科（近 2 周）</div>
+      <div className="p-3 rounded-[var(--radius-md)]" style={cardStyle}>
+        <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--ink-muted)' }}>
+          <Clock size={14} /> 最慢学科（近 2 周）
+        </div>
         {eff ? (
           <>
-            <div className="text-2xl font-bold text-cyan-200">
+            <div className="text-2xl font-bold" style={{ color: 'var(--sky-700)' }}>
               {subjectLabel[eff.subject] ?? eff.subject}
             </div>
-            <div className="text-xs mt-1 text-white/60">
-              用了 {eff.totalActualMinutes} 分钟（预估 {eff.totalEstMinutes}）·
-              {eff.ratio > 1 ? ` 慢 ${Math.round((eff.ratio - 1) * 100)}%` : ' 准点'}
+            <div className="text-xs mt-1" style={{ color: 'var(--ink-muted)' }}>
+              用了 <span className="text-num">{eff.totalActualMinutes}</span> 分钟
+              （预估 <span className="text-num">{eff.totalEstMinutes}</span>）·
+              {eff.ratio > 1 ? <> 慢 <span className="text-num">{Math.round((eff.ratio - 1) * 100)}%</span></> : ' 准点'}
             </div>
           </>
         ) : (
-          <div className="text-sm text-white/40 mt-2">数据不足（&lt; 2 个样本）</div>
+          <div className="text-sm mt-2" style={{ color: 'var(--ink-faint)' }}>
+            数据不足（&lt; 2 个样本）
+          </div>
         )}
       </div>
     </div>
   );
 }
-

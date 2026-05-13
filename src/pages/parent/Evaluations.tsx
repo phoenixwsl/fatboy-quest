@@ -99,48 +99,85 @@ export function Evaluations() {
   }
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
-        <div className="text-xl font-bold">⭐ 待评分</div>
+        <button onClick={() => nav('/parent/dashboard')} className="secondary-btn" style={{ padding: '8px 16px' }}>←</button>
+        <div className="text-xl font-bold" style={{ color: 'var(--ink)' }}>待评分</div>
       </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-sm text-white/60">待评分 ({pendingTasks?.length ?? 0})</div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm" style={{ color: 'var(--ink-muted)' }}>
+          待评分 (<span className="text-num">{pendingTasks?.length ?? 0}</span>)
+        </div>
         {(pendingTasks?.length ?? 0) >= 2 && (
-          <button onClick={evaluateAllPerfect}
-            className="px-3 py-1.5 rounded-xl bg-amber-500/30 border border-amber-300/50 text-amber-100 text-xs active:scale-95">
-            🌟 全部完美评分
+          <button onClick={evaluateAllPerfect} className="primary-btn">
+            <span className="primary-btn-bottom" aria-hidden />
+            <span className="primary-btn-top" style={{ padding: '10px 18px', fontSize: 14 }}>
+              全部完美评分
+            </span>
           </button>
         )}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {pendingTasks?.map(t => (
-          <div key={t.id} className="space-card p-3">
+          <div
+            key={t.id}
+            className="p-3 rounded-[var(--radius-md)]"
+            style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
+          >
             <button onClick={() => setOpenTask(t)}
               className="flex items-center gap-3 w-full text-left active:scale-95">
               <SubjectIcon subject={t.subject} />
               <div className="flex-1">
-                <div className="font-medium flex items-center gap-2">
+                <div className="font-medium flex items-center gap-2" style={{ color: 'var(--ink)' }}>
                   {t.title}
-                  {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">孩子加的</span>}
+                  {t.createdBy === 'child' && (
+                    <span
+                      className="text-xs px-1.5 py-0.5 rounded"
+                      style={{ background: 'var(--sky-100)', color: 'var(--sky-700)' }}
+                    >
+                      孩子加的
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-white/50">
+                <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
                   完成于 {t.completedAt ? new Date(t.completedAt).toLocaleString() : '?'}
                 </div>
               </div>
-              <span className="text-xs text-space-plasma">详细 →</span>
+              <span className="text-xs" style={{ color: 'var(--sky-700)' }}>详细 →</span>
             </button>
-            {/* R2.4.1: 快速套餐评分（4 个一键按钮） */}
-            <div className="grid grid-cols-4 gap-1.5 mt-2.5">
+            {/* R3.0 §7.3: 评分按钮统一灰底未选；hover/选中后才显色（低饱和） */}
+            <div className="grid grid-cols-4 gap-2 mt-3">
               {QUICK_PRESETS.map(preset => (
-                <button key={preset.id}
+                <button
+                  key={preset.id}
                   onClick={() => quickEvaluate(t, preset)}
-                  className={`px-2 py-2 rounded-xl text-xs font-medium active:scale-95
-                    ${preset.tone === 'amber' ? 'bg-amber-500/25 border border-amber-300/50 text-amber-100' :
-                      preset.tone === 'emerald' ? 'bg-emerald-500/25 border border-emerald-300/50 text-emerald-100' :
-                      preset.tone === 'cyan' ? 'bg-cyan-500/25 border border-cyan-300/50 text-cyan-100' :
-                      'bg-rose-500/25 border border-rose-300/50 text-rose-100'}`}>
+                  className="rating-btn"
+                  style={{
+                    flex: '1',
+                    padding: '12px 0',
+                    background: 'var(--mist)',
+                    border: '2px solid var(--fog)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--ink-muted)',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s var(--spring-bouncy)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'var(--sky-300)';
+                    e.currentTarget.style.background = 'var(--paper)';
+                    e.currentTarget.style.color = 'var(--ink)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--fog)';
+                    e.currentTarget.style.background = 'var(--mist)';
+                    e.currentTarget.style.color = 'var(--ink-muted)';
+                    e.currentTarget.style.transform = '';
+                  }}
+                >
                   {preset.label}
                 </button>
               ))}
@@ -148,20 +185,26 @@ export function Evaluations() {
           </div>
         ))}
         {pendingTasks?.length === 0 && (
-          <div className="text-white/40 text-sm text-center py-4">没有待评分的作业 ✨</div>
+          <div className="text-sm text-center py-4" style={{ color: 'var(--ink-faint)' }}>
+            没有待评分的作业 ✨
+          </div>
         )}
       </div>
 
       {evaluatedTasks && evaluatedTasks.length > 0 && (
         <>
-          <div className="text-sm text-white/60 mt-6 mb-2">已评分（最近）</div>
+          <div className="text-sm mt-6 mb-2" style={{ color: 'var(--ink-muted)' }}>已评分（最近）</div>
           <div className="space-y-2">
             {evaluatedTasks.slice(0, 10).map(t => (
-              <div key={t.id} className="space-card p-3 opacity-70 flex items-center gap-3">
+              <div
+                key={t.id}
+                className="p-3 rounded-[var(--radius-md)] opacity-80 flex items-center gap-3"
+                style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
+              >
                 <SubjectIcon subject={t.subject} />
                 <div className="flex-1">
-                  <div className="text-sm">{t.title}</div>
-                  <div className="text-xs text-white/50">已评分 ✓</div>
+                  <div className="text-sm" style={{ color: 'var(--ink)' }}>{t.title}</div>
+                  <div className="text-xs" style={{ color: 'var(--success)' }}>已评分 ✓</div>
                 </div>
               </div>
             ))}

@@ -9,9 +9,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="肥仔大闯关" />
     <link rel="apple-touch-icon" href="/fatboy-quest/icon-192.png" />
+    <!-- R3.0: Fredoka 用于数字 + Inter 用于英文 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
     <title>肥仔大闯关</title>
   </head>
-  <body class="bg-space-void text-white font-kid select-none overflow-hidden">
+  <body class="text-[var(--ink)] font-kid select-none overflow-hidden" data-time-period="day">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

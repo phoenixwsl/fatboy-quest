@@ -17,6 +17,10 @@ import { nextExtensionOffer, canShowExtensionButton } from '../lib/extension';
 import { calcCombo } from '../lib/combo';
 import { summarizeExecution } from '../lib/earlyBonus';
 import { focusStarsCount, shouldGrantLuckyBonus, LUCKY_BONUS_POINTS } from '../lib/microRewards';
+import {
+  HandHelping, ArrowLeft, Swords, Play, Zap, Pause, Clock,
+  ChevronDown, ChevronUp, Lock,
+} from 'lucide-react';
 import { HardWarning } from '../components/HardWarning';
 import { SpeechBubble } from '../components/SpeechBubble';
 import { RestBlock } from '../components/RestBlock';
@@ -660,37 +664,48 @@ export function QuestPage() {
     }
 
     return (
-      <div className="min-h-full flex flex-col items-center justify-center text-white p-6 text-center">
+      <div
+        className="min-h-full flex flex-col items-center justify-center p-6 text-center"
+        style={{ color: 'var(--ink)' }}
+      >
         <div className="text-6xl mb-3">😴</div>
         <div className="text-xl font-bold mb-2">这里没有进行中的闯关</div>
 
-        <div className="space-card p-4 mt-4 w-full max-w-sm text-left text-xs">
-          <div className="text-amber-300 font-bold mb-2">📊 当前状态</div>
-          <div>📅 今日任务总数：<b>{todayTasksSnapshot.length}</b></div>
-          <div>⏱ 待开始/进行中：<b className={inFlightTasks.length > 0 ? 'text-amber-300' : ''}>{inFlightTasks.length}</b></div>
-          <div>📋 今日时间轴：<b>{schedulesCount}</b></div>
-          <div>✓ 已锁定且未完成：<b className={lockedNotCompleted > 0 ? 'text-emerald-300' : ''}>{lockedNotCompleted}</b></div>
-          <div>🏁 已锁定且已完成：<b>{lockedCompleted}</b></div>
+        <div
+          className="p-4 mt-4 w-full max-w-sm text-left text-xs rounded-[var(--radius-md)]"
+          style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)', color: 'var(--ink-muted)' }}
+        >
+          <div className="font-bold mb-2" style={{ color: 'var(--fatboy-700)' }}>当前状态</div>
+          <div>今日任务总数：<b className="text-num" style={{ color: 'var(--ink)' }}>{todayTasksSnapshot.length}</b></div>
+          <div>待开始/进行中：<b className="text-num" style={{ color: inFlightTasks.length > 0 ? 'var(--danger)' : 'var(--ink)' }}>{inFlightTasks.length}</b></div>
+          <div>今日时间轴：<b className="text-num" style={{ color: 'var(--ink)' }}>{schedulesCount}</b></div>
+          <div>已锁定且未完成：<b className="text-num" style={{ color: lockedNotCompleted > 0 ? 'var(--success)' : 'var(--ink)' }}>{lockedNotCompleted}</b></div>
+          <div>已锁定且已完成：<b className="text-num" style={{ color: 'var(--ink)' }}>{lockedCompleted}</b></div>
         </div>
 
         {inFlightTasks.length > 0 && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-500/20 border border-rose-300/40 text-sm">
-            <div className="font-bold text-rose-200">⚠️ 检测到 {inFlightTasks.length} 个任务卡住了</div>
-            <div className="text-xs text-white/70 mt-1">
+          <div
+            className="mt-4 p-3 rounded-[var(--radius-md)] text-sm"
+            style={{ background: 'var(--paper)', border: '2px solid var(--danger)', color: 'var(--danger)' }}
+          >
+            <div className="font-bold">⚠️ 检测到 <span className="text-num">{inFlightTasks.length}</span> 个任务卡住了</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--ink-muted)' }}>
               任务还在"待开始"，但时间轴异常。点下面按钮一键修复。
             </div>
           </div>
         )}
 
-        <div className="flex flex-col gap-2 mt-5 w-full max-w-xs">
+        <div className="flex flex-col items-center gap-3 mt-6 w-full max-w-xs">
           {inFlightTasks.length > 0 && (
-            <button onClick={emergencyResetTasksToPending}
-              className="px-4 py-3 rounded-xl bg-rose-500 text-white font-bold active:scale-95">
-              🔧 紧急修复（重置卡住的任务）
+            <button onClick={emergencyResetTasksToPending} className="danger-btn w-full">
+              紧急修复（重置卡住的任务）
             </button>
           )}
-          <button onClick={() => nav('/schedule')} className="space-btn">📅 去规划</button>
-          <button onClick={() => nav('/')} className="space-btn-ghost">回首页</button>
+          <button onClick={() => nav('/schedule')} className="primary-btn">
+            <span className="primary-btn-bottom" aria-hidden />
+            <span className="primary-btn-top">去规划</span>
+          </button>
+          <button onClick={() => nav('/')} className="secondary-btn">回首页</button>
         </div>
       </div>
     );
@@ -700,21 +715,29 @@ export function QuestPage() {
   // `if (!schedule) return ...` 之前（修复 "Rendered more hooks" bug）
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
       <div className="flex items-center gap-2 mb-4">
         {activeItem ? (
-          <div className="px-3 py-2 rounded-xl bg-white/5 text-white/40 text-sm flex items-center gap-1.5">
-            🔒 闯关中
+          <div
+            className="px-3 py-2 rounded-[var(--radius-sm)] text-sm flex items-center gap-1.5"
+            style={{ background: 'var(--mist)', color: 'var(--ink-muted)' }}
+          >
+            <Lock size={14} /> 闯关中
           </div>
         ) : (
-          <button onClick={() => nav('/')} className="space-btn-ghost">← 首页</button>
+          <button onClick={() => nav('/')} className="secondary-btn" style={{ padding: '8px 16px' }}>
+            <ArrowLeft size={16} className="inline mr-1" /> 首页
+          </button>
         )}
-        <div className="text-xl font-bold flex-1">⚔️ 闯关</div>
+        <div className="text-xl font-bold flex-1" style={{ color: 'var(--ink)' }}>闯关中</div>
         {settings?.helpButtonEnabled !== false && activeTask && (
-          <button onClick={() => sendHelp(activeTask.title)}
-            className="w-11 h-11 rounded-full bg-rose-500/30 border border-rose-300/50 active:scale-90"
-            title="求助">
-            <span className="text-xl">🙋</span>
+          <button
+            onClick={() => sendHelp(activeTask.title)}
+            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90"
+            style={{ background: 'var(--danger)', color: '#fff', boxShadow: 'var(--shadow-sm)' }}
+            title="求助"
+          >
+            <HandHelping size={20} />
           </button>
         )}
       </div>
@@ -739,13 +762,22 @@ export function QuestPage() {
         {!activeItem ? (
           <motion.div
             key="all-done"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="space-card p-6 text-center"
+            initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+            className="p-8 text-center rounded-[var(--radius-lg)]"
+            style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-md)' }}
           >
-            <div className="text-5xl">🏆</div>
-            <div className="mt-2 text-xl font-bold">这一轮全部击败！</div>
-            <div className="text-white/60 text-sm mt-1">等家长给你打分吧</div>
-            <button onClick={() => nav('/')} className="space-btn mt-4">回首页</button>
+            <PetAvatar skinId={pet?.skinId} size={180} state="celebrate" />
+            <div className="mt-3 text-2xl font-bold" style={{ color: 'var(--ink)' }}>这一轮全部击败！</div>
+            <div className="text-sm mt-1" style={{ color: 'var(--ink-muted)' }}>等家长给你打分吧</div>
+            <div className="flex justify-center mt-5">
+              <button onClick={() => nav('/')} className="primary-btn">
+                <span className="primary-btn-bottom" aria-hidden />
+                <span className="primary-btn-top">
+                  <ArrowLeft size={18} /> 回首页
+                </span>
+              </button>
+            </div>
           </motion.div>
         ) : activeItem.kind === 'rest' ? (
           <motion.div key={`rest-${activeIdx}`}>
@@ -827,9 +859,8 @@ function TaskActiveCard({
   const paused = !!task.pausedAt;
   const pauseRemainSec = paused ? Math.max(0, PAUSE_LIMIT_SEC - Math.floor((now - task.pausedAt!) / 1000)) : 0;
 
-  // 没开始：显示开始按钮
+  // 没开始：§4 准备页 — VS 对决感
   if (task.status === 'scheduled') {
-    // R2.1.1: 进入这一项已经多久（"在想什么呢"计时）
     const waitSec = task.firstEncounteredAt ? Math.floor((now - task.firstEncounteredAt) / 1000) : 0;
     const waitMin = Math.floor(waitSec / 60);
     const waitSecRem = waitSec % 60;
@@ -837,90 +868,178 @@ function TaskActiveCard({
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-        className={`space-card p-6 text-center ${overdue ? 'ring-2 ring-amber-400/60' : ''}`}
+        className="p-6 text-center rounded-[var(--radius-lg)]"
+        style={{
+          background: 'var(--paper)',
+          boxShadow: 'var(--shadow-md)',
+          border: overdue ? '2px solid var(--fatboy-500)' : 'none',
+        }}
       >
-        <PetAvatar skinId={petSkinId} size={120} state={overdue ? 'sleeping' : 'focused'} />
-        <div className="mt-3 text-sm text-white/60">下一只小怪</div>
-        <div className="text-2xl font-bold mt-1">{task.title}</div>
-        <div className="text-sm text-white/60 mt-1">⏱ 预估 {task.estimatedMinutes} 分钟 · ⭐ {task.basePoints || '由家长评分时定'}</div>
+        {/* 左右对峙：肥仔 vs 小怪 */}
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <PetAvatar skinId={petSkinId} size={140} state={overdue ? 'sleeping' : 'focused'} />
+          <div
+            className="flex flex-col items-center font-black text-xl"
+            style={{ color: 'var(--fatboy-700)' }}
+          >
+            <Swords size={28} />
+            VS
+          </div>
+          <div
+            className="w-[120px] h-[120px] rounded-2xl flex items-center justify-center text-6xl"
+            style={{ background: 'var(--mist)', boxShadow: 'var(--shadow-sm)' }}
+          >
+            {(() => {
+              const subj = task.subject;
+              return ({ math: '🔢', chinese: '📖', english: '🔤', reading: '📚', writing: '✏️', other: '⭐' } as any)[subj] ?? '📚';
+            })()}
+          </div>
+        </div>
+        <div className="text-xs mt-3" style={{ color: 'var(--ink-muted)' }}>下一关</div>
+        <div className="text-2xl font-bold mt-1" style={{ color: 'var(--ink)' }}>{task.title}</div>
+        <div className="text-sm mt-1" style={{ color: 'var(--ink-muted)' }}>
+          预估 <span className="text-num">{task.estimatedMinutes}</span> 分 ·{' '}
+          {task.basePoints
+            ? <><span className="text-num">{task.basePoints}</span> ⭐</>
+            : '积分由家长评分'}
+        </div>
         {task.firstEncounteredAt && (
-          <div className={`mt-3 text-xs tabular-nums ${overdue ? 'text-amber-300' : 'text-white/40'}`}>
+          <div
+            className="mt-3 text-xs text-num"
+            style={{ color: overdue ? 'var(--danger)' : 'var(--ink-faint)' }}
+          >
             {overdue
-              ? `⏰ 已等待 ${waitMin}:${String(waitSecRem).padStart(2, '0')}（已通知家长）`
+              ? `已等待 ${waitMin}:${String(waitSecRem).padStart(2, '0')}（已通知家长）`
               : `等待中 ${waitMin}:${String(waitSecRem).padStart(2, '0')} / 03:00 后通知家长`}
           </div>
         )}
-        <button onClick={onStart} className="space-btn w-full mt-6 text-lg animate-pulse-glow">
-          ▶ 我要开始
-        </button>
-        <div className="text-xs text-white/40 mt-2">点了才会开始计时</div>
+        <div className="flex justify-center mt-6">
+          <button onClick={onStart} className="primary-btn">
+            <span className="primary-btn-bottom" aria-hidden />
+            <span className="primary-btn-top" style={{ fontSize: 18 }}>
+              <Play size={20} fill="currentColor" /> 我要开始
+            </span>
+          </button>
+        </div>
+        <div className="text-xs mt-2" style={{ color: 'var(--ink-faint)' }}>点了才会开始计时</div>
       </motion.div>
     );
   }
 
-  // 进行中
+  // §5 倒计时
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-      className="space-card p-6 text-center"
+      className="p-6 text-center rounded-[var(--radius-lg)]"
+      style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-md)' }}
     >
-      <PetAvatar skinId={petSkinId} size={120} state={remSec < 5 * 60 ? 'tense' : 'focused'} />
-      <div className="mt-3 text-sm text-white/60">当前小怪</div>
-      <div className="text-2xl font-bold mt-1">{task.title}</div>
+      {/* 顶部并排：肥仔 + 小怪 受损态 */}
+      <div className="flex items-center justify-center gap-3 mb-2">
+        <PetAvatar
+          skinId={petSkinId}
+          size={80}
+          state={remSec < 5 * 60 ? 'tense' : 'focused'}
+        />
+        <div
+          className={`text-3xl ${remSec < 5 * 60 ? 'fatboy--shake' : ''}`}
+          style={{ opacity: progressPct > 50 ? 0.5 : 1 }}
+        >
+          {(() => {
+            const subj = task.subject;
+            return ({ math: '🔢', chinese: '📖', english: '🔤', reading: '📚', writing: '✏️', other: '⭐' } as any)[subj] ?? '📚';
+          })()}
+        </div>
+      </div>
+      <div className="text-sm" style={{ color: 'var(--ink-muted)' }}>当前小怪</div>
+      <div className="text-xl font-bold mt-0.5" style={{ color: 'var(--ink)' }}>{task.title}</div>
 
-      {/* R2.5.A: 4 颗专注⭐ — 每过 1/4 时长亮一颗 */}
+      {/* R2.5.A: 4 颗专注⭐ */}
       <FocusStars usedMs={elapsedMs} totalMs={totalSec * 1000} />
 
-      {/* 倒计时显示 — R2.2.8: 超时时显示具体超时多久 */}
-      <div className={`text-5xl font-black my-4 tabular-nums ${overtime ? 'text-rose-400 animate-pulse' : paused ? 'text-amber-300' : 'text-white'}`}>
+      {/* 倒计时大字 — Fredoka tabular */}
+      <div
+        className="text-num text-6xl font-bold my-4"
+        style={{
+          color: overtime ? 'var(--danger)' : paused ? 'var(--fatboy-700)' : 'var(--ink)',
+          ...(overtime ? { animation: 'fb-shake 0.45s ease-in-out infinite' } : {}),
+        }}
+      >
         {paused
-          ? `⏸ ${Math.floor(pauseRemainSec / 60)}:${String(pauseRemainSec % 60).padStart(2, '0')}`
+          ? `${Math.floor(pauseRemainSec / 60)}:${String(pauseRemainSec % 60).padStart(2, '0')}`
           : overtime
-          ? `⏰ +${String(overtimeMin).padStart(2, '0')}:${String(overtimeSecOnly).padStart(2, '0')}`
+          ? `+${String(overtimeMin).padStart(2, '0')}:${String(overtimeSecOnly).padStart(2, '0')}`
           : `${String(remMin).padStart(2, '0')}:${String(remSecOnly).padStart(2, '0')}`}
       </div>
-      <div className={`text-xs ${overtime ? 'text-rose-300' : 'text-white/50'}`}>
+      <div
+        className="text-xs"
+        style={{ color: overtime ? 'var(--danger)' : 'var(--ink-muted)' }}
+      >
         {paused ? '暂停中（最多 3 分钟自动恢复）' :
          overtime
            ? overtimeMin >= 3
              ? `已超时 ${overtimeMin} 分钟（已通知家长）`
              : `已超时 ${overtimeMin} 分${String(overtimeSecOnly).padStart(2, '0')}秒 — 赶紧收尾或者延时`
-           : `已用 ${Math.floor(elapsedSec / 60)} 分 · 总额度 ${task.estimatedMinutes + (task.extendMinutesTotal ?? 0)} 分`}
+           : <>已用 <span className="text-num">{Math.floor(elapsedSec / 60)}</span> 分 · 总额度 <span className="text-num">{task.estimatedMinutes + (task.extendMinutesTotal ?? 0)}</span> 分</>}
       </div>
 
-      {/* 进度条（血条） */}
-      <div className="h-3 rounded-full bg-white/10 overflow-hidden my-4 relative">
+      {/* 彩虹进度条（保留 — 这是产品最珍贵的视觉，§5.3） */}
+      <div
+        className="h-3 rounded-full overflow-hidden my-5 relative"
+        style={{ background: 'var(--fog)' }}
+      >
         <motion.div
-          className={`h-full ${overtime ? 'bg-gradient-to-r from-rose-600 to-rose-400' :
-            paused ? 'bg-gradient-to-r from-amber-500 to-amber-300' :
-            'bg-gradient-to-r from-rose-400 via-amber-400 to-emerald-400'}`}
+          className="h-full"
+          style={{
+            background: overtime
+              ? `linear-gradient(90deg, ${'var(--danger)'} 0%, ${'var(--rainbow-1)'} 100%)`
+              : paused
+              ? `linear-gradient(90deg, var(--fatboy-500), var(--fatboy-300))`
+              : `linear-gradient(90deg, var(--rainbow-1) 0%, var(--rainbow-2) 33%, var(--rainbow-3) 66%, var(--rainbow-4) 100%)`,
+          }}
           animate={{ width: `${100 - progressPct}%` }}
           transition={{ duration: 0.5 }}
         />
       </div>
 
-      <button onClick={onComplete} disabled={paused}
-        className="space-btn w-full text-lg animate-pulse-glow disabled:opacity-50">
-        💥 击败！我完成了
-      </button>
+      <div className="flex justify-center">
+        <button onClick={onComplete} disabled={paused} className="primary-btn disabled:opacity-50">
+          <span className="primary-btn-bottom" aria-hidden />
+          <span className="primary-btn-top" style={{ fontSize: 18 }}>
+            <Zap size={20} fill="currentColor" /> 击败！我完成了
+          </span>
+        </button>
+      </div>
 
-      <div className="flex gap-2 mt-3">
+      <div className="flex gap-2 mt-4">
         {paused ? (
-          <button onClick={onResume} className="space-btn-ghost flex-1">▶ 继续</button>
+          <button onClick={onResume} className="secondary-btn flex-1 flex items-center justify-center gap-1">
+            <Play size={16} fill="currentColor" /> 继续
+          </button>
         ) : (
-          <button onClick={onPause} disabled={(task.pauseCount ?? 0) >= 1}
-            className="space-btn-ghost flex-1 disabled:opacity-50">
-            ⏸ 暂停 ({(task.pauseCount ?? 0) >= 1 ? '已用过' : '剩 1 次'})
+          <button
+            onClick={onPause}
+            disabled={(task.pauseCount ?? 0) >= 1}
+            className="secondary-btn flex-1 flex items-center justify-center gap-1 disabled:opacity-50"
+          >
+            <Pause size={16} /> 暂停 ({(task.pauseCount ?? 0) >= 1 ? '已用过' : '剩 1 次'})
           </button>
         )}
-        <button onClick={onExtend} disabled={!canExtend || paused}
-          className={`flex-1 px-4 py-2 rounded-xl ${canExtend && !paused
-            ? overtime ? 'bg-rose-500/40 border border-rose-300/60 animate-pulse'
-              : 'bg-amber-500/30 border border-amber-300/50'
-            : 'bg-white/5 opacity-40 cursor-not-allowed'}`}>
-          ⏰ 延时 {canExtend ? `+${extensionOffer.addMinutes} 分钟` : ''}
+        <button
+          onClick={onExtend}
+          disabled={!canExtend || paused}
+          className="flex-1 px-4 py-2 rounded-[var(--radius-sm)] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+          style={
+            canExtend && !paused
+              ? overtime
+                ? { background: 'var(--danger)', color: '#fff' }
+                : { background: 'var(--fatboy-50)', color: 'var(--fatboy-700)', border: '2px solid var(--fatboy-300)' }
+              : { background: 'var(--mist)', color: 'var(--ink-faint)' }
+          }
+        >
+          <Clock size={16} />
+          延时 {canExtend && <>+<span className="text-num">{extensionOffer.addMinutes}</span> 分钟</>}
           {canExtend && extensionOffer.isFree && ' (免费)'}
-          {canExtend && !extensionOffer.isFree && ` (-${extensionOffer.costPoints} 积分)`}
+          {canExtend && !extensionOffer.isFree && <> (-<span className="text-num">{extensionOffer.costPoints}</span> ⭐)</>}
         </button>
       </div>
     </motion.div>
@@ -961,19 +1080,24 @@ function ScoreDetail({
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-sm text-white/60">📋 今日得分明细</div>
-        <div className="text-xs text-amber-300">
-          已得 <b className="text-lg">{totalEarned}</b> 分（{evaluatedCount}/{totalCount} 评分）
+        <div className="text-sm" style={{ color: 'var(--ink-muted)' }}>今日得分明细</div>
+        <div className="text-xs" style={{ color: 'var(--fatboy-700)' }}>
+          已得 <b className="text-lg text-num">{totalEarned}</b> ⭐
+          （<span className="text-num">{evaluatedCount}</span>/<span className="text-num">{totalCount}</span> 评分）
         </div>
       </div>
-      {/* R2.2.8: 显示当前 schedule 里的所有 item（包含 rest 块和正在执行的任务），
-          再追加今日**其它 schedule** 已完成的任务，避免漏。 */}
       {schedule.items.map((it: ScheduleItem, idx: number) => {
         if (it.kind === 'rest') {
           return (
-            <div key={`rest-${idx}`} className="flex items-center gap-2 my-2 text-cyan-300/70 text-sm px-3">
-              <span>☕ 休息 {it.durationMinutes} 分钟</span>
-              <span className="text-white/40 text-xs">{minutesToHHMM(it.startMinute)}</span>
+            <div
+              key={`rest-${idx}`}
+              className="flex items-center gap-2 my-2 text-sm px-3"
+              style={{ color: 'var(--sky-700)' }}
+            >
+              <span>☕ 休息 <span className="text-num">{it.durationMinutes}</span> 分钟</span>
+              <span className="text-xs text-num" style={{ color: 'var(--ink-faint)' }}>
+                {minutesToHHMM(it.startMinute)}
+              </span>
             </div>
           );
         }
@@ -982,28 +1106,34 @@ function ScoreDetail({
         const isActive = idx === activeIdx;
         return <ScoreDetailRow key={t.id} task={t} isActive={isActive} onUndo={onUndo} />;
       })}
-      {/* R2.2.8: 今日已完成 / 已评分的、但**不在当前 schedule.items** 里的任务 */}
       {(todayTasks ?? [])
         .filter(t => (t.status === 'done' || t.status === 'evaluated')
                    && !schedule.items.some(i => i.taskId === t.id))
         .map(t => <ScoreDetailRow key={t.id} task={t} isActive={false} onUndo={onUndo} />)}
       {(schedule.comboBonusPoints ?? 0) > 0 && (
-        <div className="space-card p-3 my-2 bg-gradient-to-r from-amber-500/20 to-rose-500/20">
-          <div className="flex items-center gap-2">
-            <div className="text-2xl">⚡</div>
-            <div className="flex-1 text-sm">{schedule.comboPeakInRound ?? 0} 连击加成</div>
-            <div className="font-bold text-amber-300">+{schedule.comboBonusPoints} 分</div>
+        <div
+          className="p-3 my-2 flex items-center gap-2 rounded-[var(--radius-md)]"
+          style={{ background: 'var(--fatboy-50)', border: '2px solid var(--fatboy-300)' }}
+        >
+          <div className="text-2xl">⚡</div>
+          <div className="flex-1 text-sm" style={{ color: 'var(--ink)' }}>
+            <span className="text-num">{schedule.comboPeakInRound ?? 0}</span> 连击加成
+          </div>
+          <div className="font-bold text-num" style={{ color: 'var(--fatboy-700)' }}>
+            +{schedule.comboBonusPoints} ⭐
           </div>
         </div>
       )}
-      {/* R2.5.A: 彩蛋积分汇总 */}
       {luckySum > 0 && (
-        <div className="space-card p-3 my-2 bg-gradient-to-r from-pink-500/15 to-amber-500/15">
-          <div className="flex items-center gap-2">
-            <div className="text-2xl">🎲</div>
-            <div className="flex-1 text-sm">蛋仔彩蛋（今日 {luckyEntries?.length ?? 0} 次）</div>
-            <div className="font-bold text-pink-200">+{luckySum} 分</div>
+        <div
+          className="p-3 my-2 flex items-center gap-2 rounded-[var(--radius-md)]"
+          style={{ background: 'rgba(156,140,217,0.12)', border: '2px solid rgba(156,140,217,0.4)' }}
+        >
+          <div className="text-2xl">🎲</div>
+          <div className="flex-1 text-sm" style={{ color: 'var(--ink)' }}>
+            蛋仔彩蛋（今日 <span className="text-num">{luckyEntries?.length ?? 0}</span> 次）
           </div>
+          <div className="font-bold text-num" style={{ color: 'var(--magic)' }}>+{luckySum} ⭐</div>
         </div>
       )}
     </div>
@@ -1025,15 +1155,21 @@ function FocusStars({ usedMs, totalMs }: { usedMs: number; totalMs: number }) {
       {[0, 1, 2, 3].map(i => (
         <span
           key={i}
-          className={`text-lg transition-all duration-300 ${
-            i < count ? 'opacity-100 scale-100 text-amber-300' : 'opacity-25 scale-90 text-white/30'
-          }`}
+          className="text-lg transition-all duration-300"
+          style={
+            i < count
+              ? { color: 'var(--fatboy-500)', opacity: 1, transform: 'scale(1)' }
+              : { color: 'var(--ink-faint)', opacity: 0.35, transform: 'scale(0.9)' }
+          }
         >
           ⭐
         </span>
       ))}
       {count === 4 && (
-        <span className="ml-1 text-xs text-amber-300 font-bold animate-pulse">
+        <span
+          className="ml-1 text-xs font-bold animate-pulse"
+          style={{ color: 'var(--fatboy-700)' }}
+        >
           专注力满！
         </span>
       )}
@@ -1055,23 +1191,59 @@ export function ScoreDetailRow({
     t.status === 'done' ? '待评分' :
     t.status === 'inProgress' ? '闯关中' :
     '待开始';
+  const isDone = t.status === 'done' || t.status === 'evaluated';
   return (
-    <div className={`space-card p-3 my-2 ${isActive ? 'ring-2 ring-space-plasma' : ''} ${t.isRequired ? 'border-l-4 border-l-rose-500' : ''}`}>
+    <div
+      className="p-3 my-2 rounded-[var(--radius-md)]"
+      style={{
+        background: 'var(--paper)',
+        boxShadow: 'var(--shadow-sm)',
+        ...(isActive ? { outline: '2px solid var(--fatboy-500)' } : {}),
+        ...(t.isRequired ? { borderLeft: '4px solid var(--danger)' } : {}),
+      }}
+    >
       <div className="flex items-center gap-3">
         <div className="text-lg">{statusEmoji}</div>
         <SubjectIcon subject={t.subject} />
         <div className="flex-1">
-          <div className={`flex items-center gap-1.5 flex-wrap ${t.status === 'evaluated' || t.status === 'done' ? 'line-through opacity-70' : ''}`}>
+          <div
+            className="flex items-center gap-1.5 flex-wrap"
+            style={{
+              color: 'var(--ink)',
+              ...(isDone ? { textDecoration: 'line-through', opacity: 0.7 } : {}),
+            }}
+          >
             {t.title}
-            {t.isRequired && <span className="text-[10px] px-1 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
-            {t.createdBy === 'child' && <span className="text-[10px] px-1 py-0.5 rounded bg-cyan-500/30">我加的</span>}
+            {t.isRequired && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded"
+                style={{ background: 'var(--danger)', color: '#fff' }}
+              >
+                必做
+              </span>
+            )}
+            {t.createdBy === 'child' && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded"
+                style={{ background: 'var(--sky-100)', color: 'var(--sky-700)' }}
+              >
+                我加的
+              </span>
+            )}
           </div>
-          <div className="text-xs text-white/50">{statusText}</div>
+          <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>{statusText}</div>
         </div>
         {t.status === 'evaluated' && <EvaluatedPointsBadge taskId={t.id} />}
         {t.status === 'done' && (
-          <button onClick={() => onUndo(t.id)}
-            className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
+          <button
+            onClick={() => onUndo(t.id)}
+            className="text-xs px-2 py-1 rounded-lg active:scale-90"
+            style={{
+              background: 'var(--fatboy-50)',
+              color: 'var(--fatboy-700)',
+              border: '1px solid var(--fatboy-300)',
+            }}
+          >
             ↩ 撤回
           </button>
         )}
@@ -1092,8 +1264,8 @@ function EvaluatedPointsBadge({ taskId }: { taskId: string }) {
   const total = ev.finalPoints + early;
   return (
     <div className="text-right">
-      <div className="text-amber-300 font-bold">+{total}</div>
-      <div className="text-[10px] text-white/40">积分</div>
+      <div className="text-num font-bold text-lg" style={{ color: 'var(--fatboy-700)' }}>+{total}</div>
+      <div className="text-[10px]" style={{ color: 'var(--ink-faint)' }}>⭐ 积分</div>
     </div>
   );
 }
@@ -1107,17 +1279,25 @@ function EvaluatedDetails({ taskId }: { taskId: string }) {
   if (!ev) return null;
   const earlySum = (earlyBonus ?? []).reduce((s, p) => s + p.delta, 0);
   return (
-    <div className="mt-2 ml-12 pl-3 border-l-2 border-white/10 text-xs space-y-0.5">
-      <div className="flex gap-3 text-white/70">
+    <div
+      className="mt-2 ml-12 pl-3 text-xs space-y-0.5"
+      style={{ borderLeft: '2px solid var(--fog)' }}
+    >
+      <div className="flex gap-3" style={{ color: 'var(--ink-muted)' }}>
         <span>完成度 {'⭐'.repeat(ev.completion)}</span>
         <span>质量 {'⭐'.repeat(ev.quality)}</span>
         <span>态度 {'⭐'.repeat(ev.attitude)}</span>
       </div>
-      <div className="text-emerald-300">
-        基础 {ev.basePointsAtEval} → 实得 <b>{ev.finalPoints}</b> 分
-        {earlySum > 0 && <span className="ml-2 text-amber-300">+{earlySum} 提前奖</span>}
+      <div style={{ color: 'var(--success)' }}>
+        基础 <span className="text-num">{ev.basePointsAtEval}</span> →
+        实得 <b className="text-num">{ev.finalPoints}</b> ⭐
+        {earlySum > 0 && (
+          <span className="ml-2" style={{ color: 'var(--fatboy-700)' }}>
+            · 提前奖 +<span className="text-num">{earlySum}</span>
+          </span>
+        )}
       </div>
-      {ev.note && <div className="text-white/60 mt-1">💬 {ev.note}</div>}
+      {ev.note && <div style={{ color: 'var(--ink-muted)' }} className="mt-1">💬 {ev.note}</div>}
     </div>
   );
 }

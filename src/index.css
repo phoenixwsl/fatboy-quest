@@ -2,6 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   R3.0 Design Tokens（§1.1 / 1.3）
+   ============================================================ */
+:root {
+  /* ===== 时段背景 ===== */
+  --bg-day-from:    #E8F2FB;
+  --bg-day-to:      #C8DEEF;
+  --bg-dusk-from:   #F8DCB4;
+  --bg-dusk-to:     #E0A586;
+  --bg-night-from:  #2B3A52;
+  --bg-night-to:    #182236;
+
+  /* ===== 角色色 ===== */
+  --fatboy-50:      #FFF6D0;
+  --fatboy-300:     #FFE082;
+  --fatboy-500:     #F4C752;
+  --fatboy-700:     #C77F18;
+  --sky-100:        #DAEAF7;
+  --sky-300:        #A3C7E7;
+  --sky-500:        #4A9EE7;
+  --sky-700:        #2C72B0;
+
+  /* ===== 强调色 ===== */
+  --success:        #6BC36B;
+  --danger:         #E87575;
+  --magic:          #9C8CD9;
+
+  /* ===== 中性色（白天） ===== */
+  --paper:          #FFFFFF;
+  --mist:           #F4F7FB;
+  --fog:            #DCE3ED;
+  --ink:            #2C3E50;
+  --ink-muted:      #6B7B8C;
+  --ink-faint:      #A8B3C0;
+
+  /* ===== 中性色（夜晚） ===== */
+  --paper-night:    #28354A;
+  --mist-night:     #1F2A3D;
+  --ink-night:      #E8EEF7;
+  --ink-night-muted: #9BA9BC;
+
+  /* ===== 彩虹（仅倒计时进度条） ===== */
+  --rainbow-1:      #FAB1A0;
+  --rainbow-2:      #FDCB6E;
+  --rainbow-3:      #FFEAA7;
+  --rainbow-4:      #A0E6A0;
+
+  /* ===== 阴影 ===== */
+  --shadow-sm:      0 2px 4px rgba(74,158,231,0.06), 0 4px 12px rgba(74,158,231,0.08);
+  --shadow-md:      0 4px 8px rgba(74,158,231,0.08), 0 12px 32px rgba(74,158,231,0.10);
+  --shadow-lg:      0 8px 16px rgba(74,158,231,0.10), 0 24px 64px rgba(74,158,231,0.14);
+  --glow-fatboy:    0 0 32px rgba(244,199,82,0.4);
+  --glow-sky:       0 0 24px rgba(74,158,231,0.3);
+
+  /* ===== 圆角 ===== */
+  --radius-xs:      8px;
+  --radius-sm:      14px;
+  --radius-md:      18px;
+  --radius-lg:      24px;
+  --radius-xl:      32px;
+
+  /* ===== 间距（8pt） ===== */
+  --space-1: 4px; --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+  /* ===== 动画缓动 ===== */
+  --spring-bouncy:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-soft:    cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+
+  /* ===== 字体 ===== */
+  --font-zh-title: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-zh-body:  var(--font-zh-title);
+  --font-num:      'Fredoka', 'Inter', sans-serif;
+  --font-en:       'Inter', sans-serif;
+}
+
+/* 时段切换 default + 三态 */
+body[data-time-period="day"]   { --bg-from: var(--bg-day-from);   --bg-to: var(--bg-day-to); }
+body[data-time-period="dusk"]  { --bg-from: var(--bg-dusk-from);  --bg-to: var(--bg-dusk-to); }
+body[data-time-period="night"] { --bg-from: var(--bg-night-from); --bg-to: var(--bg-night-to); }
+
 @layer base {
   html, body, #root {
     height: 100%;
@@ -9,29 +91,129 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background: radial-gradient(ellipse at top, #1a1f4a 0%, #0b1026 40%, #050818 100%);
+    background: linear-gradient(180deg, var(--bg-from, var(--bg-day-from)), var(--bg-to, var(--bg-day-to)));
+    transition: background 60s ease-in-out;
   }
 }
 
+/* ============================================================
+   Tailwind components — 旧的 .space-* 暂时保留兼容；
+   按规格 §1.6，主 CTA 紫青渐变是禁用，但全产品有 ~80 处用了 space-btn，
+   P0 阶段只**软淘汰**：把这几个 class 的 background 改成黄色 2.5D 风格的
+   "弱化版本"，避免立即视觉打破，但去掉违规紫青渐变。
+   后续 P1-P4 逐页迁移到新的 .primary-btn / .secondary-btn。
+   ============================================================ */
 @layer components {
   .space-card {
-    @apply bg-space-card/70 backdrop-blur-md border border-space-border rounded-2xl shadow-2xl;
+    @apply bg-white/95 backdrop-blur-sm border border-white/40 rounded-2xl shadow-md text-[var(--ink)];
   }
   .space-btn {
-    @apply px-4 py-2 rounded-xl bg-gradient-to-br from-space-nebula to-space-plasma
-           text-white font-semibold shadow-lg active:scale-95 transition-transform
+    /* R3.0: 紫青渐变 → fatboy 黄色（与新主 CTA 视觉接近，逐页替换前的过渡态） */
+    @apply px-4 py-2 rounded-xl bg-[var(--fatboy-500)] text-[var(--ink)]
+           font-semibold shadow-md active:scale-95 transition-transform
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .space-btn-ghost {
-    @apply px-4 py-2 rounded-xl bg-white/5 text-white border border-white/10
+    @apply px-4 py-2 rounded-xl bg-white text-[var(--sky-700)] border-2 border-[var(--sky-300)]
            active:scale-95 transition-transform;
   }
   .glow-text {
-    text-shadow: 0 0 12px rgba(124, 92, 255, 0.8);
+    /* R3.0: 紫色阴影 → 暖黄阴影 */
+    text-shadow: 0 0 12px rgba(244, 199, 82, 0.6);
   }
 }
 
-/* 星空背景动画 */
+/* ============================================================
+   R3.0 新按钮系统（§2）— 蛋仔 2.5D 立体
+   ============================================================ */
+.primary-btn {
+  position: relative;
+  display: inline-flex;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-zh-title);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+  transition: transform 0.15s var(--spring-bouncy);
+}
+.primary-btn-bottom {
+  position: absolute;
+  inset: 4px 0 0 0;
+  background: var(--fatboy-700);
+  border-radius: var(--radius-sm);
+}
+.primary-btn-top {
+  position: relative;
+  padding: 16px 32px;
+  background: var(--fatboy-500);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glow-fatboy);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.primary-btn:active { transform: translateY(3px); }
+.primary-btn:active .primary-btn-bottom { inset: 1px 0 0 0; }
+
+.secondary-btn {
+  padding: 14px 28px;
+  background: var(--paper);
+  color: var(--sky-700);
+  border: 2px solid var(--sky-300);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--spring-soft);
+}
+.secondary-btn:hover {
+  border-color: var(--sky-500);
+  background: var(--sky-100);
+}
+
+.danger-btn {
+  padding: 14px 28px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tag-btn {
+  padding: 8px 16px;
+  background: var(--mist);
+  color: var(--ink);
+  border-radius: var(--radius-xs);
+  font-size: 14px;
+  font-weight: 500;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s var(--spring-soft);
+}
+.tag-btn.active,
+.tag-btn[aria-pressed="true"] {
+  background: var(--fatboy-50);
+  border-color: var(--fatboy-500);
+  color: var(--fatboy-700);
+}
+
+/* 多邻国风数字 */
+.text-num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   R3.0 背景动态元素（§1.4）— 白天云朵 / 夜晚星星
+   .stars-layer / .star 兼容旧 SpaceBackground 命名（NightStars 后续会引用同类）
+   ============================================================ */
+
+/* === 旧的 stars-layer 保留（兼容 NightStars） === */
 .stars-layer {
   position: fixed;
   inset: 0;
@@ -54,18 +236,36 @@
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.3); }
 }
 
-/* 周末模式：暖橙紫渐变 */
+/* === 新的 Clouds（白天 / 黄昏可见） === */
+.cloud {
+  position: absolute;
+  width: 200px;
+  height: 60px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.5), transparent 70%);
+  filter: blur(8px);
+  animation: float-horizontal 45s linear infinite;
+}
+.cloud-1 { top: 15%; animation-duration: 45s; }
+.cloud-2 { top: 35%; animation-duration: 60s; animation-delay: -15s; opacity: 0.7; }
+.cloud-3 { top: 60%; animation-duration: 55s; animation-delay: -30s; opacity: 0.5; }
+
+@keyframes float-horizontal {
+  from { transform: translateX(-220px); }
+  to   { transform: translateX(calc(100vw + 220px)); }
+}
+
+/* 周末模式：R3.0 改为暖橙渐变（之前是紫色，违规） */
 body.weekend-bg-mode,
 .weekend-bg {
-  background: radial-gradient(ellipse at top, #4a2f6a 0%, #2a1840 40%, #181028 100%) !important;
+  background: linear-gradient(180deg, #FFE4B5, #FFC988) !important;
 }
 
 /* ============================================================
-   Fatboy v4 角色动画 keyframes（来自 Fatboy.tsx 自带注释）
+   Fatboy v4 角色动画 keyframes（保留不动）
    ============================================================ */
 @keyframes fb-breathe      { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
 @keyframes fb-breathe-slow { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }

@@ -42,16 +42,24 @@ export function SkinPicker({ open, onClose }: Props) {
         >
           <motion.div
             initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-            className="space-card p-5 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto p-5 rounded-[var(--radius-xl)]"
+            style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-lg)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="text-lg font-bold">🥚 选择肥仔角色</div>
-              <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 active:scale-90">✕</button>
-            </div>
-
-            <div className="text-xs text-white/50 mb-3">
-              已解锁 {unlocked.size}/{SKINS.length}
+              <div className="text-lg font-bold" style={{ color: 'var(--ink)' }}>选择肥仔角色</div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+                  已解锁 <span className="text-num">{unlocked.size}</span>/<span className="text-num">{SKINS.length}</span>
+                </span>
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full active:scale-90 flex items-center justify-center"
+                  style={{ background: 'var(--mist)', color: 'var(--ink)' }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -59,20 +67,28 @@ export function SkinPicker({ open, onClose }: Props) {
                 const isUnlocked = unlocked.has(s.id);
                 const isCurrent = s.id === currentId;
                 return (
-                  <button key={s.id} onClick={() => pick(s.id)}
-                    className={`space-card p-3 text-center transition-all
-                      ${isCurrent ? 'ring-2 ring-amber-300' : ''}
-                      ${!isUnlocked ? 'opacity-40 grayscale' : 'active:scale-95'}`}
+                  <button
+                    key={s.id}
+                    onClick={() => pick(s.id)}
+                    className="p-3 text-center transition-all rounded-[var(--radius-md)]"
+                    style={{
+                      background: isCurrent ? 'var(--fatboy-50)' : 'var(--mist)',
+                      border: `2px solid ${isCurrent ? 'var(--fatboy-500)' : 'transparent'}`,
+                      ...(isCurrent ? { boxShadow: 'var(--glow-fatboy)' } : {}),
+                      ...(!isUnlocked ? { opacity: 0.5, filter: 'grayscale(0.8)' } : {}),
+                    }}
                   >
                     <div className="flex justify-center">
                       <Fatboy character={s.id} state="default" size={72} autoAnimate />
                     </div>
-                    <div className="mt-2 text-sm font-bold">{s.name}</div>
-                    <div className="text-[10px] text-white/50 mt-0.5">{s.desc}</div>
+                    <div className="mt-2 text-sm font-bold" style={{ color: 'var(--ink)' }}>{s.name}</div>
+                    <div className="text-[10px] mt-0.5" style={{ color: 'var(--ink-muted)' }}>{s.desc}</div>
                     {!isUnlocked && (
-                      <div className="text-[10px] text-rose-300/80 mt-1">🔒 {s.unlockHint}</div>
+                      <div className="text-[10px] mt-1" style={{ color: 'var(--danger)' }}>🔒 {s.unlockHint}</div>
                     )}
-                    {isCurrent && <div className="text-[10px] text-amber-300 mt-1">✓ 当前</div>}
+                    {isCurrent && (
+                      <div className="text-[10px] mt-1 font-bold" style={{ color: 'var(--fatboy-700)' }}>✓ 当前</div>
+                    )}
                   </button>
                 );
               })}

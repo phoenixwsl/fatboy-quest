@@ -154,20 +154,39 @@ export function TaskManager() {
   const weeklyOnceDefs = (allDefs ?? []).filter(d => d.type === 'weekly-once');
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
-        <div className="text-xl font-bold flex-1">📝 任务管理</div>
-        <button onClick={() => setShowForm(!showForm)} className="space-btn text-sm">
-          {showForm ? '收起' : '+ 新建'}
+        <button
+          onClick={() => nav('/parent/dashboard')}
+          className="secondary-btn"
+          style={{ padding: '8px 16px' }}
+        >
+          ←
         </button>
+        <div className="text-xl font-bold flex-1" style={{ color: 'var(--ink)' }}>任务管理</div>
+        {showForm ? (
+          <button onClick={() => setShowForm(false)} className="secondary-btn text-sm" style={{ padding: '8px 16px' }}>
+            收起
+          </button>
+        ) : (
+          <button onClick={() => setShowForm(true)} className="primary-btn">
+            <span className="primary-btn-bottom" aria-hidden />
+            <span className="primary-btn-top" style={{ padding: '10px 18px', fontSize: 14 }}>
+              + 新建
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Filter */}
       <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
         {(['all', 'normal', 'daily-required', 'weekly-min', 'weekly-once'] as FilterKind[]).map(k => (
-          <button key={k} onClick={() => setFilter(k)}
-            className={`px-3 py-1.5 rounded-xl text-xs whitespace-nowrap ${filter === k ? 'bg-space-nebula' : 'bg-white/10'}`}>
+          <button
+            key={k}
+            onClick={() => setFilter(k)}
+            aria-pressed={filter === k}
+            className={`tag-btn whitespace-nowrap ${filter === k ? 'active' : ''}`}
+          >
             {k === 'all' ? '全部' : TASK_TYPE_LABEL[k as TaskType]}
           </button>
         ))}
@@ -208,8 +227,13 @@ export function TaskManager() {
             className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
           <div className="flex flex-wrap gap-1.5 mb-2">
             {SUBJECTS.map(s => (
-              <button key={s.id} onClick={() => setSubject(s.id)}
-                className={`px-2 py-1 rounded-lg text-xs ${subject === s.id ? 'bg-space-nebula' : 'bg-white/10'}`}>
+              <button
+                key={s.id}
+                onClick={() => setSubject(s.id)}
+                aria-pressed={subject === s.id}
+                className={`tag-btn ${subject === s.id ? 'active' : ''}`}
+                style={{ padding: '6px 12px', fontSize: 12 }}
+              >
                 {s.label}
               </button>
             ))}
@@ -251,7 +275,12 @@ export function TaskManager() {
             </label>
           )}
 
-          <button onClick={submitNew} className="space-btn w-full mt-3">+ 添加</button>
+          <div className="flex justify-center mt-4">
+            <button onClick={submitNew} className="primary-btn">
+              <span className="primary-btn-bottom" aria-hidden />
+              <span className="primary-btn-top">+ 添加</span>
+            </button>
+          </div>
         </div>
       )}
 

@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
+import {
+  Trophy, Settings as SettingsIcon, Shield, Flame, Star,
+  Calendar as CalendarIcon, Swords, Plus, ChevronRight,
+} from 'lucide-react';
 import { db } from '../db';
 import { PetAvatar } from '../components/PetAvatar';
 import { ChildAddTaskModal } from '../components/ChildAddTaskModal';
@@ -24,6 +28,16 @@ import { todayString as todayStr } from '../lib/time';
 import { ScoreDetailRow } from './QuestPage';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
+
+// R3.0 §3.4: 按时段问候
+function greeting(hour: number, name: string): string {
+  if (hour < 6)  return `还在熬夜呢，${name}`;
+  if (hour < 11) return `早上好，${name}`;
+  if (hour < 14) return `中午好，${name}`;
+  if (hour < 18) return `下午好，${name}`;
+  if (hour < 22) return `晚上好，${name}`;
+  return `该睡了，${name}`;
+}
 
 export function HomePage() {
   const nav = useNavigate();
@@ -150,31 +164,40 @@ export function HomePage() {
   }
 
   const childCanAdd = settings?.childCanAddTasks !== false;
+  const childName = settings?.childName ?? '肥仔';
+  const hour = new Date().getHours();
+  const isNight = hour >= 21 || hour < 7;
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <div className="text-xs text-white/50">{formatChineseDate(today)}</div>
-          <div className="text-2xl font-bold glow-text">你好，{settings?.childName ?? '肥仔'} ✨</div>
+    <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
+      {/* R3.0 §3.2: 顶部条 — 日期小字 + 成就按钮 + 家长门禁 */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+          {formatChineseDate(today)}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { sounds.play('tap'); nav('/achievements'); }}
-            className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-300/40 flex items-center justify-center active:scale-90">
-            <span className="text-xl">🏆</span>
+          <button
+            onClick={() => { sounds.play('tap'); nav('/achievements'); }}
+            aria-label="成就馆"
+            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+            style={{ background: 'var(--fatboy-50)', color: 'var(--fatboy-700)' }}
+          >
+            <Trophy size={20} />
           </button>
           <div
             onPointerDown={startPress}
             onPointerUp={endPress}
             onPointerLeave={endPress}
             onPointerCancel={endPress}
-            className="relative w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/20 select-none"
+            aria-label="长按 3 秒进入家长模式"
+            className="relative w-11 h-11 rounded-full flex items-center justify-center select-none"
+            style={{ background: 'var(--mist)', color: 'var(--ink-muted)' }}
           >
-            <span className="text-xl">⚙️</span>
+            <SettingsIcon size={20} />
             {pressProgress > 0 && (
-              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 48 48">
-                <circle cx="24" cy="24" r="22" fill="none" stroke="rgba(124,92,255,0.8)"
-                  strokeWidth="3" strokeDasharray={138} strokeDashoffset={138 - (138 * pressProgress / 100)}
+              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 44 44">
+                <circle cx="22" cy="22" r="20" fill="none" stroke="var(--sky-500)"
+                  strokeWidth="3" strokeDasharray={126} strokeDashoffset={126 - (126 * pressProgress / 100)}
                   strokeLinecap="round" />
               </svg>
             )}
@@ -182,74 +205,64 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* R2.0.1: 大号 stats banner - 三个核心数字，最醒目位置 */}
+      {/* R3.0 §3.2: 肥仔英雄卡片 — 白色 paper, 立体 3px, 肥仔 240×240 + 问候 + 浮动徽章 */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="space-card p-4 mt-3 bg-gradient-to-br from-space-nebula/30 via-space-plasma/15 to-amber-500/15"
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-[var(--radius-lg)] p-6 pt-7 pb-12"
+        style={{
+          background: 'var(--paper)',
+          boxShadow: 'var(--shadow-md)',
+        }}
       >
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div>
-            <div className="text-[10px] text-white/60 uppercase tracking-wide">今日</div>
-            <div className="text-3xl font-black tabular-nums">
-              {todayTasks?.filter((t: any) => t.status === 'done' || t.status === 'evaluated').length ?? 0}
-              <span className="text-base text-white/40 font-normal">/{todayTasks?.length ?? 0}</span>
-            </div>
-            <div className="text-[10px] text-white/40">作业</div>
-          </div>
-          <div className="border-l border-r border-white/10">
-            <div className="text-[10px] text-amber-300/80 uppercase tracking-wide">积分</div>
-            <div className="text-3xl font-black text-amber-300 tabular-nums">⭐{total}</div>
-            <div className="text-[10px] text-white/40">累计</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-rose-300/80 uppercase tracking-wide">连击</div>
-            <div className="text-3xl font-black text-rose-300 tabular-nums">{streak?.currentStreak ?? 0}</div>
-            <div className="text-[10px] text-white/40">🔥 天</div>
-          </div>
+        {/* 立体底色（深 3px） */}
+        <span
+          aria-hidden
+          className="absolute left-0 right-0 bottom-[-3px] h-2 rounded-b-[var(--radius-lg)]"
+          style={{ background: 'var(--fog)', zIndex: -1 }}
+        />
+        <button
+          onClick={() => { sounds.play('tap'); setSkinPickerOpen(true); }}
+          className="block mx-auto active:scale-95 transition-transform"
+          aria-label="换肥仔角色"
+        >
+          <PetAvatar
+            skinId={pet?.skinId}
+            size={240}
+            state={isNight ? 'sleeping' : 'default'}
+          />
+        </button>
+        <h1
+          className="text-xl font-bold text-center mt-3"
+          style={{ color: 'var(--ink)' }}
+        >
+          {greeting(hour, childName)}
+        </h1>
+        {/* 3 个浮动徽章（§3.5）— 锚在卡片底沿 */}
+        <div className="absolute left-0 right-0 bottom-[-22px] flex justify-center gap-3">
+          <FloatBadge color="var(--fatboy-500)" textColor="var(--ink)" icon={<Star size={16} fill="currentColor" />}>
+            {total}
+          </FloatBadge>
+          <FloatBadge color="var(--danger)" textColor="#fff" icon={<Flame size={16} />}>
+            {streak?.currentStreak ?? 0}
+          </FloatBadge>
+          <FloatBadge color="var(--sky-500)" textColor="#fff" icon={<Shield size={16} />}>
+            {streak?.guardCards ?? 0}
+          </FloatBadge>
         </div>
       </motion.div>
 
       {weekendMode && (
-        <div className="space-card p-3 mt-4 bg-gradient-to-r from-amber-500/20 to-fuchsia-500/20 ring-1 ring-amber-300/40">
-          <div className="text-sm text-amber-200 font-bold flex items-center gap-2">
-            🌞 周末模式 <span className="text-xs font-normal text-white/70">· 完成 1 项即保持连击</span>
-          </div>
+        <div
+          className="mt-6 p-3 rounded-[var(--radius-md)] text-sm font-medium"
+          style={{
+            background: 'var(--fatboy-50)',
+            color: 'var(--fatboy-700)',
+            border: '2px solid var(--fatboy-300)',
+          }}
+        >
+          🌞 周末模式 · 完成 1 项即保持连击
         </div>
       )}
-
-      {/* 蛋仔 + 段位 + 进度 */}
-      <motion.div
-        className="space-card p-6 mt-4"
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="flex items-center gap-4">
-          <button onClick={() => { sounds.play('tap'); setSkinPickerOpen(true); }} className="active:scale-95 transition-transform">
-            <PetAvatar
-              skinId={pet?.skinId}
-              size={96}
-              state={(() => {
-                const h = new Date().getHours();
-                if (h >= 22 || h < 6) return 'sleeping';
-                return 'default';
-              })()}
-            />
-          </button>
-          <div className="flex-1">
-            <div className="text-lg font-bold">{pet?.name ?? '蛋仔'}</div>
-            <div className={`text-sm ${rank.color}`}>{rank.emoji} {rank.name}</div>
-            {next && (
-              <div className="text-xs text-white/40 mt-1">距离 {next.name} 还差 {next.minPoints - total} 分</div>
-            )}
-            <div className="text-xs text-white/60 mt-1">
-              🛡️ {streak?.guardCards ?? 0} 张守护卡
-            </div>
-          </div>
-        </div>
-        <PetPanelExtras todayTasks={todayTasks ?? []} defs={taskDefs ?? []} allTasks={allTasks ?? []} />
-        <div className="mt-3 pt-3 border-t border-white/10">
-          <HeatmapStrip />
-        </div>
-      </motion.div>
 
       {/* R2.5.D: 断击时显示豁免券 banner */}
       <PardonBanner />
@@ -259,40 +272,65 @@ export function HomePage() {
         <motion.button
           initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
           onClick={() => { sounds.play('tap'); nav('/quest'); }}
-          className="w-full mt-4 p-4 rounded-2xl bg-gradient-to-r from-rose-500/40 to-amber-500/40 ring-2 ring-amber-300/60 animate-pulse-glow flex items-center gap-3 active:scale-95"
+          className="w-full mt-5 p-4 rounded-[var(--radius-lg)] flex items-center gap-3 active:scale-95"
+          style={{
+            background: 'var(--danger)',
+            color: '#fff',
+            boxShadow: 'var(--shadow-md)',
+          }}
         >
-          <div className="text-3xl">⚔️</div>
+          <Swords size={28} />
           <div className="flex-1 text-left">
-            <div className="font-bold text-white">你有未完成的闯关</div>
-            <div className="text-xs text-white/80">{scheduledOrInProgress.length} 个小怪还在等你</div>
+            <div className="font-bold">你有未完成的闯关</div>
+            <div className="text-xs opacity-90">{scheduledOrInProgress.length} 个小怪还在等你</div>
           </div>
-          <div className="text-white">→</div>
+          <ChevronRight size={22} />
         </motion.button>
       )}
 
-      {/* 今日任务区（R1.3.1 重排序：待安排/闯关中/本周任务 在前；已击败折叠在后） */}
-      <div className="mt-6">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-bold">今日小怪 ({(pendingTasks.length + scheduledOrInProgress.length + doneTasks.length) || 0})</h2>
+      {/* 今日任务区 — 主战场，提升到第二屏 */}
+      <div className="mt-7">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="text-xl font-bold" style={{ color: 'var(--ink)' }}>
+            今日小怪
+            <span className="ml-2 text-base font-medium" style={{ color: 'var(--ink-muted)' }}>
+              ({(pendingTasks.length + scheduledOrInProgress.length + doneTasks.length) || 0})
+            </span>
+          </h2>
           <div className="flex gap-2">
             {childCanAdd && (
-              <button onClick={() => { sounds.play('tap'); setAddOpen(true); }} className="space-btn-ghost text-sm">+ 加一个</button>
+              <button
+                onClick={() => { sounds.play('tap'); setAddOpen(true); }}
+                className="tag-btn flex items-center gap-1"
+              >
+                <Plus size={14} /> 新任务
+              </button>
             )}
-            <button onClick={() => { sounds.play('tap'); nav('/shop'); }} className="space-btn-ghost text-sm">🎁 商店</button>
+            <button
+              onClick={() => { sounds.play('tap'); nav('/shop'); }}
+              className="tag-btn"
+            >
+              商店
+            </button>
           </div>
         </div>
 
         {todayTasks && todayTasks.length === 0 && (
-          <div className="space-card p-6 mt-3 text-center text-white/60">
-            <div className="text-4xl mb-2">🌙</div>
+          <div
+            className="p-8 mt-3 text-center rounded-[var(--radius-lg)]"
+            style={{ background: 'var(--paper)', color: 'var(--ink-muted)', boxShadow: 'var(--shadow-sm)' }}
+          >
+            <div className="text-5xl mb-2">🌙</div>
             <div>今天还没有作业</div>
-            <div className="text-xs mt-1 text-white/40">让家长添加，或者你自己加一个 ✨</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--ink-faint)' }}>
+              让家长添加，或者你自己加一个
+            </div>
           </div>
         )}
 
         {pendingTasks.length > 0 && (
           <div className="mt-3">
-            <div className="text-sm text-white/60 mb-2">📋 待安排</div>
+            <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>📋 待安排</div>
             <div className="space-y-2">
               {pendingTasks.map(t => {
                 const tt = (t.taskType ?? 'normal');
@@ -300,25 +338,53 @@ export function HomePage() {
                 return <PendingTaskCard key={t.id} task={t} tt={tt} badge={badge} />;
               })}
             </div>
-            <button onClick={() => { sounds.play('tap'); nav('/schedule'); }} className="space-btn w-full mt-3">📅 去规划今天</button>
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => { sounds.play('tap'); nav('/schedule'); }}
+                className="primary-btn"
+              >
+                <span className="primary-btn-bottom" aria-hidden />
+                <span className="primary-btn-top">
+                  <CalendarIcon size={20} />
+                  去规划今天
+                </span>
+              </button>
+            </div>
           </div>
         )}
 
         {scheduledOrInProgress.length > 0 && (
-          <div className="mt-4">
-            <div className="text-sm text-white/60 mb-2">⏱️ 闯关中</div>
+          <div className="mt-5">
+            <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>⏱ 闯关中</div>
             <div className="space-y-2">
               {scheduledOrInProgress.map(t => (
-                <div key={t.id} className="space-card p-3 flex items-center gap-3">
+                <div
+                  key={t.id}
+                  className="p-3 flex items-center gap-3 rounded-[var(--radius-md)]"
+                  style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
+                >
                   <SubjectIcon subject={t.subject} />
                   <div className="flex-1">
-                    <div className="font-medium">{t.title}</div>
-                    <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟 · {t.basePoints} 积分</div>
+                    <div className="font-medium" style={{ color: 'var(--ink)' }}>{t.title}</div>
+                    <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+                      {t.estimatedMinutes} 分 · <span className="text-num">{t.basePoints}</span> ⭐
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-            <button onClick={() => { sounds.play('tap'); nav('/quest'); }} className="space-btn w-full mt-3">⚔️ 进入闯关</button>
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => { sounds.play('tap'); nav('/quest'); }}
+                className="primary-btn"
+              >
+                <span className="primary-btn-bottom" aria-hidden />
+                <span className="primary-btn-top">
+                  <Swords size={20} />
+                  去闯关 ({scheduledOrInProgress.length})
+                </span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -326,30 +392,101 @@ export function HomePage() {
       <WeeklyTasksPanel defs={taskDefs ?? []} allTasks={allTasks ?? []} todayTasks={todayTasks ?? []} />
 
       {doneTasks.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-7">
           <button
             onClick={() => { sounds.play('tap'); setDoneCollapsed(c => !c); }}
-            className="w-full flex items-center justify-between text-emerald-300 mb-2 active:scale-95"
+            className="w-full flex items-center justify-between mb-2 active:scale-95"
+            style={{ color: 'var(--success)' }}
           >
-            <span className="text-sm">✓ 今日已完成任务 ({doneTasks.length})</span>
+            <span className="text-sm font-medium">✓ 今日已完成任务 ({doneTasks.length})</span>
             <span className="text-xs">{doneCollapsed ? '▶ 展开' : '▼ 收起'}</span>
           </button>
           {!doneCollapsed && (
             <div className="space-y-2">
-              {/* R2.2.8: 改用 ScoreDetailRow 跟 QuestPage 得分明细同款，去百分比、显示星级 / 基础→实得 */}
               {doneTasks.map(t => <ScoreDetailRow key={t.id} task={t} isActive={false} onUndo={undoComplete} />)}
             </div>
           )}
         </div>
       )}
 
+      {/* R3.0 §3.3: 段位卡降级，移到 done 之后 */}
+      <div
+        className="mt-7 p-4 rounded-[var(--radius-lg)]"
+        style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>我的段位</div>
+            <div className="text-lg font-bold" style={{ color: 'var(--ink)' }}>
+              {rank.emoji} {rank.name}
+            </div>
+          </div>
+          {next && (
+            <div className="text-xs text-right" style={{ color: 'var(--ink-muted)' }}>
+              距离 {next.name}<br/>
+              <span className="text-num font-bold" style={{ color: 'var(--fatboy-700)' }}>
+                还差 {next.minPoints - total} ⭐
+              </span>
+            </div>
+          )}
+        </div>
+        <PetPanelExtras todayTasks={todayTasks ?? []} defs={taskDefs ?? []} allTasks={allTasks ?? []} />
+      </div>
+
+      {/* R3.0 §3.3: 周历条折叠 */}
+      <CollapsibleHeatmap />
+
       <ChildAddTaskModal open={addOpen} onClose={() => setAddOpen(false)} settings={settings} />
       <SkinPicker open={skinPickerOpen} onClose={() => setSkinPickerOpen(false)} />
       <IdleNagBubble enabled={settings?.idleNagEnabled !== false} />
 
-      <div className="mt-6 text-center text-[10px] text-white/30">
-        🚀 肥仔大闯关 · {APP_VERSION}
+      <div className="mt-6 text-center text-[10px]" style={{ color: 'var(--ink-faint)' }}>
+        肥仔大闯关 · {APP_VERSION}
       </div>
+    </div>
+  );
+}
+
+// R3.0 §3.5: 浮动徽章
+function FloatBadge({
+  icon, children, color, textColor,
+}: { icon: React.ReactNode; children: React.ReactNode; color: string; textColor: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-sm"
+      style={{
+        background: color,
+        color: textColor,
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      {icon}
+      <span className="text-num">{children}</span>
+    </span>
+  );
+}
+
+// R3.0 §3.3.7: 周历条折叠
+function CollapsibleHeatmap() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-5">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between text-sm font-medium"
+        style={{ color: 'var(--ink-muted)' }}
+      >
+        <span>本周进度</span>
+        <span className="text-xs">{open ? '▼ 收起' : '▶ 展开'}</span>
+      </button>
+      {open && (
+        <div
+          className="mt-2 p-3 rounded-[var(--radius-md)]"
+          style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
+        >
+          <HeatmapStrip />
+        </div>
+      )}
     </div>
   );
 }
@@ -369,17 +506,35 @@ function PendingTaskCard({ task: t, tt, badge }: { task: any; tt: any; badge: an
   }, [t.title, t.id]);
 
   return (
-    <div className={`space-card p-3 flex items-center gap-3 ${TASK_TYPE_BORDER[tt as keyof typeof TASK_TYPE_BORDER]}`}>
+    <div
+      className={`p-3 flex items-center gap-3 rounded-[var(--radius-md)] ${TASK_TYPE_BORDER[tt as keyof typeof TASK_TYPE_BORDER]}`}
+      style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
+    >
       <SubjectIcon subject={t.subject} />
       <div className="flex-1">
-        <div className="font-medium flex items-center gap-2 flex-wrap">
+        <div className="font-medium flex items-center gap-2 flex-wrap" style={{ color: 'var(--ink)' }}>
           {t.title}
           {badge && <span className={`text-xs px-1.5 py-0.5 rounded ${badge.class}`}>{badge.label}</span>}
-          {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">我加的</span>}
+          {t.createdBy === 'child' && (
+            <span className="text-xs px-1.5 py-0.5 rounded"
+              style={{ background: 'var(--sky-100)', color: 'var(--sky-700)' }}>
+              我加的
+            </span>
+          )}
         </div>
-        <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟{t.basePoints ? ` · ${t.basePoints} 积分` : ' · 积分由家长评分时给'}</div>
+        <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+          <span className="text-num">{t.estimatedMinutes}</span> 分
+          {t.basePoints ? <> · <span className="text-num">{t.basePoints}</span> ⭐</> : ' · 积分由家长评分时给'}
+        </div>
         {lastReminder && (
-          <div className="mt-1.5 text-xs text-amber-200 bg-amber-500/10 rounded-lg px-2 py-1 border-l-2 border-amber-300">
+          <div
+            className="mt-1.5 text-xs rounded-lg px-2 py-1 border-l-2"
+            style={{
+              color: 'var(--fatboy-700)',
+              background: 'var(--fatboy-50)',
+              borderLeftColor: 'var(--fatboy-500)',
+            }}
+          >
             💡 家长说：{lastReminder}
           </div>
         )}
@@ -395,21 +550,21 @@ function PetPanelExtras({ todayTasks, defs, allTasks }: { todayTasks: any[]; def
   const weeklyDefs = activeWeeklyDefinitions(defs);
   const weeklyAchieved = weeklyDefs.filter(d => weeklyProgress(d, allTasks).achieved).length;
   return (
-    <div className="mt-3 pt-3 border-t border-white/10 space-y-1 text-xs">
-      <div className="flex items-center justify-between">
-        <span className="text-white/60">📅 今日进度</span>
-        <span><b>{completed}</b>/{total}</span>
+    <div className="mt-3 pt-3 space-y-1 text-xs" style={{ borderTop: '1px solid var(--fog)' }}>
+      <div className="flex items-center justify-between" style={{ color: 'var(--ink-muted)' }}>
+        <span>今日进度</span>
+        <span style={{ color: 'var(--ink)' }}><b className="text-num">{completed}</b>/<span className="text-num">{total}</span></span>
       </div>
       {requiredRemain > 0 && (
-        <div className="flex items-center justify-between text-rose-300">
-          <span>🔴 必做剩余</span>
-          <span><b>{requiredRemain}</b> 项</span>
+        <div className="flex items-center justify-between" style={{ color: 'var(--danger)' }}>
+          <span>必做剩余</span>
+          <span><b className="text-num">{requiredRemain}</b> 项</span>
         </div>
       )}
       {weeklyDefs.length > 0 && (
-        <div className="flex items-center justify-between text-fuchsia-300/90">
-          <span>🟣🔵 本周任务</span>
-          <span><b>{weeklyAchieved}</b>/{weeklyDefs.length}</span>
+        <div className="flex items-center justify-between" style={{ color: 'var(--magic)' }}>
+          <span>本周任务</span>
+          <span><b className="text-num">{weeklyAchieved}</b>/<span className="text-num">{weeklyDefs.length}</span></span>
         </div>
       )}
     </div>
@@ -436,29 +591,54 @@ function WeeklyTasksPanel({ defs, allTasks, todayTasks }: { defs: any[]; allTask
 
   return (
     <div className="mt-6">
-      <div className="text-lg font-bold mb-2">📅 本周任务</div>
+      <div className="text-lg font-bold mb-2" style={{ color: 'var(--ink)' }}>本周任务</div>
       <div className="space-y-2">
         {weeklyDefs.map(d => {
           const p = weeklyProgress(d, allTasks);
           const isMin = d.type === 'weekly-min';
           const doneToday = hasInstanceToday(d.id, today, todayTasks);
           return (
-            <div key={d.id} className={`space-card p-3 flex items-center gap-3 ${isMin ? 'border-l-4 border-l-fuchsia-500' : 'border-l-4 border-l-sky-500'}`}>
+            <div
+              key={d.id}
+              className="p-3 flex items-center gap-3 rounded-[var(--radius-md)]"
+              style={{
+                background: 'var(--paper)',
+                boxShadow: 'var(--shadow-sm)',
+                borderLeft: `4px solid ${isMin ? 'var(--magic)' : 'var(--sky-500)'}`,
+              }}
+            >
               <SubjectIcon subject={d.subject} />
               <div className="flex-1">
-                <div className="font-medium flex items-center gap-2">
+                <div className="font-medium flex items-center gap-2 flex-wrap" style={{ color: 'var(--ink)' }}>
                   {d.title}
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${isMin ? 'bg-fuchsia-500/40 text-fuchsia-100' : 'bg-sky-500/40 text-sky-100'}`}>
-                    {isMin ? `本周 ${p.done}/${p.target}` : (p.achieved ? '本周已完成' : '本周未完成')}
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded"
+                    style={{
+                      background: isMin ? 'rgba(156,140,217,0.18)' : 'var(--sky-100)',
+                      color: isMin ? 'var(--magic)' : 'var(--sky-700)',
+                    }}
+                  >
+                    {isMin
+                      ? <>本周 <span className="text-num">{p.done}</span>/<span className="text-num">{p.target}</span></>
+                      : (p.achieved ? '本周已完成' : '本周未完成')}
                   </span>
-                  {doneToday && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200">今日已做</span>}
+                  {doneToday && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded"
+                      style={{ background: 'var(--fatboy-50)', color: 'var(--fatboy-700)' }}>
+                      今日已做
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-white/50">{d.estimatedMinutes}分 · {d.basePoints}积分</div>
+                <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+                  <span className="text-num">{d.estimatedMinutes}</span> 分 · <span className="text-num">{d.basePoints}</span> ⭐
+                </div>
               </div>
               {!p.achieved && !doneToday && (
-                <button onClick={() => doOne(d)} className="space-btn-ghost text-sm">+ 做一次</button>
+                <button onClick={() => doOne(d)} className="tag-btn">+ 做一次</button>
               )}
-              {(p.achieved || doneToday) && <div className="text-emerald-300 text-sm">✓</div>}
+              {(p.achieved || doneToday) && (
+                <div className="text-lg" style={{ color: 'var(--success)' }}>✓</div>
+              )}
             </div>
           );
         })}
@@ -473,7 +653,14 @@ export function SubjectIcon({ subject }: { subject: string }) {
   const map: Record<string, string> = {
     math: '🔢', chinese: '📖', english: '🔤', reading: '📚', writing: '✏️', other: '⭐',
   };
-  return <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xl">{map[subject] ?? '⭐'}</div>;
+  return (
+    <div
+      className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+      style={{ background: 'var(--mist)' }}
+    >
+      {map[subject] ?? '⭐'}
+    </div>
+  );
 }
 
 // R2.5.D: 豁免券 banner — 断击时显示，让孩子主动决定是否用券
@@ -518,28 +705,34 @@ function PardonBanner() {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-      className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-rose-500/30 to-amber-500/30 ring-2 ring-rose-300/60"
+      className="mt-4 p-4 rounded-[var(--radius-lg)] flex items-center gap-3"
+      style={{
+        background: 'var(--paper)',
+        boxShadow: 'var(--shadow-md)',
+        border: '2px solid var(--danger)',
+      }}
     >
-      <div className="flex items-center gap-3">
-        <div className="text-3xl">📛</div>
-        <div className="flex-1">
-          <div className="font-bold text-white">连击 {streak.currentStreak} 天断了！</div>
-          <div className="text-xs text-white/80 mt-0.5">
-            {remaining > 0
-              ? `用一张豁免券能救回来（本周还剩 ${remaining} / ${WEEKLY_PARDON_QUOTA} 张）`
-              : '本周豁免券已经用完了'}
-          </div>
+      <div className="text-3xl">📛</div>
+      <div className="flex-1">
+        <div className="font-bold" style={{ color: 'var(--danger)' }}>
+          连击 <span className="text-num">{streak.currentStreak}</span> 天断了
         </div>
-        {remaining > 0 ? (
-          <button
-            onClick={usePardon}
-            className="px-3 py-2 rounded-xl bg-amber-400 text-amber-900 font-bold active:scale-95">
-            🛡️ 用券
-          </button>
-        ) : (
-          <div className="text-xs text-white/50">下周一回血</div>
-        )}
+        <div className="text-xs mt-0.5" style={{ color: 'var(--ink-muted)' }}>
+          {remaining > 0
+            ? <>用一张豁免券能救回来（本周还剩 <span className="text-num">{remaining}</span>/<span className="text-num">{WEEKLY_PARDON_QUOTA}</span>）</>
+            : '本周豁免券已经用完了'}
+        </div>
       </div>
+      {remaining > 0 ? (
+        <button onClick={usePardon} className="primary-btn">
+          <span className="primary-btn-bottom" aria-hidden />
+          <span className="primary-btn-top" style={{ padding: '10px 18px', fontSize: 14 }}>
+            <Shield size={16} /> 用券
+          </span>
+        </button>
+      ) : (
+        <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>下周一回血</div>
+      )}
     </motion.div>
   );
 }

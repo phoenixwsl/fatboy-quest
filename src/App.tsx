@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, initializeDB } from './db';
-import { SpaceBackground } from './components/SpaceBackground';
+import { BackgroundCanvas, type TimePeriod } from './components/BackgroundCanvas';
 import { Toast } from './components/Toast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { UpdateBanner } from './components/UpdateBanner';
@@ -30,9 +30,29 @@ import { AchievementsPage } from './pages/AchievementsPage';
 import { AchievementsWatcher } from './components/AchievementsWatcher';
 import { EvalReminderWatcher } from './components/EvalReminderWatcher';
 
+// R3.0 §1.2: 按小时数自动切换时段
+function getTimePeriod(hour: number): TimePeriod {
+  if (hour >= 21 || hour < 7)  return 'night';
+  if (hour >= 18 && hour < 21) return 'dusk';
+  return 'day';
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const settings = useLiveQuery(() => db.settings.get('singleton'));
+  const [period, setPeriod] = useState<TimePeriod>(() => getTimePeriod(new Date().getHours()));
+
+  // R3.0 §1.2: 时段切换 — body[data-time-period] 触发 60s 渐变；每分钟检查一次
+  useEffect(() => {
+    const apply = () => {
+      const p = getTimePeriod(new Date().getHours());
+      document.body.dataset.timePeriod = p;
+      setPeriod(p);
+    };
+    apply();
+    const id = setInterval(apply, 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -65,7 +85,7 @@ export default function App() {
 
   return (
     <div className={`relative h-full overflow-hidden ${weekendActive ? weekendBgClass : ''}`}>
-      <SpaceBackground />
+      <BackgroundCanvas period={period} />
       <div className="relative z-10 h-full overflow-y-auto">
         <HashRouter>
           <Routes>
