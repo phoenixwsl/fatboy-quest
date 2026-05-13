@@ -63,3 +63,22 @@ body.weekend-bg-mode,
 .weekend-bg {
   background: radial-gradient(ellipse at top, #4a2f6a 0%, #2a1840 40%, #181028 100%) !important;
 }
+
+/* ============================================================
+   Fatboy v4 角色动画 keyframes（来自 Fatboy.tsx 自带注释）
+   ============================================================ */
+@keyframes fb-breathe      { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+@keyframes fb-breathe-slow { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+@keyframes fb-bounce       { 0%{transform:translateY(0) scale(1)} 30%{transform:translateY(-22px) scale(1.06)} 60%{transform:translateY(0) scale(.98)} 100%{transform:translateY(0) scale(1)} }
+@keyframes fb-bouncing     { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes fb-wobble       { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+@keyframes fb-shake        { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes fb-sleepbob     { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+.fatboy--breathe      { animation: fb-breathe      3.2s ease-in-out infinite; transform-origin: 50% 85%; }
+.fatboy--breathe-slow { animation: fb-breathe-slow 4.5s ease-in-out infinite; transform-origin: 50% 85%; }
+.fatboy--bounce       { animation: fb-bounce       1.4s cubic-bezier(.34,1.56,.64,1) 1; }
+.fatboy--bouncing     { animation: fb-bouncing     2.2s ease-in-out infinite; }
+.fatboy--wobble       { animation: fb-wobble       1.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.fatboy--shake        { animation: fb-shake        0.45s ease-in-out infinite; }
+.fatboy--sleepbob     { animation: fb-sleepbob     3.4s ease-in-out infinite; }

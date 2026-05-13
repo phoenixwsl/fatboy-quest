@@ -1,0 +1,97 @@
+<svg viewBox="-20 -40 280 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fatboy ninja sleeping">
+<defs>
+  <radialGradient id="body" cx="40%" cy="28%" r="75%">
+    <stop offset="0%"  stop-color="#FFF6D0"/>
+    <stop offset="35%" stop-color="#FFE082"/>
+    <stop offset="70%" stop-color="#F4C752"/>
+    <stop offset="100%" stop-color="#C77F18"/>
+  </radialGradient>
+  <radialGradient id="belly" cx="50%" cy="68%" r="48%">
+    <stop offset="0%"  stop-color="#FFFAE0" stop-opacity="0.95"/>
+    <stop offset="55%" stop-color="#FFEDB0" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#F4C752" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="sheen" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"  stop-color="#FFFFFF" stop-opacity="0.85"/>
+    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.3"/>
+    <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="cheek" cx="50%" cy="50%" r="55%">
+    <stop offset="0%"  stop-color="#FF9DAE" stop-opacity="0.45"/>
+    <stop offset="60%" stop-color="#FFB3B3" stop-opacity="0.25"/>
+    <stop offset="100%" stop-color="#FFB3B3" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="shadow" cx="50%" cy="50%">
+    <stop offset="0%"  stop-color="#000" stop-opacity="0.4"/>
+    <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="iris" cx="50%" cy="45%" r="60%">
+    <stop offset="0%"  stop-color="#3A2418"/>
+    <stop offset="80%" stop-color="#1F1208"/>
+    <stop offset="100%" stop-color="#0D0703"/>
+  </radialGradient>
+  <radialGradient id="limb" cx="40%" cy="30%" r="80%">
+    <stop offset="0%"  stop-color="#FFD978"/>
+    <stop offset="60%" stop-color="#E8A93C"/>
+    <stop offset="100%" stop-color="#B8742C"/>
+  </radialGradient>
+  <radialGradient id="chinShadow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"  stop-color="#C77F18" stop-opacity="0.25"/>
+    <stop offset="100%" stop-color="#C77F18" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="racerRed" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#E53935"/>
+    <stop offset="100%" stop-color="#8E0000"/>
+  </linearGradient>
+  <radialGradient id="astroDome" cx="35%" cy="30%" r="70%">
+    <stop offset="0%"  stop-color="#E3F2FD" stop-opacity="0.5"/>
+    <stop offset="60%" stop-color="#90CAF9" stop-opacity="0.15"/>
+    <stop offset="100%" stop-color="#1976D2" stop-opacity="0.1"/>
+  </radialGradient>
+  <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ECEFF1"/>
+    <stop offset="50%" stop-color="#B0BEC5"/>
+    <stop offset="100%" stop-color="#607D8B"/>
+  </linearGradient>
+  <linearGradient id="wizardPurple" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#9C27B0"/>
+    <stop offset="100%" stop-color="#4A148C"/>
+  </linearGradient>
+  <linearGradient id="pirateBlack" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#37474F"/>
+    <stop offset="100%" stop-color="#000000"/>
+  </linearGradient>
+  <linearGradient id="ninjaBlack" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#263238"/>
+    <stop offset="100%" stop-color="#000000"/>
+  </linearGradient>
+</defs>
+<ellipse cx="120" cy="232" rx="62" ry="8" fill="url(#shadow)"/>
+<ellipse cx="195" cy="200" rx="11" ry="7" fill="url(#limb)" transform="rotate(28 195 200)"/>
+<ellipse cx="201" cy="206" rx="4" ry="3" fill="#FFD978" opacity="0.8"/>
+<path d="M 120 35 C 175 35, 205 75, 205 130 C 205 190, 175 220, 120 220 C 65 220, 35 190, 35 130 C 35 75, 65 35, 120 35 Z" fill="url(#body)"/>
+<ellipse cx="120" cy="150" rx="60" ry="55" fill="url(#belly)"/>
+<ellipse cx="120" cy="190" rx="55" ry="18" fill="url(#chinShadow)"/>
+<ellipse cx="38" cy="170" rx="14" ry="17" fill="url(#limb)"/>
+<ellipse cx="202" cy="170" rx="14" ry="17" fill="url(#limb)"/>
+<ellipse cx="96" cy="220" rx="20" ry="12" fill="url(#limb)"/>
+<ellipse cx="89" cy="215" rx="7" ry="3.5" fill="#FFD978" opacity="0.7"/>
+<ellipse cx="144" cy="220" rx="20" ry="12" fill="url(#limb)"/>
+<ellipse cx="137" cy="215" rx="7" ry="3.5" fill="#FFD978" opacity="0.7"/>
+<line x1="74" y1="124" x2="110" y2="124" stroke="#3A2418" stroke-width="4" stroke-linecap="round"/>
+<line x1="130" y1="124" x2="166" y2="124" stroke="#3A2418" stroke-width="4" stroke-linecap="round"/>
+<path d="M 76 124 L 73 128" stroke="#3A2418" stroke-width="2" stroke-linecap="round"/>
+<path d="M 164 124 L 167 128" stroke="#3A2418" stroke-width="2" stroke-linecap="round"/>
+<text x="210" y="82" font-family="Georgia, serif" font-size="16" fill="#A78BFA" font-weight="bold" opacity="0.85">z</text>
+<text x="226" y="58" font-family="Georgia, serif" font-size="24" fill="#A78BFA" font-weight="bold" opacity="0.85">Z</text>
+<text x="244" y="28" font-family="Georgia, serif" font-size="32" fill="#A78BFA" font-weight="bold" opacity="0.8">Z</text>
+<path d="M 25 105 Q 22 30, 120 22 Q 218 30, 215 105 L 215 105 Q 205 102, 175 102 L 65 102 Q 35 102, 25 105 Z" fill="url(#ninjaBlack)" stroke="#000" stroke-width="1"/>
+<path d="M 50 40 Q 100 28, 150 32" stroke="#37474F" stroke-width="2" fill="none" opacity="0.5" stroke-linecap="round"/>
+<path d="M 50 105 Q 80 95, 100 100 Q 120 102, 140 100 Q 160 95, 190 105" stroke="#000" stroke-width="1" fill="none"/>
+<rect x="22" y="92" width="200" height="14" fill="#FFFFFF"/>
+<path d="M 218 88 L 232 92 L 228 106 L 218 102 Z" fill="#FFFFFF"/>
+<path d="M 228 92 L 240 100" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+<circle cx="120" cy="99" r="6" fill="#D32F2F"/>
+<path d="M 30 140 Q 35 132, 75 130 L 165 130 Q 205 132, 210 140 L 210 200 Q 195 218, 165 218 L 75 218 Q 45 218, 30 200 Z" fill="url(#ninjaBlack)" stroke="#000" stroke-width="1"/>
+<path d="M 35 138 Q 80 134, 120 134 Q 160 134, 205 138" stroke="#37474F" stroke-width="1.5" fill="none" opacity="0.6"/>
+</svg>
