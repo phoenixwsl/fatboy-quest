@@ -61,6 +61,9 @@ export interface Task {
   // R2.1.1: 进入闯关后还没点"开始"的等待计时
   firstEncounteredAt?: number;      // 在 quest 页第一次成为"当前小怪"的时间
   startNagSentAt?: number;          // 3 分钟未开始的 Bark 推送已发送时间（防重）
+  // R2.2.8: 任务超时后的提醒
+  overtimeNagSentAt?: number;       // 超时 3 分钟后给家长推送的时间（防重）
+  overtimeSoundPlayedAt?: number;   // 第一次进入超时时声音已响起的时间（防重）
 }
 
 // v4: 循环任务定义

@@ -262,6 +262,39 @@ describe('QuestPage 渲染（核心 happy path 回归）', () => {
     expect(screen.queryByText(/全部击败/)).toBeNull();
   });
 
+  // R2.2.8 回归：ScoreDetail 应包含**所有今日完成的任务**，包括不在当前 schedule.items 里的
+  it('R2.2.8 ScoreDetail: 跨 schedule 的已完成任务也要显示在得分明细里', async () => {
+    // 当前 schedule 含一个 scheduled 任务（让 QuestPage 选中它）
+    await db.tasks.put(scheduledTask({
+      id: 't_active', title: '当前任务', status: 'scheduled',
+    }));
+    await db.schedules.put({
+      id: 'sch_active', date: today, round: 1,
+      items: [{ kind: 'task', taskId: 't_active', startMinute: 0, durationMinutes: 25 }],
+      lockedAt: Date.now(),
+    } as any);
+
+    // 另一个 schedule 含已 evaluated 的任务（不应该在当前 schedule.items 里）
+    await db.tasks.put(scheduledTask({
+      id: 't_done_other', title: '早上完成的任务',
+      status: 'evaluated', completedAt: Date.now() - 60_000,
+    }));
+    await db.schedules.put({
+      id: 'sch_done', date: today, round: 1,
+      items: [{ kind: 'task', taskId: 't_done_other', startMinute: 0, durationMinutes: 10 }],
+      lockedAt: Date.now() - 70_000,
+      completedAt: Date.now() - 60_000,
+    } as any);
+
+    renderQuest();
+    await waitFor(() => {
+      // 当前任务
+      expect(screen.getAllByText('当前任务').length).toBeGreaterThan(0);
+      // 早上完成的任务也必须出现（即使不在 sch_active.items 里）
+      expect(screen.getByText('早上完成的任务')).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+
   it('schedule 卡死（任务全 done 但 completedAt 未写）→ 自愈应该修复，不渲染空白', async () => {
     await db.tasks.bulkPut([
       scheduledTask({ id: 't1', status: 'done', completedAt: Date.now() }),

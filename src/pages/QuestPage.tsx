@@ -224,6 +224,40 @@ export function QuestPage() {
     }
   }, [now, schedule, activeIdx, taskMap, settings?.warnMinutesBeforeEnd]);
 
+  // === R2.2.8 超时提醒：进入超时第 1 秒响声 + 超过 3min 推送家长 ===
+  useEffect(() => {
+    if (!schedule || activeIdx < 0) return;
+    const item = schedule.items[activeIdx];
+    if (item.kind !== 'task' || !item.taskId) return;
+    const t = taskMap.get(item.taskId);
+    if (!t || t.status !== 'inProgress' || t.pausedAt) return;
+
+    const remMs = calcRemainingMs(t);
+    if (remMs > 0) return; // 还没超时
+
+    // a) 第一次进入超时 → 响一下 + 写防重戳
+    if (!t.overtimeSoundPlayedAt) {
+      sounds.play('error');
+      db.tasks.update(t.id, { overtimeSoundPlayedAt: Date.now() }).catch(() => {});
+    }
+
+    // b) 超时 3 分钟 → 给家长发 Bark
+    const overtimeMs = -remMs;
+    if (overtimeMs >= 3 * 60_000 && !t.overtimeNagSentAt) {
+      (async () => {
+        await db.tasks.update(t.id, { overtimeNagSentAt: Date.now() });
+        const recipients = await db.recipients.toArray();
+        const childName = settings?.childName ?? '肥仔';
+        pushToRecipients(
+          recipients.filter(r => r.subStreakAlert !== false), 'help' as any, {
+          title: `⏰ ${childName} 在【${t.title}】超时 ${Math.floor(overtimeMs / 60000)} 分钟了`,
+          body: '可以提醒 ta 收尾或者帮忙看一下',
+          group: 'fatboy-quest',
+        }).catch(() => {});
+      })();
+    }
+  }, [now, schedule, activeIdx, taskMap]);
+
   // === 战报 ===
   const [showReport, setShowReport] = useState(false);
   const [reportData, setReportData] = useState<{
@@ -341,11 +375,27 @@ export function QuestPage() {
       });
       if (!ok) return;
     }
+    // R2.2.8 修复：超时后延时 +N 分钟，剩余时间必须**真的**变成 N 分钟，
+    // 不能只是叠加（叠加只会把负的剩余拉成 0 或小于 N，孩子拿不到完整 N 分钟）
+    const remMs = calcRemainingMs(t);
+    let newExtendMinutesTotal: number;
+    if (remMs < 0) {
+      // 超时：把 extendMinutesTotal 重置成"让剩余刚好等于 addMinutes"的值
+      // 推导：当前 usedMinutes = estimatedMinutes + extendMinutesTotal - remMinutes(负)
+      const usedMinutes = (effectiveElapsedMs(t)) / 60_000;
+      newExtendMinutesTotal = Math.ceil(usedMinutes) + offer.addMinutes - t.estimatedMinutes;
+    } else {
+      // 未超时：正常累加
+      newExtendMinutesTotal = (t.extendMinutesTotal ?? 0) + offer.addMinutes;
+    }
+
     await db.transaction('rw', db.tasks, db.points, async () => {
       await db.tasks.update(taskId, {
         extendCount: (t.extendCount ?? 0) + 1,
-        extendMinutesTotal: (t.extendMinutesTotal ?? 0) + offer.addMinutes,
+        extendMinutesTotal: newExtendMinutesTotal,
         extendPointsSpent: (t.extendPointsSpent ?? 0) + offer.costPoints,
+        overtimeSoundPlayedAt: undefined,  // 重置超时声音 flag，下次再超时再响
+        overtimeNagSentAt: undefined,      // 重置超时推送 flag
       });
       if (offer.costPoints > 0) {
         await db.points.add({
@@ -716,7 +766,12 @@ function TaskActiveCard({
   const progressPct = totalSec > 0 ? Math.min(100, (elapsedSec / totalSec) * 100) : 0;
   const remMin = Math.floor(remSec / 60);
   const remSecOnly = remSec % 60;
-  const overtime = remSec === 0 && task.status === 'inProgress';
+  const overtime = remainingMs <= 0 && task.status === 'inProgress';
+  // R2.2.8: 超时时长（毫秒 / 秒 / 分秒拆分）
+  const overtimeMs = overtime ? -remainingMs : 0;
+  const overtimeSec = Math.floor(overtimeMs / 1000);
+  const overtimeMin = Math.floor(overtimeSec / 60);
+  const overtimeSecOnly = overtimeSec % 60;
   const paused = !!task.pausedAt;
   const pauseRemainSec = paused ? Math.max(0, PAUSE_LIMIT_SEC - Math.floor((now - task.pausedAt!) / 1000)) : 0;
 
@@ -761,18 +816,21 @@ function TaskActiveCard({
       <div className="mt-3 text-sm text-white/60">当前小怪</div>
       <div className="text-2xl font-bold mt-1">{task.title}</div>
 
-      {/* 倒计时显示 */}
+      {/* 倒计时显示 — R2.2.8: 超时时显示具体超时多久 */}
       <div className={`text-5xl font-black my-4 tabular-nums ${overtime ? 'text-rose-400 animate-pulse' : paused ? 'text-amber-300' : 'text-white'}`}>
         {paused
           ? `⏸ ${Math.floor(pauseRemainSec / 60)}:${String(pauseRemainSec % 60).padStart(2, '0')}`
           : overtime
-          ? '⏰ 超时'
+          ? `⏰ +${String(overtimeMin).padStart(2, '0')}:${String(overtimeSecOnly).padStart(2, '0')}`
           : `${String(remMin).padStart(2, '0')}:${String(remSecOnly).padStart(2, '0')}`}
       </div>
-      <div className="text-xs text-white/50">
+      <div className={`text-xs ${overtime ? 'text-rose-300' : 'text-white/50'}`}>
         {paused ? '暂停中（最多 3 分钟自动恢复）' :
-         overtime ? '时间到了，可以延时或者赶紧收尾' :
-         `已用 ${Math.floor(elapsedSec / 60)} 分 · 总额度 ${task.estimatedMinutes + (task.extendMinutesTotal ?? 0)} 分`}
+         overtime
+           ? overtimeMin >= 3
+             ? `已超时 ${overtimeMin} 分钟（已通知家长）`
+             : `已超时 ${overtimeMin} 分${String(overtimeSecOnly).padStart(2, '0')}秒 — 赶紧收尾或者延时`
+           : `已用 ${Math.floor(elapsedSec / 60)} 分 · 总额度 ${task.estimatedMinutes + (task.extendMinutesTotal ?? 0)} 分`}
       </div>
 
       {/* 进度条（血条） */}
@@ -805,7 +863,7 @@ function TaskActiveCard({
             ? overtime ? 'bg-rose-500/40 border border-rose-300/60 animate-pulse'
               : 'bg-amber-500/30 border border-amber-300/50'
             : 'bg-white/5 opacity-40 cursor-not-allowed'}`}>
-          ⏰ 延时 {canExtend ? `+${extensionOffer.addMinutes}` : ''}
+          ⏰ 延时 {canExtend ? `+${extensionOffer.addMinutes} 分钟` : ''}
           {canExtend && extensionOffer.isFree && ' (免费)'}
           {canExtend && !extensionOffer.isFree && ` (-${extensionOffer.costPoints} 积分)`}
         </button>
@@ -817,21 +875,27 @@ function TaskActiveCard({
 function ScoreDetail({
   schedule, taskMap, onUndo, activeIdx,
 }: { schedule: Schedule; taskMap: Map<string, Task>; onUndo: (id: string) => void; activeIdx: number }) {
-  // 算一下本轮累计积分
-  const taskIds = schedule.items.filter(i => i.kind === 'task' && i.taskId).map(i => i.taskId!);
-  const evs = useLiveQuery(() =>
-    db.evaluations.where('taskId').anyOf(taskIds).toArray(),
-    [taskIds.join(',')],
+  // R2.2.8: 显示**整个今天**的得分明细，不只是当前 schedule
+  // （之前只看 schedule.items，跨多个 schedule 的任务会漏）
+  const today = schedule.date;
+  const todayTasks = useLiveQuery(
+    () => db.tasks.where({ date: today }).toArray(),
+    [today],
+  );
+  const allTodayTaskIds = (todayTasks ?? []).map(t => t.id);
+  const evs = useLiveQuery(
+    () => db.evaluations.where('taskId').anyOf(allTodayTaskIds).toArray(),
+    [allTodayTaskIds.join(',')],
   );
   const earlyEntries = useLiveQuery(() =>
-    db.points.where('reason').equals('early_bonus').filter(p => p.refId !== undefined && taskIds.includes(p.refId)).toArray(),
-    [taskIds.join(',')],
+    db.points.where('reason').equals('early_bonus').filter(p => p.refId !== undefined && allTodayTaskIds.includes(p.refId)).toArray(),
+    [allTodayTaskIds.join(',')],
   );
   const coreSum = (evs ?? []).reduce((s, e) => s + e.finalPoints, 0);
   const earlySum = (earlyEntries ?? []).reduce((s, p) => s + p.delta, 0);
   const totalEarned = coreSum + earlySum + (schedule.comboBonusPoints ?? 0);
   const evaluatedCount = evs?.length ?? 0;
-  const totalCount = taskIds.length;
+  const totalCount = (todayTasks ?? []).filter(t => t.status === 'done' || t.status === 'evaluated').length;
 
   return (
     <div className="mt-6">
@@ -841,6 +905,8 @@ function ScoreDetail({
           已得 <b className="text-lg">{totalEarned}</b> 分（{evaluatedCount}/{totalCount} 评分）
         </div>
       </div>
+      {/* R2.2.8: 显示当前 schedule 里的所有 item（包含 rest 块和正在执行的任务），
+          再追加今日**其它 schedule** 已完成的任务，避免漏。 */}
       {schedule.items.map((it: ScheduleItem, idx: number) => {
         if (it.kind === 'rest') {
           return (
@@ -853,42 +919,13 @@ function ScoreDetail({
         const t = it.taskId ? taskMap.get(it.taskId) : null;
         if (!t) return null;
         const isActive = idx === activeIdx;
-        const statusEmoji =
-          t.status === 'evaluated' ? '✅' :
-          t.status === 'done' ? '❓' :
-          t.status === 'inProgress' ? '⏳' :
-          t.status === 'pending' ? '⏸' : '⏸';
-        const statusText =
-          t.status === 'evaluated' ? '已评分' :
-          t.status === 'done' ? '待评分' :
-          t.status === 'inProgress' ? '闯关中' :
-          '待开始';
-
-        return (
-          <div key={t.id} className={`space-card p-3 my-2 ${isActive ? 'ring-2 ring-space-plasma' : ''} ${t.isRequired ? 'border-l-4 border-l-rose-500' : ''}`}>
-            <div className="flex items-center gap-3">
-              <div className="text-lg">{statusEmoji}</div>
-              <SubjectIcon subject={t.subject} />
-              <div className="flex-1">
-                <div className={`flex items-center gap-1.5 flex-wrap ${t.status === 'evaluated' || t.status === 'done' ? 'line-through opacity-70' : ''}`}>
-                  {t.title}
-                  {t.isRequired && <span className="text-[10px] px-1 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
-                  {t.createdBy === 'child' && <span className="text-[10px] px-1 py-0.5 rounded bg-cyan-500/30">我加的</span>}
-                </div>
-                <div className="text-xs text-white/50">{statusText}</div>
-              </div>
-              {t.status === 'evaluated' && <EvaluatedPointsBadge taskId={t.id} />}
-              {t.status === 'done' && (
-                <button onClick={() => onUndo(t.id)}
-                  className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
-                  ↩ 撤回
-                </button>
-              )}
-            </div>
-            {t.status === 'evaluated' && <EvaluatedDetails taskId={t.id} />}
-          </div>
-        );
+        return <ScoreDetailRow key={t.id} task={t} isActive={isActive} onUndo={onUndo} />;
       })}
+      {/* R2.2.8: 今日已完成 / 已评分的、但**不在当前 schedule.items** 里的任务 */}
+      {(todayTasks ?? [])
+        .filter(t => (t.status === 'done' || t.status === 'evaluated')
+                   && !schedule.items.some(i => i.taskId === t.id))
+        .map(t => <ScoreDetailRow key={t.id} task={t} isActive={false} onUndo={onUndo} />)}
       {(schedule.comboBonusPoints ?? 0) > 0 && (
         <div className="space-card p-3 my-2 bg-gradient-to-r from-amber-500/20 to-rose-500/20">
           <div className="flex items-center gap-2">
@@ -898,6 +935,46 @@ function ScoreDetail({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// R2.2.8: 抽出"得分明细行"组件，HomePage 已完成任务卡片也复用同样的视觉
+export function ScoreDetailRow({
+  task: t, isActive, onUndo,
+}: { task: Task; isActive: boolean; onUndo: (id: string) => void }) {
+  const statusEmoji =
+    t.status === 'evaluated' ? '✅' :
+    t.status === 'done' ? '❓' :
+    t.status === 'inProgress' ? '⏳' :
+    t.status === 'pending' ? '⏸' : '⏸';
+  const statusText =
+    t.status === 'evaluated' ? '已评分' :
+    t.status === 'done' ? '待评分' :
+    t.status === 'inProgress' ? '闯关中' :
+    '待开始';
+  return (
+    <div className={`space-card p-3 my-2 ${isActive ? 'ring-2 ring-space-plasma' : ''} ${t.isRequired ? 'border-l-4 border-l-rose-500' : ''}`}>
+      <div className="flex items-center gap-3">
+        <div className="text-lg">{statusEmoji}</div>
+        <SubjectIcon subject={t.subject} />
+        <div className="flex-1">
+          <div className={`flex items-center gap-1.5 flex-wrap ${t.status === 'evaluated' || t.status === 'done' ? 'line-through opacity-70' : ''}`}>
+            {t.title}
+            {t.isRequired && <span className="text-[10px] px-1 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
+            {t.createdBy === 'child' && <span className="text-[10px] px-1 py-0.5 rounded bg-cyan-500/30">我加的</span>}
+          </div>
+          <div className="text-xs text-white/50">{statusText}</div>
+        </div>
+        {t.status === 'evaluated' && <EvaluatedPointsBadge taskId={t.id} />}
+        {t.status === 'done' && (
+          <button onClick={() => onUndo(t.id)}
+            className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
+            ↩ 撤回
+          </button>
+        )}
+      </div>
+      {t.status === 'evaluated' && <EvaluatedDetails taskId={t.id} />}
     </div>
   );
 }

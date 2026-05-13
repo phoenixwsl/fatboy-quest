@@ -16,6 +16,7 @@ import { isWeekend } from '../lib/weekendMode';
 import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance, hasInstanceToday } from '../lib/recurrence';
 import { scoreRatio, ratioColorClass } from '../lib/points';
 import { detectHealActions, isHealNeeded } from '../lib/heal';
+import { ScoreDetailRow } from './QuestPage';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
 
@@ -322,12 +323,13 @@ export function HomePage() {
             onClick={() => { sounds.play('tap'); setDoneCollapsed(c => !c); }}
             className="w-full flex items-center justify-between text-emerald-300 mb-2 active:scale-95"
           >
-            <span className="text-sm">✓ 今日已击败 ({doneTasks.length})</span>
+            <span className="text-sm">✓ 今日已完成任务 ({doneTasks.length})</span>
             <span className="text-xs">{doneCollapsed ? '▶ 展开' : '▼ 收起'}</span>
           </button>
           {!doneCollapsed && (
             <div className="space-y-2">
-              {doneTasks.map(t => <DoneTaskCard key={t.id} task={t} onUndo={undoComplete} />)}
+              {/* R2.2.8: 改用 ScoreDetailRow 跟 QuestPage 得分明细同款，去百分比、显示星级 / 基础→实得 */}
+              {doneTasks.map(t => <ScoreDetailRow key={t.id} task={t} isActive={false} onUndo={undoComplete} />)}
             </div>
           )}
         </div>
@@ -457,47 +459,7 @@ function WeeklyTasksPanel({ defs, allTasks, todayTasks }: { defs: any[]; allTask
   );
 }
 
-function DoneTaskCard({ task: t, onUndo }: { task: any; onUndo: (id: string) => void }) {
-  const ev = useLiveQuery(async () => {
-    if (!t.evaluationId) return undefined;
-    return await db.evaluations.get(t.evaluationId);
-  }, [t.evaluationId]);
-  const earlyBonus = useLiveQuery(() =>
-    db.points.where('reason').equals('early_bonus').filter(p => p.refId === t.id).toArray(),
-    [t.id],
-  );
-  const earlySum = (earlyBonus ?? []).reduce((s, p) => s + p.delta, 0);
-  const tt = (t.taskType ?? 'normal') as keyof typeof TASK_TYPE_BORDER;
-  const ratio = ev ? scoreRatio(ev.basePointsAtEval, ev.finalPoints, earlySum) : 0;
-  const ratioCls = ratioColorClass(ratio);
-  return (
-    <div className={`space-card p-3 flex items-center gap-3 opacity-90 ${TASK_TYPE_BORDER[tt]}`}>
-      <SubjectIcon subject={t.subject} />
-      <div className="flex-1">
-        <div className="font-medium line-through">{t.title}</div>
-        {ev ? (
-          <div className="text-xs text-white/50 mt-0.5 flex items-center gap-1">
-            预期 {ev.basePointsAtEval} · 实得 <b className="text-white">{ev.finalPoints + earlySum}</b>
-            <span className={`ml-1 font-bold ${ratioCls}`}>({ratio}%)</span>
-            {ratio >= 130 && <span className="text-amber-300 ml-1">🌟</span>}
-            {ratio >= 110 && ratio < 130 && <span className="text-sky-300 ml-1">✨</span>}
-            {ratio < 60 && <span className="text-rose-300 ml-1">💧</span>}
-          </div>
-        ) : (
-          <div className="text-xs text-white/50">等待家长评分...</div>
-        )}
-      </div>
-      {ev ? (
-        <div className={`text-2xl font-black tabular-nums ${ratioCls}`}>{ratio}%</div>
-      ) : canUndoCompletion(t) ? (
-        <button onClick={() => onUndo(t.id)}
-          className="text-amber-300 text-xs bg-amber-500/20 px-2 py-1 rounded-lg active:scale-90">
-          ↩ 撤回
-        </button>
-      ) : null}
-    </div>
-  );
-}
+// R2.2.8: DoneTaskCard 已被 ScoreDetailRow (QuestPage 导出) 替换，去重保持单一来源
 
 export function SubjectIcon({ subject }: { subject: string }) {
   const map: Record<string, string> = {

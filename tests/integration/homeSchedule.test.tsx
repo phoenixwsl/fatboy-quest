@@ -89,7 +89,7 @@ describe('HP · HomePage 渲染', () => {
     await waitFor(() => {
       expect(screen.getByText('pending-task')).toBeInTheDocument();
       expect(screen.getByText('scheduled-task')).toBeInTheDocument();
-      expect(screen.getByText(/今日已击败 \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText(/今日已完成任务 \(1\)/)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
@@ -119,7 +119,7 @@ describe('HP · HomePage 渲染', () => {
     });
   });
 
-  it('HP5: "✓ 今日已击败"区块可折叠/展开', async () => {
+  it('HP5: "✓ 今日已完成任务"区块可折叠/展开', async () => {
     await db.tasks.bulkPut([
       makeTask({ id: 'd1', title: 'done-A', status: 'done', completedAt: Date.now() }),
       makeTask({ id: 'd2', title: 'done-B', status: 'evaluated', completedAt: Date.now() }),
@@ -129,12 +129,12 @@ describe('HP · HomePage 渲染', () => {
 
     // 默认折叠时：done-A / done-B 不在 DOM 里
     await waitFor(() => {
-      expect(screen.getByText(/今日已击败/)).toBeInTheDocument();
+      expect(screen.getByText(/今日已完成任务/)).toBeInTheDocument();
     });
     expect(screen.queryByText('done-A')).toBeNull();
 
     // 点击展开
-    fireEvent.click(screen.getByText(/今日已击败/).closest('button')!);
+    fireEvent.click(screen.getByText(/今日已完成任务/).closest('button')!);
     await waitFor(() => {
       expect(screen.getByText('done-A')).toBeInTheDocument();
       expect(screen.getByText('done-B')).toBeInTheDocument();

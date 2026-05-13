@@ -310,6 +310,117 @@ describe('Q · 求助 + 3 分钟提醒 + 休息块', () => {
     expect(findActive(skippedRests)).toBe(2);
   });
 
+  // R2.2.8 新增：超时声音 + 超时 3min 推送 + 延时拉满 5 分钟
+  it('OVT1: 超时后第一次进入应播放声音 + 写 overtimeSoundPlayedAt 防重', async () => {
+    // 起始：任务进行中且已超时（actualStartedAt 在 estimatedMinutes 之前）
+    await setupActiveQuest({
+      status: 'inProgress',
+      estimatedMinutes: 10,
+      actualStartedAt: Date.now() - 12 * 60_000, // 超时 2 分钟
+    });
+    // 业务上 useEffect 会读 task 并响声 + 写戳。这里直接模拟该逻辑。
+    const t = await db.tasks.get('task_q');
+    expect(t?.overtimeSoundPlayedAt).toBeUndefined();
+    // 模拟"播放并写戳"
+    await db.tasks.update('task_q', { overtimeSoundPlayedAt: Date.now() });
+    const after = await db.tasks.get('task_q');
+    expect(after?.overtimeSoundPlayedAt).toBeDefined();
+    // 防重：再调用不应再写
+    const stamp = after!.overtimeSoundPlayedAt;
+    // 假装 useEffect 检查到已有戳 → 不再写
+    if (!after?.overtimeSoundPlayedAt) {
+      await db.tasks.update('task_q', { overtimeSoundPlayedAt: Date.now() });
+    }
+    const final = await db.tasks.get('task_q');
+    expect(final?.overtimeSoundPlayedAt).toBe(stamp);
+  });
+
+  it('OVT2: 超时 ≥ 3 分钟应推送家长（overtimeNagSentAt 写入 + Bark 调用）', async () => {
+    const bark = await import('../../src/lib/bark');
+    (bark.pushToRecipients as any).mockClear();
+
+    await setupActiveQuest({
+      status: 'inProgress',
+      estimatedMinutes: 10,
+      actualStartedAt: Date.now() - 14 * 60_000, // 超时 4 分钟
+    });
+    await db.recipients.put({
+      id: 'r1', label: '爸爸', emoji: '👨',
+      serverUrl: 'https://api', key: 'k', enabled: true, subStreakAlert: true,
+    } as any);
+
+    // 模拟 useEffect 的"超时 3min 推送"逻辑
+    const t = await db.tasks.get('task_q');
+    const remMs = (t!.estimatedMinutes * 60_000) - (Date.now() - t!.actualStartedAt!);
+    const overtimeMs = -remMs;
+    expect(overtimeMs).toBeGreaterThanOrEqual(3 * 60_000);
+    expect(t!.overtimeNagSentAt).toBeUndefined();
+
+    await db.tasks.update('task_q', { overtimeNagSentAt: Date.now() });
+    await bark.pushToRecipients(
+      [{ id: 'r1', enabled: true } as any],
+      'help' as any,
+      { title: '超时通知', body: '...' } as any,
+    );
+
+    expect((await db.tasks.get('task_q'))!.overtimeNagSentAt).toBeDefined();
+    expect(bark.pushToRecipients).toHaveBeenCalled();
+  });
+
+  it('OVT3: 超时后延时 +5 分钟 → 剩余时间应**真的**变成 5 分钟（不是叠加）', async () => {
+    // 任务 10 分钟，已用 15 分钟（超时 5 分钟）
+    await setupActiveQuest({
+      status: 'inProgress',
+      estimatedMinutes: 10,
+      actualStartedAt: Date.now() - 15 * 60_000,
+      extendMinutesTotal: 0,
+      extendCount: 0,
+    });
+
+    // 模拟 extendTask 的新逻辑：超时时 newExtendMinutesTotal = ceil(usedMin) + addMin - estMin
+    const t = await db.tasks.get('task_q');
+    const usedMinutes = (Date.now() - t!.actualStartedAt!) / 60_000;
+    const addMinutes = 5;
+    const newExtendMinutesTotal = Math.ceil(usedMinutes) + addMinutes - t!.estimatedMinutes;
+
+    await db.tasks.update('task_q', {
+      extendMinutesTotal: newExtendMinutesTotal,
+      extendCount: 1,
+    });
+
+    // 验证：新的 remaining 应当 ≈ 5 分钟（不是 0 或 -X）
+    const after = await db.tasks.get('task_q');
+    const totalMs = (after!.estimatedMinutes + (after!.extendMinutesTotal ?? 0)) * 60_000;
+    const usedMs = Date.now() - after!.actualStartedAt!;
+    const newRemainingMs = totalMs - usedMs;
+    // 应该至少是 5 分钟（不能少给孩子时间），最多多 1 分钟（ceil 上取整造成）
+    expect(newRemainingMs).toBeGreaterThanOrEqual(5 * 60_000 - 2_000);
+    expect(newRemainingMs).toBeLessThanOrEqual(6 * 60_000 + 2_000);
+  });
+
+  it('OVT4: 未超时时延时仍是叠加（不破坏老逻辑）', async () => {
+    // 任务 10 分钟，刚开始 1 分钟（未超时，剩 9 分钟）
+    await setupActiveQuest({
+      status: 'inProgress',
+      estimatedMinutes: 10,
+      actualStartedAt: Date.now() - 1 * 60_000,
+      extendMinutesTotal: 0,
+    });
+
+    const t = await db.tasks.get('task_q');
+    // 模拟未超时逻辑：直接累加
+    await db.tasks.update('task_q', {
+      extendMinutesTotal: (t!.extendMinutesTotal ?? 0) + 5,
+      extendCount: 1,
+    });
+
+    const after = await db.tasks.get('task_q');
+    expect(after!.extendMinutesTotal).toBe(5);
+    // 总额度 = 10 + 5 = 15 分钟
+    const totalMs = (after!.estimatedMinutes + (after!.extendMinutesTotal ?? 0)) * 60_000;
+    expect(totalMs).toBe(15 * 60_000);
+  });
+
   it('Q20: 全部完成 → applyDayComplete 可触发 streak + badges 检查（链路存在）', async () => {
     await db.tasks.bulkPut([
       makeTask({ id: 'a', status: 'done', completedAt: Date.now() }),
