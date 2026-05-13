@@ -7,6 +7,8 @@ import { calcFinalPoints } from '../../lib/points';
 import { earlyBonus, summarizeExecution } from '../../lib/earlyBonus';
 import { StarRating } from '../../components/StarRating';
 import { SubjectIcon } from '../HomePage';
+import { DifficultyStars } from '../../components/DifficultyStars';
+import { DIFFICULTY_LABELS, difficultyBonus } from '../../lib/difficulty';
 import { useAppStore } from '../../store/useAppStore';
 import { evaluateTaskOnce, QUICK_PRESETS, smartDefaultBasePoints } from '../../lib/evaluate';
 import type { Task } from '../../types';
@@ -213,80 +215,153 @@ export function Evaluations() {
       )}
 
       <AnimatePresence>
-        {openTask && summary && (
+        {openTask && summary && (() => {
+          const modalLabel: React.CSSProperties = { fontSize: 13, color: 'var(--ink-muted)', marginBottom: 4 };
+          const modalInput: React.CSSProperties = {
+            background: 'var(--mist)',
+            color: 'var(--ink)',
+            border: '1px solid var(--fog)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '10px 12px',
+            outline: 'none',
+          };
+          const difficultyPts = difficultyBonus(openTask.difficulty);
+          const grandTotal = totalPts + difficultyPts;
+          return (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.55)' }}
             onClick={() => setOpenTask(null)}
           >
             <motion.div
               initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
-              className="space-card p-6 w-full max-w-md max-h-[92vh] overflow-y-auto"
+              className="w-full max-w-md max-h-[92vh] overflow-y-auto"
+              style={{
+                background: 'var(--paper)',
+                border: '1px solid var(--fog)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-lg)',
+                padding: 24,
+                color: 'var(--ink)',
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-lg font-bold mb-1">评分：{openTask.title}</div>
-              {openTask.createdBy === 'child' && (
-                <div className="text-xs text-cyan-300 mb-2">这是孩子自己加的任务</div>
-              )}
+              {/* R3.3.1: 任务详情头 — subject icon + 难度 + 必做 + 预估 */}
+              <div className="flex items-center gap-3 mb-3">
+                <SubjectIcon subject={openTask.subject} />
+                <div className="flex-1">
+                  <div className="text-lg font-bold flex items-center gap-2 flex-wrap" style={{ color: 'var(--ink)' }}>
+                    {openTask.title}
+                    <DifficultyStars difficulty={openTask.difficulty} size="md" />
+                    {openTask.isRequired && (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded"
+                        style={{ background: 'var(--danger)', color: '#fff' }}
+                      >
+                        必做
+                      </span>
+                    )}
+                    {openTask.createdBy === 'child' && (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded"
+                        style={{ background: 'var(--sky-100)', color: 'var(--sky-700)' }}
+                      >
+                        孩子加的
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--ink-muted)' }}>
+                    预估 <span className="text-num">{openTask.estimatedMinutes}</span> 分
+                    {openTask.difficulty && openTask.difficulty > 1 && (
+                      <> · 难度 {DIFFICULTY_LABELS[openTask.difficulty]}（额外 +{difficultyPts} ⭐）</>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* 执行记录 */}
-              <div className="bg-white/5 rounded-xl p-3 mb-3 text-xs space-y-1">
-                <div className="font-bold text-white/80 mb-1">⏱ 执行记录</div>
-                <div>实际用时 <b>{summary.effectiveMinutes} 分钟</b>（预估 {summary.estimatedMinutes} 分钟，{summary.savedMinutes >= 0 ? `提前 ${summary.savedMinutes}` : `超时 ${-summary.savedMinutes}`} 分钟）</div>
-                {summary.pauseCount > 0 && <div className="text-amber-300">⏸ 暂停 {summary.pauseCount} 次（{summary.pauseMinutes} 分钟）</div>}
-                {summary.extendCount > 0 && <div className="text-orange-300">⏰ 延时 {summary.extendCount} 次（+{summary.extendMinutes} 分钟）</div>}
-                {summary.undoCount > 0 && <div className="text-rose-300">↩ 撤回 {summary.undoCount} 次</div>}
-                {summary.isOnTime && <div className="text-emerald-300">✓ 按时完成</div>}
+              <div
+                className="text-xs space-y-1 mb-3"
+                style={{
+                  background: 'var(--mist)',
+                  border: '1px solid var(--fog)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 12px',
+                  color: 'var(--ink)',
+                }}
+              >
+                <div className="font-bold mb-1" style={{ color: 'var(--ink-muted)' }}>⏱ 执行记录</div>
+                <div>实际用时 <b className="text-num">{summary.effectiveMinutes}</b> 分钟（预估 <span className="text-num">{summary.estimatedMinutes}</span> 分，
+                  {summary.savedMinutes >= 0
+                    ? <span style={{ color: 'var(--success)' }}>提前 <span className="text-num">{summary.savedMinutes}</span></span>
+                    : <span style={{ color: 'var(--danger)' }}>超时 <span className="text-num">{-summary.savedMinutes}</span></span>} 分钟）
+                </div>
+                {summary.pauseCount > 0 && <div style={{ color: 'var(--fatboy-700)' }}>⏸ 暂停 {summary.pauseCount} 次（{summary.pauseMinutes} 分钟）</div>}
+                {summary.extendCount > 0 && <div style={{ color: 'var(--fatboy-700)' }}>⏰ 延时 {summary.extendCount} 次（+{summary.extendMinutes} 分钟）</div>}
+                {summary.undoCount > 0 && <div style={{ color: 'var(--danger)' }}>↩ 撤回 {summary.undoCount} 次</div>}
+                {summary.isOnTime && <div style={{ color: 'var(--success)' }}>✓ 按时完成</div>}
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <div className="text-sm text-white/70 mb-1">基础积分（可改）</div>
+                  <div style={modalLabel}>基础积分（可改）</div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setBasePoints(Math.max(1, basePoints - 5))}
-                      className="px-3 py-2 bg-white/10 rounded-xl">−5</button>
+                      style={{ ...modalInput, padding: '10px 14px', cursor: 'pointer' }}>−5</button>
                     <input type="number" value={basePoints}
                       onChange={e => setBasePoints(Math.max(1, Number(e.target.value)))}
-                      className="flex-1 px-3 py-2 bg-white/10 rounded-xl outline-none text-center text-lg" />
+                      className="flex-1 text-center text-lg"
+                      style={modalInput} />
                     <button onClick={() => setBasePoints(basePoints + 5)}
-                      className="px-3 py-2 bg-white/10 rounded-xl">+5</button>
+                      style={{ ...modalInput, padding: '10px 14px', cursor: 'pointer' }}>+5</button>
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-white/70 mb-1">完成度</div>
+                  <div style={modalLabel}>完成度</div>
                   <StarRating value={completion} onChange={setCompletion} />
                 </div>
                 <div>
-                  <div className="text-sm text-white/70 mb-1">完成质量</div>
+                  <div style={modalLabel}>完成质量</div>
                   <StarRating value={quality} onChange={setQuality} />
-                  {quality < 4 && <div className="text-xs text-amber-300/80 mt-1">质量 &lt; 4 星：没有提前完成奖励</div>}
+                  {quality < 4 && <div className="text-xs mt-1" style={{ color: 'var(--fatboy-700)' }}>质量 &lt; 4 星：没有提前完成奖励</div>}
                 </div>
                 <div>
-                  <div className="text-sm text-white/70 mb-1">完成态度</div>
+                  <div style={modalLabel}>完成态度</div>
                   <StarRating value={attitude} onChange={setAttitude} />
                 </div>
                 <div>
-                  <div className="text-sm text-white/70 mb-1">备注（可选）</div>
+                  <div style={modalLabel}>备注（可选）</div>
                   <textarea value={note} onChange={e => setNote(e.target.value)}
                     rows={2}
                     placeholder="给孩子的反馈..."
-                    className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none resize-none" />
+                    className="w-full resize-none"
+                    style={modalInput} />
                 </div>
                 <div>
-                  <div className="text-sm text-white/70 mb-1">💡 下次提醒（同名任务下次出现时给孩子看）</div>
+                  <div style={modalLabel}>💡 下次提醒（同名任务下次出现时给孩子看）</div>
                   <textarea value={parentReminder} onChange={e => setParentReminder(e.target.value)}
                     rows={2}
                     placeholder="比如：明天先做数学；这次第 3 题不会，可以多练"
-                    className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none resize-none" />
+                    className="w-full resize-none"
+                    style={modalInput} />
                 </div>
               </div>
 
-              <div className="mt-4 p-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl">
-                <div className="text-xs text-white/70">实得积分</div>
-                <div className="text-3xl font-bold text-amber-300">⭐ {totalPts}</div>
-                <div className="text-xs text-white/50 mt-1">
-                  核心 {corePts}
-                  {earlyBonusPts > 0 && <span className="text-emerald-300"> + 提前奖 {earlyBonusPts}</span>}
+              <div
+                className="mt-4 p-3"
+                style={{
+                  background: 'var(--fatboy-50)',
+                  border: '1px solid var(--fatboy-300)',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>实得积分</div>
+                <div className="text-3xl font-bold text-num" style={{ color: 'var(--fatboy-700)' }}>⭐ {grandTotal}</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--ink-muted)' }}>
+                  核心 <span className="text-num">{corePts}</span>
+                  {earlyBonusPts > 0 && <span style={{ color: 'var(--success)' }}> · 提前奖 +<span className="text-num">{earlyBonusPts}</span></span>}
+                  {difficultyPts > 0 && <span style={{ color: 'var(--fatboy-700)' }}> · 难度奖 +<span className="text-num">{difficultyPts}</span></span>}
                 </div>
               </div>
 
@@ -296,7 +371,8 @@ export function Evaluations() {
               </div>
             </motion.div>
           </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

@@ -12,6 +12,25 @@ import {
 } from '../../lib/reset';
 import { exportErrorLogsJSON } from '../../lib/errorLogger';
 
+// R3.3.1: 通用样式片段 — 让本页所有卡片/输入都跟随主题
+const cardStyle: React.CSSProperties = {
+  background: 'var(--paper)',
+  border: '1px solid var(--fog)',
+  borderRadius: 'var(--radius-md)',
+  padding: '16px',
+  marginBottom: '12px',
+  boxShadow: 'var(--shadow-sm)',
+};
+const labelStyle: React.CSSProperties = { fontSize: 13, color: 'var(--ink-muted)', marginBottom: 8 };
+const inputStyle: React.CSSProperties = {
+  background: 'var(--mist)',
+  color: 'var(--ink)',
+  border: '1px solid var(--fog)',
+  borderRadius: 'var(--radius-sm)',
+  padding: '10px 12px',
+  outline: 'none',
+};
+
 export function ParentSettings() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
@@ -53,89 +72,109 @@ export function ParentSettings() {
   }
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
-        <div className="text-xl font-bold">⚙️ 设置</div>
+        <button onClick={() => nav('/parent/dashboard')} className="secondary-btn" style={{ padding: '8px 16px' }}>←</button>
+        <div className="text-xl font-bold" style={{ color: 'var(--ink)' }}>⚙️ 设置</div>
       </div>
 
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">孩子昵称</div>
+      <div style={cardStyle}>
+        <div style={labelStyle}>孩子昵称</div>
         <div className="flex gap-2">
           <input value={childName || settings.childName}
             onChange={e => setChildName(e.target.value)}
-            className="flex-1 px-3 py-2 bg-white/10 rounded-xl outline-none" />
+            className="flex-1" style={inputStyle} />
           <button onClick={updateName} className="space-btn">更新</button>
         </div>
       </div>
 
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">修改 PIN</div>
+      <div style={cardStyle}>
+        <div style={labelStyle}>修改 PIN</div>
         <div className="flex gap-2">
           <input type="password" inputMode="numeric" maxLength={4}
             value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
             placeholder="新 4 位 PIN"
-            className="flex-1 px-3 py-2 bg-white/10 rounded-xl outline-none text-center tracking-widest text-lg" />
+            className="flex-1 text-center tracking-widest text-lg"
+            style={inputStyle} />
           <button onClick={updatePin} className="space-btn">更新</button>
         </div>
       </div>
 
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">修改密保问题</div>
-        <div className="text-xs text-white/40 mb-2">当前问题：{settings.securityQuestion}</div>
+      <div style={cardStyle}>
+        <div style={labelStyle}>修改密保问题</div>
+        <div className="text-xs mb-2" style={{ color: 'var(--ink-faint)' }}>当前问题：{settings.securityQuestion}</div>
         <input value={newQ} onChange={e => setNewQ(e.target.value)}
           placeholder="新问题"
-          className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
+          className="w-full mb-2" style={inputStyle} />
         <input value={newA} onChange={e => setNewA(e.target.value)}
           placeholder="新答案"
-          className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
+          className="w-full mb-2" style={inputStyle} />
         <button onClick={updateSecurity} className="space-btn w-full">更新密保</button>
       </div>
 
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">🔊 声音包</div>
+      <div style={cardStyle}>
+        <div style={labelStyle}>🔊 声音包</div>
         <div className="space-y-2">
-          {(['default', 'cartoon', 'minimal'] as SoundPack[]).map(p => (
-            <button key={p}
-              onClick={async () => {
-                await db.settings.update('singleton', { soundPack: p });
-                sounds.setPack(p);
-                sounds.play('unlock');
-              }}
-              className={`w-full px-3 py-2 rounded-xl text-left text-sm ${settings.soundPack === p ? 'bg-space-nebula ring-1 ring-space-plasma' : 'bg-white/5'}`}>
-              {settings.soundPack === p && '✓ '}
-              {SOUND_PACK_LABELS[p]}
-            </button>
-          ))}
+          {(['default', 'cartoon', 'minimal'] as SoundPack[]).map(p => {
+            const active = settings.soundPack === p;
+            return (
+              <button key={p}
+                onClick={async () => {
+                  await db.settings.update('singleton', { soundPack: p });
+                  sounds.setPack(p);
+                  sounds.play('unlock');
+                }}
+                className="w-full text-left text-sm"
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: active ? 'var(--fatboy-50)' : 'var(--mist)',
+                  border: `2px solid ${active ? 'var(--fatboy-500)' : 'transparent'}`,
+                  color: active ? 'var(--fatboy-700)' : 'var(--ink)',
+                  fontWeight: active ? 600 : 400,
+                }}>
+                {active && '✓ '}
+                {SOUND_PACK_LABELS[p]}
+              </button>
+            );
+          })}
         </div>
-        <div className="text-xs text-white/40 mt-2">点选项可试听</div>
+        <div className="text-xs mt-2" style={{ color: 'var(--ink-faint)' }}>点选项可试听</div>
       </div>
 
-      {/* R3.1: 外观主题 */}
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>🎨 外观主题</div>
+      {/* R3.1 / R3.3.1: 外观主题（也提供给孩子端使用） */}
+      <div style={cardStyle}>
+        <div style={labelStyle}>🎨 外观主题</div>
         <ThemePicker />
+        <div className="text-xs mt-2" style={{ color: 'var(--ink-faint)' }}>孩子也可以在首页右上角切换</div>
       </div>
 
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">💤 Idle Nag（5 分钟无操作蛋仔催）</div>
+      <div style={cardStyle}>
+        <div style={labelStyle}>💤 Idle Nag（5 分钟无操作蛋仔催）</div>
         <button
           onClick={() => db.settings.update('singleton', { idleNagEnabled: !settings.idleNagEnabled })}
-          className={`w-full px-3 py-2 rounded-xl text-sm ${settings.idleNagEnabled !== false ? 'bg-emerald-500/30' : 'bg-white/10'}`}>
+          className="w-full text-sm"
+          style={{
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-sm)',
+            background: settings.idleNagEnabled !== false ? 'rgba(107,195,107,0.18)' : 'var(--mist)',
+            color: settings.idleNagEnabled !== false ? 'var(--success)' : 'var(--ink-muted)',
+            border: `1px solid ${settings.idleNagEnabled !== false ? 'var(--success)' : 'var(--fog)'}`,
+          }}>
           {settings.idleNagEnabled !== false ? '✓ 已开启' : '✗ 已关闭'}
         </button>
       </div>
 
       {/* R2.4.3: 未评分提醒阈值 */}
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-1">⏰ 未评分提醒（孩子完成后多久没评分就推送你）</div>
-        <div className="text-xs text-white/50 mb-2">设 0 关闭。默认 45 分钟。</div>
+      <div style={cardStyle}>
+        <div style={labelStyle}>⏰ 未评分提醒（孩子完成后多久没评分就推送你）</div>
+        <div className="text-xs mb-2" style={{ color: 'var(--ink-faint)' }}>设 0 关闭。默认 45 分钟。</div>
         <div className="flex items-center gap-2">
           <button onClick={() => db.settings.update('singleton', {
               unevaluatedNotifyMinutes: Math.max(0, (settings.unevaluatedNotifyMinutes ?? 45) - 15),
             })}
-            className="px-3 py-2 bg-white/10 rounded-xl">−15</button>
-          <div className="flex-1 text-center text-lg tabular-nums">
+            style={{ ...inputStyle, padding: '8px 14px', cursor: 'pointer' }}>−15</button>
+          <div className="flex-1 text-center text-lg tabular-nums" style={{ color: 'var(--ink)' }}>
             {settings.unevaluatedNotifyMinutes === 0
               ? '已关闭'
               : `${settings.unevaluatedNotifyMinutes ?? 45} 分钟`}
@@ -143,14 +182,14 @@ export function ParentSettings() {
           <button onClick={() => db.settings.update('singleton', {
               unevaluatedNotifyMinutes: Math.min(240, (settings.unevaluatedNotifyMinutes ?? 45) + 15),
             })}
-            className="px-3 py-2 bg-white/10 rounded-xl">+15</button>
+            style={{ ...inputStyle, padding: '8px 14px', cursor: 'pointer' }}>+15</button>
         </div>
       </div>
 
       {/* R2.5.C: ADHD 友好模式 */}
-      <div className="space-card p-4 mb-3 border border-pink-300/30">
-        <div className="text-sm text-pink-200 mb-1">🌈 ADHD 友好模式（推荐）</div>
-        <div className="text-xs text-white/50 mb-3 leading-relaxed">
+      <div style={{ ...cardStyle, border: '1px solid var(--magic)' }}>
+        <div style={{ ...labelStyle, color: 'var(--magic)' }}>🌈 ADHD 友好模式（推荐）</div>
+        <div className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
           超时反馈分级、无焦虑放大：<br/>
           • 0-3 分钟超时：仅视觉提示（无声）<br/>
           • 3-5 分钟超时：温和提示音（不是警报）<br/>
@@ -159,63 +198,70 @@ export function ParentSettings() {
         </div>
         <button
           onClick={() => db.settings.update('singleton', { adhdFriendlyMode: !(settings.adhdFriendlyMode !== false) })}
-          className={`w-full px-3 py-2 rounded-xl text-sm ${settings.adhdFriendlyMode !== false ? 'bg-pink-500/30' : 'bg-white/10'}`}>
+          className="w-full text-sm"
+          style={{
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-sm)',
+            background: settings.adhdFriendlyMode !== false ? 'rgba(156,140,217,0.18)' : 'var(--mist)',
+            color: settings.adhdFriendlyMode !== false ? 'var(--magic)' : 'var(--ink-muted)',
+            border: `1px solid ${settings.adhdFriendlyMode !== false ? 'var(--magic)' : 'var(--fog)'}`,
+          }}>
           {settings.adhdFriendlyMode !== false ? '✓ 已开启（推荐）' : '✗ 已关闭'}
         </button>
       </div>
 
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">本地通知</div>
-        <div className="text-xs text-white/50 mb-3">
+      <div style={cardStyle}>
+        <div style={labelStyle}>本地通知</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--ink-faint)' }}>
           权限：{settings.notificationsEnabled ? '已开启' : '未开启'}
         </div>
         <button onClick={enableNotifications} className="space-btn w-full">
           请求 / 开启通知权限
         </button>
-        <div className="text-xs text-white/40 mt-2">
+        <div className="text-xs mt-2" style={{ color: 'var(--ink-faint)' }}>
           需要将 App 添加到主屏幕后通知才能正常弹出（iPadOS 17+）
         </div>
       </div>
 
       {/* R2.2.3: 仅重置当前任务状态（保留所有历史） */}
-      <div className="space-card p-4 mb-3 border border-emerald-500/30">
-        <div className="text-sm text-white/70 mb-2 text-emerald-300">🔄 仅重置当前任务状态</div>
-        <div className="text-xs text-white/50 mb-3">
+      <div style={{ ...cardStyle, border: '1px solid var(--success)' }}>
+        <div style={{ ...labelStyle, color: 'var(--success)' }}>🔄 仅重置当前任务状态</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--ink-muted)' }}>
           闯关卡住、找不到任务时点这里。把所有"待开始/进行中"的任务恢复为"待安排"，
           清掉错误标记完成的时间轴。
-          <b className="text-emerald-200"> 不影响积分、连击、评分历史、徽章、商店</b>。
+          <b style={{ color: 'var(--success)' }}> 不影响积分、连击、评分历史、徽章、商店</b>。
         </div>
         <ResetCurrentStateButton />
       </div>
 
-      <div className="space-card p-4 mb-3 border border-amber-500/30">
-        <div className="text-sm text-white/70 mb-2 text-amber-300">🧹 快速重置（测试用）</div>
-        <div className="text-xs text-white/50 mb-3">
+      <div style={{ ...cardStyle, border: '1px solid var(--fatboy-500)' }}>
+        <div style={{ ...labelStyle, color: 'var(--fatboy-700)' }}>🧹 快速重置（测试用）</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--ink-muted)' }}>
           单击确认即重置全部数据。建议测试场景使用。
         </div>
         <QuickResetButton />
       </div>
 
-      <div className="space-card p-4 mb-3 border border-cyan-500/30">
-        <div className="text-sm text-cyan-300 mb-2">🔍 诊断 / 错误日志（R2.3.4）</div>
-        <div className="text-xs text-white/50 mb-3">
+      <div style={{ ...cardStyle, border: '1px solid var(--sky-500)' }}>
+        <div style={{ ...labelStyle, color: 'var(--sky-700)' }}>🔍 诊断 / 错误日志（R2.3.4）</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--ink-muted)' }}>
           App 启动后 catch 到的 JS 错误会写入日志（上限 50 条）。出 bug 时点这里导出给我。
         </div>
         <ErrorLogExportButton />
       </div>
 
-      <div className="space-card p-4 mb-3 border border-rose-500/30">
-        <div className="text-sm text-white/70 mb-2 text-rose-300">⚠️ 重置全部数据（严谨版）</div>
-        <div className="text-xs text-white/50 mb-3">
+      <div style={{ ...cardStyle, border: '1px solid var(--danger)' }}>
+        <div style={{ ...labelStyle, color: 'var(--danger)' }}>⚠️ 重置全部数据（严谨版）</div>
+        <div className="text-xs mb-3" style={{ color: 'var(--ink-muted)' }}>
           3 步确认 + 输入"重置"。建议先去「数据」页导出备份。
         </div>
         <ResetAllButton />
       </div>
 
-      <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">关于</div>
-        <div className="text-xs text-white/50 space-y-0.5">
-          <div>App 版本：<b className="text-amber-300">{APP_VERSION}</b>（构建 {APP_BUILD_DATE}）</div>
+      <div style={cardStyle}>
+        <div style={labelStyle}>关于</div>
+        <div className="text-xs space-y-0.5" style={{ color: 'var(--ink-faint)' }}>
+          <div>App 版本：<b style={{ color: 'var(--fatboy-700)' }}>{APP_VERSION}</b>（构建 {APP_BUILD_DATE}）</div>
           <div>数据库 schema：v{settings.schemaVersion}</div>
         </div>
       </div>
@@ -269,7 +315,15 @@ function ResetCurrentStateButton() {
 
   if (!needed) {
     return (
-      <div className="px-4 py-2 rounded-xl bg-white/5 text-white/40 text-sm text-center">
+      <div
+        className="text-sm text-center"
+        style={{
+          padding: '8px 16px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--mist)',
+          color: 'var(--ink-faint)',
+        }}
+      >
         ✨ 没有卡住的任务，状态正常
       </div>
     );
@@ -278,22 +332,41 @@ function ResetCurrentStateButton() {
   if (!confirming) {
     return (
       <button onClick={() => setConfirming(true)}
-        className="w-full px-4 py-2 rounded-xl bg-emerald-500/30 border border-emerald-300/50 text-emerald-100 active:scale-95">
+        className="w-full active:scale-95"
+        style={{
+          padding: '10px 16px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'rgba(107,195,107,0.18)',
+          border: '1px solid var(--success)',
+          color: 'var(--success)',
+          fontWeight: 600,
+        }}>
         🔄 重置 {plan.taskIdsToReset.length} 个卡住的任务
       </button>
     );
   }
   return (
     <div className="space-y-2">
-      <div className="text-xs text-white/70 bg-white/5 rounded-lg p-2">
+      <div
+        className="text-xs"
+        style={{
+          padding: '8px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--mist)',
+          color: 'var(--ink-muted)',
+        }}
+      >
         即将执行：<br/>
-        • 重置 <b>{plan.taskIdsToReset.length}</b> 个待开始/进行中的任务 → 待安排<br/>
-        • 清除 <b>{plan.scheduleIdsToUncomplete.length}</b> 个被误标完成的时间轴<br/>
-        <span className="text-emerald-300">✓ 历史评分 / 积分 / 连击 / 徽章全部保留</span>
+        • 重置 <b style={{ color: 'var(--ink)' }}>{plan.taskIdsToReset.length}</b> 个待开始/进行中的任务 → 待安排<br/>
+        • 清除 <b style={{ color: 'var(--ink)' }}>{plan.scheduleIdsToUncomplete.length}</b> 个被误标完成的时间轴<br/>
+        <span style={{ color: 'var(--success)' }}>✓ 历史评分 / 积分 / 连击 / 徽章全部保留</span>
       </div>
       <div className="flex gap-2">
         <button onClick={() => setConfirming(false)} className="space-btn-ghost flex-1">取消</button>
-        <button onClick={doReset} className="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white">确定重置</button>
+        <button onClick={doReset} className="flex-1"
+          style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--success)', color: '#fff', fontWeight: 600 }}>
+          确定重置
+        </button>
       </div>
     </div>
   );
@@ -312,7 +385,15 @@ function QuickResetButton() {
   if (!confirming) {
     return (
       <button onClick={() => setConfirming(true)}
-        className="w-full px-4 py-2 rounded-xl bg-amber-500/30 border border-amber-300/50 text-amber-100 active:scale-95">
+        className="w-full active:scale-95"
+        style={{
+          padding: '10px 16px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'rgba(244,199,82,0.2)',
+          border: '1px solid var(--fatboy-500)',
+          color: 'var(--fatboy-700)',
+          fontWeight: 600,
+        }}>
         🧹 一键重置（单确认）
       </button>
     );
@@ -320,7 +401,10 @@ function QuickResetButton() {
   return (
     <div className="flex gap-2">
       <button onClick={() => setConfirming(false)} className="space-btn-ghost flex-1">不了</button>
-      <button onClick={doReset} className="flex-1 px-3 py-2 rounded-xl bg-amber-600 text-white">确定，清空</button>
+      <button onClick={doReset} className="flex-1"
+        style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--fatboy-700)', color: '#fff', fontWeight: 600 }}>
+        确定，清空
+      </button>
     </div>
   );
 }
@@ -341,7 +425,15 @@ function ResetAllButton() {
   if (step === 0) {
     return (
       <button onClick={() => setStep(1)}
-        className="w-full px-4 py-2 rounded-xl bg-rose-500/30 border border-rose-300/50 text-rose-100 active:scale-95">
+        className="w-full active:scale-95"
+        style={{
+          padding: '10px 16px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'rgba(232,117,117,0.2)',
+          border: '1px solid var(--danger)',
+          color: 'var(--danger)',
+          fontWeight: 600,
+        }}>
         🗑 一键重置所有数据
       </button>
     );
@@ -349,13 +441,16 @@ function ResetAllButton() {
   if (step === 1) {
     return (
       <div className="space-y-2">
-        <div className="text-rose-200 text-sm font-bold">真的要清空全部数据？</div>
-        <div className="text-xs text-white/60">
+        <div className="text-sm font-bold" style={{ color: 'var(--danger)' }}>真的要清空全部数据？</div>
+        <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
           以下都会被删除：所有任务、所有积分流水、连击天数、蛋仔（名字皮肤等级）、徽章、商店配置、Bark 接收人配置、孩子昵称、PIN、密保。
         </div>
         <div className="flex gap-2">
           <button onClick={() => setStep(0)} className="space-btn-ghost flex-1">不了</button>
-          <button onClick={() => setStep(2)} className="flex-1 px-3 py-2 rounded-xl bg-rose-500/40 text-rose-100">我确定</button>
+          <button onClick={() => setStep(2)} className="flex-1"
+            style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(232,117,117,0.3)', color: 'var(--danger)', fontWeight: 600 }}>
+            我确定
+          </button>
         </div>
       </div>
     );
@@ -363,15 +458,16 @@ function ResetAllButton() {
   // step === 2: 终极确认
   return (
     <div className="space-y-2">
-      <div className="text-rose-200 text-sm font-bold">最后确认：在下方输入「重置」二字</div>
+      <div className="text-sm font-bold" style={{ color: 'var(--danger)' }}>最后确认：在下方输入「重置」二字</div>
       <input value={confirmText} onChange={e => setConfirmText(e.target.value)}
         placeholder="输入 重置"
-        className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none text-center" />
+        className="w-full text-center" style={inputStyle} />
       <div className="flex gap-2">
         <button onClick={() => { setStep(0); setConfirmText(''); }} className="space-btn-ghost flex-1">取消</button>
         <button onClick={doReset}
           disabled={confirmText !== '重置'}
-          className="flex-1 px-3 py-2 rounded-xl bg-rose-600 text-white disabled:opacity-40">
+          className="flex-1 disabled:opacity-40"
+          style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--danger)', color: '#fff', fontWeight: 600 }}>
           🗑 删除全部
         </button>
       </div>
@@ -379,7 +475,7 @@ function ResetAllButton() {
   );
 }
 
-// R3.1: 主题选择
+// R3.1: 主题选择 — 也 export 给孩子端 HomePage 复用
 const THEMES = [
   {
     id: 'cozy' as const,
@@ -401,7 +497,7 @@ const THEMES = [
   },
 ];
 
-function ThemePicker() {
+export function ThemePicker() {
   const settings = useLiveQuery(() => db.settings.get('singleton'));
   const current =
     settings?.themeId === 'space' ? 'starry' :
@@ -420,16 +516,18 @@ function ThemePicker() {
           <button
             key={t.id}
             onClick={() => pick(t.id)}
-            className="p-3 rounded-[var(--radius-md)] text-center transition-all active:scale-95"
+            className="text-center transition-all active:scale-95"
             style={{
-              background: 'var(--paper)',
+              padding: '12px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--mist)',
               border: `2px solid ${active ? 'var(--fatboy-500)' : 'var(--fog)'}`,
               ...(active ? { boxShadow: 'var(--glow-fatboy)' } : {}),
             }}
           >
             <div
-              className="h-12 rounded-[var(--radius-sm)] mb-2 relative"
-              style={{ background: t.preview.bg }}
+              className="h-12 mb-2 relative"
+              style={{ background: t.preview.bg, borderRadius: 'var(--radius-sm)' }}
             >
               <span
                 className="absolute right-2 top-2 w-3 h-3 rounded-full"
@@ -474,14 +572,25 @@ function ErrorLogExportButton() {
 
   return (
     <div className="space-y-2">
-      <div className="text-xs text-white/60">当前共 <b className="text-white">{count}</b> 条日志</div>
+      <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
+        当前共 <b style={{ color: 'var(--ink)' }}>{count}</b> 条日志
+      </div>
       <div className="flex gap-2">
         <button onClick={exportLogs} disabled={count === 0}
-          className="flex-1 px-3 py-2 rounded-xl bg-cyan-500/30 border border-cyan-300/50 text-cyan-100 disabled:opacity-40 active:scale-95">
+          className="flex-1 disabled:opacity-40 active:scale-95"
+          style={{
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(74,158,231,0.15)',
+            border: '1px solid var(--sky-500)',
+            color: 'var(--sky-700)',
+            fontWeight: 600,
+          }}>
           📥 导出 JSON
         </button>
         <button onClick={clearLogs} disabled={count === 0}
-          className="px-3 py-2 rounded-xl bg-white/10 disabled:opacity-40 active:scale-95">
+          className="disabled:opacity-40 active:scale-95"
+          style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--mist)', color: 'var(--ink)' }}>
           🗑 清空
         </button>
       </div>

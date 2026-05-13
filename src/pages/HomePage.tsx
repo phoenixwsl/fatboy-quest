@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
 import {
   Trophy, Settings as SettingsIcon, Shield, Flame, Star,
-  Calendar as CalendarIcon, Swords, Plus, ChevronRight,
+  Calendar as CalendarIcon, Swords, Plus, ChevronRight, Palette, X,
 } from 'lucide-react';
 import { db } from '../db';
 import { PetAvatar } from '../components/PetAvatar';
@@ -29,6 +29,7 @@ import { ScoreDetailRow } from './QuestPage';
 import { DifficultyStars } from '../components/DifficultyStars';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
+import { ThemePicker } from './parent/Settings';
 
 // R3.0 §3.4: 按时段问候
 function greeting(hour: number, name: string): string {
@@ -55,6 +56,7 @@ export function HomePage() {
   const taskDefs = useLiveQuery(() => db.taskDefinitions.toArray());
   const [addOpen, setAddOpen] = useState(false);
   const [skinPickerOpen, setSkinPickerOpen] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [doneCollapsed, setDoneCollapsed] = useState(true);
   const weekendMode = !!(settings?.weekendModeEnabled !== false && isWeekend(new Date()));
 
@@ -184,6 +186,15 @@ export function HomePage() {
             style={{ background: 'var(--fatboy-50)', color: 'var(--fatboy-700)' }}
           >
             <Trophy size={20} />
+          </button>
+          {/* R3.3.1: 主题切换 — 孩子也能直接换 */}
+          <button
+            onClick={() => { sounds.play('tap'); setThemePickerOpen(true); }}
+            aria-label="换主题"
+            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+            style={{ background: 'var(--sky-100)', color: 'var(--sky-700)' }}
+          >
+            <Palette size={20} />
           </button>
           <div
             onPointerDown={startPress}
@@ -439,6 +450,42 @@ export function HomePage() {
 
       <ChildAddTaskModal open={addOpen} onClose={() => setAddOpen(false)} settings={settings} />
       <SkinPicker open={skinPickerOpen} onClose={() => setSkinPickerOpen(false)} />
+      {themePickerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)' }}
+          onClick={() => setThemePickerOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md"
+            style={{
+              background: 'var(--paper)',
+              border: '1px solid var(--fog)',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: 'var(--shadow-lg)',
+              padding: 20,
+              color: 'var(--ink)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-lg font-bold">🎨 换主题</div>
+              <button
+                onClick={() => setThemePickerOpen(false)}
+                className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90"
+                style={{ background: 'var(--mist)', color: 'var(--ink-muted)' }}
+                aria-label="关闭"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <ThemePicker />
+            <div className="text-xs mt-3" style={{ color: 'var(--ink-faint)' }}>
+              点一下就换，可以多试几个。
+            </div>
+          </div>
+        </div>
+      )}
       <IdleNagBubble enabled={settings?.idleNagEnabled !== false} />
 
       <div className="mt-6 text-center text-[10px]" style={{ color: 'var(--ink-faint)' }}>
