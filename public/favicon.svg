@@ -1,34 +1,120 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="40%">
+    <radialGradient id="spacebg" cx="50%" cy="40%">
       <stop offset="0%" stop-color="#1a1f4a"/>
       <stop offset="100%" stop-color="#050818"/>
     </radialGradient>
-    <radialGradient id="egg" cx="38%" cy="32%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
-      <stop offset="40%" stop-color="#fbbf24"/>
-      <stop offset="100%" stop-color="#f59e0b"/>
-    </radialGradient>
   </defs>
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="96" fill="url(#spacebg)"/>
   <!-- 星星 -->
   <circle cx="80" cy="80" r="3" fill="white" opacity="0.7"/>
   <circle cx="430" cy="120" r="2" fill="white" opacity="0.5"/>
   <circle cx="120" cy="430" r="2" fill="white" opacity="0.6"/>
   <circle cx="420" cy="400" r="3" fill="white" opacity="0.8"/>
   <circle cx="380" cy="60" r="2" fill="white" opacity="0.5"/>
-  <!-- 蛋仔 -->
-  <ellipse cx="256" cy="250" rx="140" ry="170" fill="url(#egg)" stroke="#f59e0b" stroke-width="6"/>
-  <!-- 反光 -->
-  <ellipse cx="200" cy="180" rx="40" ry="28" fill="white" opacity="0.4"/>
-  <!-- 眼睛 -->
-  <ellipse cx="210" cy="260" rx="15" ry="22" fill="#1a1a2e"/>
-  <ellipse cx="302" cy="260" rx="15" ry="22" fill="#1a1a2e"/>
-  <circle cx="215" cy="252" r="5" fill="white"/>
-  <circle cx="307" cy="252" r="5" fill="white"/>
-  <!-- 嘴巴 -->
-  <path d="M 200 330 Q 256 380 312 330" stroke="#1a1a2e" stroke-width="10" fill="#ef4444" stroke-linecap="round"/>
-  <!-- 腮红 -->
-  <circle cx="170" cy="310" r="14" fill="#f87171" opacity="0.6"/>
-  <circle cx="342" cy="310" r="14" fill="#f87171" opacity="0.6"/>
+  <circle cx="60" cy="300" r="2" fill="white" opacity="0.6"/>
+  <circle cx="460" cy="280" r="2" fill="white" opacity="0.4"/>
+  <!-- Fatboy 嵌入：内层 SVG 用自己的 viewBox -20 -40 280 320，放在 86,40 占 340x400 -->
+  <svg x="86" y="40" width="340" height="400" viewBox="-20 -40 280 320">
+<defs>
+  <radialGradient id="body" cx="40%" cy="28%" r="75%">
+    <stop offset="0%"  stop-color="#FFF6D0"/>
+    <stop offset="35%" stop-color="#FFE082"/>
+    <stop offset="70%" stop-color="#F4C752"/>
+    <stop offset="100%" stop-color="#C77F18"/>
+  </radialGradient>
+  <radialGradient id="belly" cx="50%" cy="68%" r="48%">
+    <stop offset="0%"  stop-color="#FFFAE0" stop-opacity="0.95"/>
+    <stop offset="55%" stop-color="#FFEDB0" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#F4C752" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="sheen" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"  stop-color="#FFFFFF" stop-opacity="0.85"/>
+    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.3"/>
+    <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="cheek" cx="50%" cy="50%" r="55%">
+    <stop offset="0%"  stop-color="#FF9DAE" stop-opacity="0.95"/>
+    <stop offset="60%" stop-color="#FFB3B3" stop-opacity="0.45"/>
+    <stop offset="100%" stop-color="#FFB3B3" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="shadow" cx="50%" cy="50%">
+    <stop offset="0%"  stop-color="#000" stop-opacity="0.4"/>
+    <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="iris" cx="50%" cy="45%" r="60%">
+    <stop offset="0%"  stop-color="#3A2418"/>
+    <stop offset="80%" stop-color="#1F1208"/>
+    <stop offset="100%" stop-color="#0D0703"/>
+  </radialGradient>
+  <radialGradient id="limb" cx="40%" cy="30%" r="80%">
+    <stop offset="0%"  stop-color="#FFD978"/>
+    <stop offset="60%" stop-color="#E8A93C"/>
+    <stop offset="100%" stop-color="#B8742C"/>
+  </radialGradient>
+  <radialGradient id="chinShadow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"  stop-color="#C77F18" stop-opacity="0.25"/>
+    <stop offset="100%" stop-color="#C77F18" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="racerRed" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#E53935"/>
+    <stop offset="100%" stop-color="#8E0000"/>
+  </linearGradient>
+  <radialGradient id="astroDome" cx="35%" cy="30%" r="70%">
+    <stop offset="0%"  stop-color="#E3F2FD" stop-opacity="0.5"/>
+    <stop offset="60%" stop-color="#90CAF9" stop-opacity="0.15"/>
+    <stop offset="100%" stop-color="#1976D2" stop-opacity="0.1"/>
+  </radialGradient>
+  <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ECEFF1"/>
+    <stop offset="50%" stop-color="#B0BEC5"/>
+    <stop offset="100%" stop-color="#607D8B"/>
+  </linearGradient>
+  <linearGradient id="wizardPurple" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#9C27B0"/>
+    <stop offset="100%" stop-color="#4A148C"/>
+  </linearGradient>
+  <linearGradient id="pirateBlack" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#37474F"/>
+    <stop offset="100%" stop-color="#000000"/>
+  </linearGradient>
+  <linearGradient id="ninjaBlack" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#263238"/>
+    <stop offset="100%" stop-color="#000000"/>
+  </linearGradient>
+</defs>
+<ellipse cx="120" cy="232" rx="62" ry="8" fill="url(#shadow)"/>
+<ellipse cx="195" cy="200" rx="11" ry="7" fill="url(#limb)" transform="rotate(28 195 200)"/>
+<ellipse cx="201" cy="206" rx="4" ry="3" fill="#FFD978" opacity="0.8"/>
+<path d="M 120 35 C 175 35, 205 75, 205 130 C 205 190, 175 220, 120 220 C 65 220, 35 190, 35 130 C 35 75, 65 35, 120 35 Z" fill="url(#body)"/>
+<ellipse cx="120" cy="150" rx="60" ry="55" fill="url(#belly)"/>
+<ellipse cx="120" cy="190" rx="55" ry="18" fill="url(#chinShadow)"/>
+<ellipse cx="92" cy="62" rx="32" ry="18" fill="url(#sheen)"/>
+<ellipse cx="78" cy="55" rx="9" ry="5" fill="#FFFFFF" opacity="0.7"/>
+<path d="M 116 35 C 116 22, 122 14, 128 16 C 134 18, 136 28, 132 32 C 128 30, 124 32, 120 33 Z" fill="#E8A93C"/>
+<path d="M 116 35 C 116 22, 122 14, 128 16 C 134 18, 136 28, 132 32" stroke="#B8742C" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+<ellipse cx="124" cy="22" rx="2" ry="3" fill="#FFE082" opacity="0.85"/>
+<ellipse cx="104" cy="38" rx="4" ry="2.5" fill="#E8A93C" opacity="0.6"/>
+<ellipse cx="38" cy="160" rx="14" ry="17" fill="url(#limb)"/>
+<ellipse cx="32" cy="155" rx="5" ry="3" fill="#FFD978" opacity="0.7"/>
+<ellipse cx="202" cy="160" rx="14" ry="17" fill="url(#limb)"/>
+<ellipse cx="208" cy="155" rx="5" ry="3" fill="#FFD978" opacity="0.7"/>
+<ellipse cx="96" cy="220" rx="20" ry="12" fill="url(#limb)"/>
+<ellipse cx="89" cy="215" rx="7" ry="3.5" fill="#FFD978" opacity="0.7"/>
+<ellipse cx="144" cy="220" rx="20" ry="12" fill="url(#limb)"/>
+<ellipse cx="137" cy="215" rx="7" ry="3.5" fill="#FFD978" opacity="0.7"/>
+<ellipse cx="68" cy="150" rx="16" ry="11" fill="url(#cheek)"/>
+<ellipse cx="172" cy="150" rx="16" ry="11" fill="url(#cheek)"/>
+<ellipse cx="92" cy="120" rx="17" ry="22" fill="#FFFFFF"/>
+<ellipse cx="148" cy="120" rx="17" ry="22" fill="#FFFFFF"/>
+<ellipse cx="94" cy="124" rx="12" ry="16" fill="url(#iris)"/>
+<ellipse cx="150" cy="124" rx="12" ry="16" fill="url(#iris)"/>
+<ellipse cx="89" cy="116" rx="5" ry="6.5" fill="#FFFFFF"/>
+<ellipse cx="145" cy="116" rx="5" ry="6.5" fill="#FFFFFF"/>
+<circle cx="99" cy="130" r="2" fill="#FFFFFF" opacity="0.85"/>
+<circle cx="155" cy="130" r="2" fill="#FFFFFF" opacity="0.85"/>
+<ellipse cx="120" cy="168" rx="6" ry="7" fill="#5C2618"/><ellipse cx="120" cy="171" rx="4" ry="3" fill="#FF6B8B"/>
+
+
+  </svg>
 </svg>

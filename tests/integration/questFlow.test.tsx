@@ -152,6 +152,81 @@ describe('QuestPage 渲染（核心 happy path 回归）', () => {
     }, { timeout: 3000 });
   });
 
+  // R2.2.5 回归：撤回完成的任务后，重新进闯关应当看到任务（不能"显示没有任务"）
+  it('完成 → 撤回后再进闯关：应当显示"我要开始"，不是"全部击败"', async () => {
+    // 起始状态：1 个 done 任务 + schedule 已 completed（模拟刚完成全部）
+    await db.tasks.put(scheduledTask({
+      id: 'task_raz', status: 'done', completedAt: Date.now() - 60_000,
+    }));
+    await db.schedules.put({
+      ...lockedSchedule(['task_raz']),
+      completedAt: Date.now() - 60_000,
+    });
+
+    // 模拟 HomePage 的"撤回"：status → scheduled，schedule.completedAt 清空
+    await db.tasks.update('task_raz', {
+      status: 'scheduled',
+      completedAt: undefined,
+      undoCount: 1,
+    });
+    await db.schedules.update('sch_today', {
+      completedAt: undefined,
+      comboPeakInRound: undefined,
+      comboBonusPoints: undefined,
+      reportShownAt: undefined,
+    });
+
+    renderQuest();
+    // 撤回后应该重新显示"我要开始"按钮，而不是空白或"全部击败"
+    await waitFor(() => {
+      expect(screen.getByText(/我要开始/)).toBeInTheDocument();
+    }, { timeout: 3000 });
+    expect(screen.queryByText(/全部击败/)).toBeNull();
+    expect(screen.queryByText(/这里没有进行中的闯关/)).toBeNull();
+  });
+
+  it('多任务 + 撤回中间一个：QuestPage 正确选中被撤回的任务', async () => {
+    // 模拟 3 个任务的时间轴，全部完成后用户撤回中间那个
+    await db.tasks.bulkPut([
+      scheduledTask({ id: 't1', title: 'task A', status: 'evaluated', completedAt: Date.now() - 90_000 }),
+      scheduledTask({ id: 't2', title: 'task B', status: 'done', completedAt: Date.now() - 60_000 }),
+      scheduledTask({ id: 't3', title: 'task C', status: 'evaluated', completedAt: Date.now() - 30_000 }),
+    ]);
+    await db.schedules.put({
+      ...lockedSchedule(['t1', 't2', 't3']),
+      completedAt: Date.now() - 30_000,
+    });
+
+    // 撤回中间的 task B（HomePage 版本：status → scheduled）
+    await db.tasks.update('t2', { status: 'scheduled', completedAt: undefined });
+    await db.schedules.update('sch_today', { completedAt: undefined });
+
+    renderQuest();
+    // QuestPage 应当跳过 t1 / t3（evaluated）找到 t2（scheduled）作为 active
+    await waitFor(() => {
+      expect(screen.getByText(/我要开始/)).toBeInTheDocument();
+    }, { timeout: 3000 });
+    expect(screen.getAllByText('task B').length).toBeGreaterThan(0);
+  });
+
+  it('已 evaluated 的任务不能撤回 — 但若 schedule.completedAt 被人为清掉，QuestPage 仍渲染"全部击败"而不是空白', async () => {
+    await db.tasks.put(scheduledTask({
+      status: 'evaluated', completedAt: Date.now() - 60_000,
+    }));
+    // 模拟用户用了"仅重置当前任务状态"按钮，把 schedule.completedAt 清了
+    // 但 evaluated 任务不会被重置（reset 逻辑只动 scheduled/inProgress）
+    await db.schedules.put({
+      ...lockedSchedule(['task_raz']),
+      // completedAt 缺失
+    });
+
+    renderQuest();
+    // 没有任何活动任务（全 evaluated），应该看到"全部击败"
+    await waitFor(() => {
+      expect(screen.getByText(/全部击败/)).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+
   it('schedule 卡死（任务全 done 但 completedAt 未写）→ 自愈应该修复，不渲染空白', async () => {
     await db.tasks.bulkPut([
       scheduledTask({ id: 't1', status: 'done', completedAt: Date.now() }),

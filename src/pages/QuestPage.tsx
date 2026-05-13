@@ -329,17 +329,31 @@ export function QuestPage() {
   }
 
   // === 撤回 ===
+  // R2.2.5: 与 HomePage 的撤回行为对齐 —— 把任务重置回 'scheduled' 而不是
+  // 'inProgress'。'inProgress' 会保留旧的 actualStartedAt 让倒计时显示
+  // 离谱的"已过期"状态。'scheduled' 让孩子可以重新点"我要开始"，干净。
   async function undoComplete(taskId: string) {
     const t = await db.tasks.get(taskId);
     if (!t || !canUndoCompletion(t)) return;
-    if (!confirm('确定撤回？这一项会变回"闯关中"，可以重新点完成。')) return;
+    if (!confirm('确定撤回？这一项会回到"待开始"，可以重新点开始。')) return;
     await db.tasks.update(taskId, {
-      status: 'inProgress',
+      status: 'scheduled',
       completedAt: undefined,
+      actualStartedAt: undefined,
+      pausedAt: undefined,
+      pauseSecondsUsed: undefined,
+      pauseCount: undefined,
+      firstEncounteredAt: undefined,
+      startNagSentAt: undefined,
       undoCount: (t.undoCount ?? 0) + 1,
     });
     if (schedule?.completedAt) {
-      await db.schedules.update(schedule.id, { completedAt: undefined, comboPeakInRound: undefined });
+      await db.schedules.update(schedule.id, {
+        completedAt: undefined,
+        comboPeakInRound: undefined,
+        comboBonusPoints: undefined,
+        reportShownAt: undefined,
+      });
     }
     sounds.play('undo');
     toast('已撤回 ↩', 'info');

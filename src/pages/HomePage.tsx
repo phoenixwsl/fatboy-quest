@@ -104,10 +104,17 @@ export function HomePage() {
   async function undoComplete(taskId: string) {
     const t = await db.tasks.get(taskId);
     if (!t || !canUndoCompletion(t)) return;
-    if (!confirm('确定撤回？这一项会变回"闯关中"，可以重新点完成。')) return;
+    if (!confirm('确定撤回？这一项会回到"待开始"，可以重新点开始。')) return;
     await db.tasks.update(taskId, {
       status: 'scheduled',
       completedAt: undefined,
+      // R2.2.5: 撤回时一并清掉 runtime 字段，避免下次进闯关倒计时显示离谱
+      actualStartedAt: undefined,
+      pausedAt: undefined,
+      pauseSecondsUsed: undefined,
+      pauseCount: undefined,
+      firstEncounteredAt: undefined,
+      startNagSentAt: undefined,
       undoCount: (t.undoCount ?? 0) + 1,
     });
     // Bug 修复：撤回后必须清掉本日所有 schedule 的 completedAt + combo，
