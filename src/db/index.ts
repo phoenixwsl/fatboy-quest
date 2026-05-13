@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   Task, Evaluation, Schedule, PointsEntry, StreakState, Pet,
   Badge, ShopItem, Redemption, BarkRecipient, Settings, TemplateHidden,
-  TaskDefinition, RitualLog,
+  TaskDefinition, RitualLog, ErrorLog,
 } from '../types';
 import { SCHEMA_VERSION } from '../types';
 
@@ -21,6 +21,7 @@ export class FatboyDB extends Dexie {
   templateHidden!: Table<TemplateHidden, string>;
   taskDefinitions!: Table<TaskDefinition, string>;
   ritualLogs!: Table<RitualLog, string>;
+  errorLogs!: Table<ErrorLog, string>;
 
   constructor() {
     super('FatboyQuestDB');
@@ -124,6 +125,25 @@ export class FatboyDB extends Dexie {
         });
       }
     });
+
+    // v6 (R2.3.4): 加 errorLogs 表
+    this.version(6).stores({
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+      errorLogs: 'id, ts, kind',
+    });
   }
 }
 
@@ -151,6 +171,8 @@ export async function initializeDB() {
       if (existing.developerMode === undefined) patch.developerMode = false;
       if (existing.dailyPointsGoal === undefined) patch.dailyPointsGoal = 0;
       if (existing.idleNagEnabled === undefined) patch.idleNagEnabled = true;
+      if (existing.adhdFriendlyMode === undefined) patch.adhdFriendlyMode = true;
+      if (existing.unevaluatedNotifyMinutes === undefined) patch.unevaluatedNotifyMinutes = 45;
       await db.settings.update('singleton', patch);
     }
     return;
@@ -183,6 +205,8 @@ export async function initializeDB() {
     developerMode: false,
     dailyPointsGoal: 0,
     idleNagEnabled: true,
+    adhdFriendlyMode: true,
+    unevaluatedNotifyMinutes: 45,
   });
 
   await db.streak.put({

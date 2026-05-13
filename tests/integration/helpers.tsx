@@ -78,6 +78,8 @@ export async function seedSetupComplete(overrides: Partial<any> = {}) {
     restEndSoundLeadSec: 60,
     idleNagEnabled: false,
     weekendModeEnabled: false,
+    adhdFriendlyMode: true,
+    unevaluatedNotifyMinutes: 45,
     eveningSummaryHour: 21,
     eveningSummaryMinute: 30,
     streakAlertHour: 19,

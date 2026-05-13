@@ -8,6 +8,9 @@ import { analyzeWeek } from '../../lib/analyze';
 import {
   PointsTrendCard, SubjectPieCard, TimeAccuracyCard, RatingRadarCard,
 } from '../../components/charts/ChartCards';
+import {
+  streakTrend, weeklyPointsTrend, lowestEfficiencySubject,
+} from '../../lib/dashboardInsights';
 
 export function ParentDashboard() {
   const nav = useNavigate();
@@ -71,6 +74,9 @@ export function ParentDashboard() {
         </div>
       </div>
 
+      {/* R2.4.4: 3 个核心洞察卡片 */}
+      <InsightCards />
+
       <div className="flex gap-2 mb-3">
         <button onClick={runAnalysis} className={`flex-1 text-sm ${analysis ? 'space-btn-ghost' : 'space-btn'}`}>
           {analysis ? '▼ 收起分析' : '✨ 一键分析（本周）'}
@@ -117,3 +123,78 @@ export function ParentDashboard() {
     </div>
   );
 }
+
+function InsightCards() {
+  const points = useLiveQuery(() => db.points.toArray());
+  const allTasks = useLiveQuery(() => db.tasks.toArray());
+  const streak = useLiveQuery(() => db.streak.get('singleton'));
+
+  if (!points || !allTasks || streak === undefined) return null;
+
+  const st = streakTrend(streak ?? undefined);
+  const wk = weeklyPointsTrend(points);
+  const eff = lowestEfficiencySubject(allTasks);
+
+  const subjectLabel: Record<string, string> = {
+    math: '数学', chinese: '语文', english: '英语',
+    reading: '阅读', writing: '练字', other: '其它',
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      {/* 连击趋势 */}
+      <div className="space-card p-3">
+        <div className="text-xs text-white/50 mb-1">🔥 连击</div>
+        <div className="text-2xl font-bold tabular-nums">
+          {st.current} 天
+        </div>
+        <div className={`text-xs mt-1 ${
+          st.status === 'growing' ? 'text-emerald-300' :
+          st.status === 'broken'  ? 'text-rose-300' :
+          st.status === 'stable'  ? 'text-cyan-300' : 'text-white/40'
+        }`}>
+          {st.status === 'growing' ? '⬆️ 在涨' :
+           st.status === 'broken'  ? '⚠️ 刚断了' :
+           st.status === 'stable'  ? '⏸ 平稳' : '从头开始'}
+          {' · 最长 ' + st.longest}
+        </div>
+      </div>
+
+      {/* 本周 vs 上周 */}
+      <div className="space-card p-3">
+        <div className="text-xs text-white/50 mb-1">💯 本周积分</div>
+        <div className="text-2xl font-bold text-amber-300 tabular-nums">
+          {wk.thisWeek}
+        </div>
+        <div className={`text-xs mt-1 ${
+          wk.direction === 'up' ? 'text-emerald-300' :
+          wk.direction === 'down' ? 'text-rose-300' : 'text-white/40'
+        }`}>
+          上周 {wk.lastWeek}
+          {wk.direction === 'up' && ` · ⬆️ +${wk.delta}${wk.pct ? ` (${wk.pct}%)` : ''}`}
+          {wk.direction === 'down' && ` · ⬇️ ${wk.delta}`}
+          {wk.direction === 'flat' && ' · 持平'}
+        </div>
+      </div>
+
+      {/* 学科效率 */}
+      <div className="space-card p-3">
+        <div className="text-xs text-white/50 mb-1">⏱ 最慢学科（近 2 周）</div>
+        {eff ? (
+          <>
+            <div className="text-2xl font-bold text-cyan-200">
+              {subjectLabel[eff.subject] ?? eff.subject}
+            </div>
+            <div className="text-xs mt-1 text-white/60">
+              用了 {eff.totalActualMinutes} 分钟（预估 {eff.totalEstMinutes}）·
+              {eff.ratio > 1 ? ` 慢 ${Math.round((eff.ratio - 1) * 100)}%` : ' 准点'}
+            </div>
+          </>
+        ) : (
+          <div className="text-sm text-white/40 mt-2">数据不足（&lt; 2 个样本）</div>
+        )}
+      </div>
+    </div>
+  );
+}
+

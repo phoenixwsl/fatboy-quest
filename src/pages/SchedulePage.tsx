@@ -165,9 +165,13 @@ export function SchedulePage() {
     const items: ScheduleItem[] = timed.map(t => ({
       kind: t.kind, taskId: t.taskId, startMinute: t.start, durationMinutes: t.duration,
     }));
-    const scheduleId = `${today}_round_${Date.now()}`;
+    // R2.3.2: round 真递增（之前硬编码 1 导致 QuestPage 排序退化为 id 字典序，
+    // 在某些时序下选错 schedule，R2.2.6 已有兜底）
+    const existingToday = await db.schedules.where({ date: today }).toArray();
+    const nextRound = (existingToday.reduce((max, s) => Math.max(max, s.round ?? 0), 0)) + 1;
+    const scheduleId = `${today}_round_${nextRound}_${Date.now()}`;
     await db.schedules.put({
-      id: scheduleId, date: today, round: 1, items, lockedAt: Date.now(),
+      id: scheduleId, date: today, round: nextRound, items, lockedAt: Date.now(),
     });
     await db.transaction('rw', db.tasks, async () => {
       for (const b of board) {

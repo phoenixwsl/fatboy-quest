@@ -16,6 +16,11 @@ import { isWeekend } from '../lib/weekendMode';
 import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance, hasInstanceToday } from '../lib/recurrence';
 import { scoreRatio, ratioColorClass } from '../lib/points';
 import { detectHealActions, isHealNeeded } from '../lib/heal';
+import {
+  effectivePardonCards, isStreakBroken, applyPardonToStreak, WEEKLY_PARDON_QUOTA,
+} from '../lib/pardon';
+import { newId } from '../lib/ids';
+import { todayString as todayStr } from '../lib/time';
 import { ScoreDetailRow } from './QuestPage';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
@@ -246,6 +251,9 @@ export function HomePage() {
         </div>
       </motion.div>
 
+      {/* R2.5.D: 断击时显示豁免券 banner */}
+      <PardonBanner />
+
       {/* R2.1.1: 检测到正在进行的闯关，强引导回去 */}
       {scheduledOrInProgress.length > 0 && (
         <motion.button
@@ -466,4 +474,72 @@ export function SubjectIcon({ subject }: { subject: string }) {
     math: '🔢', chinese: '📖', english: '🔤', reading: '📚', writing: '✏️', other: '⭐',
   };
   return <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xl">{map[subject] ?? '⭐'}</div>;
+}
+
+// R2.5.D: 豁免券 banner — 断击时显示，让孩子主动决定是否用券
+function PardonBanner() {
+  const streak = useLiveQuery(() => db.streak.get('singleton'));
+  const confirmModal = useAppStore(s => s.confirmModal);
+  const toast = useAppStore(s => s.showToast);
+
+  if (!streak) return null;
+
+  const broken = isStreakBroken(streak);
+  if (!broken) return null;
+
+  const { remaining } = effectivePardonCards(streak);
+
+  async function usePardon() {
+    if (!streak) return;
+    const ok = await confirmModal({
+      title: '用 1 张豁免券保住连击？',
+      body: `连击 ${streak.currentStreak} 天断了！\n用一张豁免券可以让今天算过关，保住连击。\n本周还剩 ${remaining} 张。`,
+      emoji: '🛡️',
+      tone: 'warn',
+      confirmLabel: '用券保住',
+    });
+    if (!ok) return;
+    try {
+      const patch = applyPardonToStreak(streak, todayStr());
+      await db.streak.update('singleton', patch as any);
+      await db.ritualLogs.put({
+        id: newId('rl'),
+        kind: 'streak-pardon',
+        date: todayStr(),
+        shownAt: Date.now(),
+      } as any);
+      sounds.play('unlock');
+      toast('🛡️ 豁免券已使用，连击保住了！', 'success');
+    } catch (e: any) {
+      toast(e?.message === 'no_cards' ? '本周豁免券已用完' : '保住失败', 'warn');
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+      className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-rose-500/30 to-amber-500/30 ring-2 ring-rose-300/60"
+    >
+      <div className="flex items-center gap-3">
+        <div className="text-3xl">📛</div>
+        <div className="flex-1">
+          <div className="font-bold text-white">连击 {streak.currentStreak} 天断了！</div>
+          <div className="text-xs text-white/80 mt-0.5">
+            {remaining > 0
+              ? `用一张豁免券能救回来（本周还剩 ${remaining} / ${WEEKLY_PARDON_QUOTA} 张）`
+              : '本周豁免券已经用完了'}
+          </div>
+        </div>
+        {remaining > 0 ? (
+          <button
+            onClick={usePardon}
+            className="px-3 py-2 rounded-xl bg-amber-400 text-amber-900 font-bold active:scale-95">
+            🛡️ 用券
+          </button>
+        ) : (
+          <div className="text-xs text-white/50">下周一回血</div>
+        )}
+      </div>
+    </motion.div>
+  );
 }

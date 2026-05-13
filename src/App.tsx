@@ -5,6 +5,7 @@ import { db, initializeDB } from './db';
 import { SpaceBackground } from './components/SpaceBackground';
 import { Toast } from './components/Toast';
 import { ConfirmModal } from './components/ConfirmModal';
+import { UpdateBanner } from './components/UpdateBanner';
 import { SetupWizard } from './pages/SetupWizard';
 import { HomePage } from './pages/HomePage';
 import { SchedulePage } from './pages/SchedulePage';
@@ -20,11 +21,14 @@ import { ParentSettings } from './pages/parent/Settings';
 import { DataExport } from './pages/parent/DataExport';
 import { RecurringTasks } from './pages/parent/RecurringTasks';
 import { generateTodayDailyTasks } from './lib/recurrence';
+import { planScheduleGC } from './lib/scheduleGC';
+import { installGlobalErrorLogger } from './lib/errorLogger';
 import { isWeekend, weekendBgClass } from './lib/weekendMode';
 import { RitualMonitor } from './components/RitualMonitor';
 import { CalendarPage } from './pages/CalendarPage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { AchievementsWatcher } from './components/AchievementsWatcher';
+import { EvalReminderWatcher } from './components/EvalReminderWatcher';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -32,9 +36,19 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
+      // R2.3.4: 全局错误收集需要在 DB 初始化后挂（写日志要 DB 就绪）
       await initializeDB();
+      installGlobalErrorLogger();
       // 启动时补齐今日的"每日必做"实例（一次性，幂等）
       try { await generateTodayDailyTasks(db as any); } catch {}
+      // R2.3.3: 清理空 / 半路废弃的 schedule
+      try {
+        const all = await db.schedules.toArray();
+        const plan = planScheduleGC(all);
+        if (plan.scheduleIdsToDelete.length > 0) {
+          await db.schedules.bulkDelete(plan.scheduleIdsToDelete);
+        }
+      } catch {}
       setReady(true);
     })();
   }, []);
@@ -86,8 +100,10 @@ export default function App() {
       </div>
       <Toast />
       <ConfirmModal />
+      <UpdateBanner />
       {settings.setupComplete && <RitualMonitor />}
       {settings.setupComplete && <AchievementsWatcher />}
+      {settings.setupComplete && <EvalReminderWatcher />}
     </div>
   );
 }

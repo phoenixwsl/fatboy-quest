@@ -16,6 +16,7 @@ import { detectHealActions, isHealNeeded } from '../lib/heal';
 import { nextExtensionOffer, canShowExtensionButton } from '../lib/extension';
 import { calcCombo } from '../lib/combo';
 import { summarizeExecution } from '../lib/earlyBonus';
+import { focusStarsCount, shouldGrantLuckyBonus, LUCKY_BONUS_POINTS } from '../lib/microRewards';
 import { HardWarning } from '../components/HardWarning';
 import { SpeechBubble } from '../components/SpeechBubble';
 import { RestBlock } from '../components/RestBlock';
@@ -224,7 +225,13 @@ export function QuestPage() {
     }
   }, [now, schedule, activeIdx, taskMap, settings?.warnMinutesBeforeEnd]);
 
-  // === R2.2.8 超时提醒：进入超时第 1 秒响声 + 超过 3min 推送家长 ===
+  // === R2.5.C 超时分级反馈（ADHD 友好）===
+  // ADHD 模式默认开。超时分 4 个档位，焦虑放大效应（响铃 + 立刻推送）→ 改成温柔分级：
+  //   0-1min : 仅蛋仔气泡（无声），鼓励语
+  //   1-3min : 表情切到 worried + 蛋仔气泡，仍无声
+  //   3-5min : 温和提示音（tap，不是 error），蛋仔气泡建议延时
+  //   ≥5min  : 推送家长，文案改成"陪一下" 而不是"超时了"
+  // 关 ADHD 模式时退化为 R2.2.8 的行为（立刻响 + 3min 推送）
   useEffect(() => {
     if (!schedule || activeIdx < 0) return;
     const item = schedule.items[activeIdx];
@@ -234,29 +241,48 @@ export function QuestPage() {
 
     const remMs = calcRemainingMs(t);
     if (remMs > 0) return; // 还没超时
+    const overtimeMs = -remMs;
+    const adhdMode = settings?.adhdFriendlyMode !== false; // 默认 true
 
-    // a) 第一次进入超时 → 响一下 + 写防重戳
+    // a) 第一次进入超时 → 提示音
     if (!t.overtimeSoundPlayedAt) {
-      sounds.play('error');
-      db.tasks.update(t.id, { overtimeSoundPlayedAt: Date.now() }).catch(() => {});
+      if (adhdMode) {
+        // 推迟到 3 分钟才发提示音（温和）
+        if (overtimeMs >= 3 * 60_000) {
+          sounds.play('tap');
+          db.tasks.update(t.id, { overtimeSoundPlayedAt: Date.now() }).catch(() => {});
+        }
+      } else {
+        sounds.play('error');
+        db.tasks.update(t.id, { overtimeSoundPlayedAt: Date.now() }).catch(() => {});
+      }
     }
 
-    // b) 超时 3 分钟 → 给家长发 Bark
-    const overtimeMs = -remMs;
-    if (overtimeMs >= 3 * 60_000 && !t.overtimeNagSentAt) {
+    // b) 推送家长：ADHD 模式 5 分钟，普通模式 3 分钟
+    const pushThreshold = adhdMode ? 5 * 60_000 : 3 * 60_000;
+    if (overtimeMs >= pushThreshold && !t.overtimeNagSentAt) {
       (async () => {
         await db.tasks.update(t.id, { overtimeNagSentAt: Date.now() });
         const recipients = await db.recipients.toArray();
         const childName = settings?.childName ?? '肥仔';
+        const overMin = Math.floor(overtimeMs / 60000);
         pushToRecipients(
-          recipients.filter(r => r.subStreakAlert !== false), 'help' as any, {
-          title: `⏰ ${childName} 在【${t.title}】超时 ${Math.floor(overtimeMs / 60000)} 分钟了`,
-          body: '可以提醒 ta 收尾或者帮忙看一下',
-          group: 'fatboy-quest',
-        }).catch(() => {});
+          recipients.filter(r => r.subStreakAlert !== false), 'help' as any,
+          adhdMode
+            ? {
+                title: `💙 ${childName} 在【${t.title}】卡了 ${overMin} 分钟了`,
+                body: '可以过去陪一下，不用着急',
+                group: 'fatboy-quest',
+              }
+            : {
+                title: `⏰ ${childName} 在【${t.title}】超时 ${overMin} 分钟`,
+                body: '可以提醒 ta 收尾或者帮忙看一下',
+                group: 'fatboy-quest',
+              },
+        ).catch(() => {});
       })();
     }
-  }, [now, schedule, activeIdx, taskMap]);
+  }, [now, schedule, activeIdx, taskMap, settings?.adhdFriendlyMode]);
 
   // === 战报 ===
   const [showReport, setShowReport] = useState(false);
@@ -265,6 +291,8 @@ export function QuestPage() {
   } | null>(null);
 
   const [waitNagBubble, setWaitNagBubble] = useState<string | null>(null);
+  // R2.5.A: 彩蛋积分气泡
+  const [luckyBubble, setLuckyBubble] = useState<string | null>(null);
 
   // ============================================================
   // R2.2.4 核心修复：active 计算 + 两个跟踪 useEffect 必须放在所有
@@ -482,6 +510,24 @@ export function QuestPage() {
     sounds.play('kill');
     toast('💥 击败！等家长来评分 🎉', 'success');
 
+    // R2.5.A 彩蛋积分：基于今日已完成任务数概率触发，写 points 表 reason='lucky_bonus'
+    {
+      const today = todayString();
+      const todayDone = (await db.tasks.where({ date: today }).toArray())
+        .filter(x => x.status === 'done' || x.status === 'evaluated');
+      if (shouldGrantLuckyBonus(todayDone.length)) {
+        await db.points.add({
+          id: newId('pt'), ts: Date.now(),
+          delta: LUCKY_BONUS_POINTS,
+          reason: 'lucky_bonus',
+          refId: taskId,
+        } as any);
+        setLuckyBubble(`蛋仔帮你多拿了 +${LUCKY_BONUS_POINTS} 积分！🎉`);
+        sounds.play('fanfare');
+        setTimeout(() => setLuckyBubble(null), 6_000);
+      }
+    }
+
     // Bark 推送 - 带详细
     const recipients = await db.recipients.toArray();
     const childName = settings?.childName ?? '肥仔';
@@ -681,6 +727,12 @@ export function QuestPage() {
           <SpeechBubble text={waitNagBubble} tone="warn" />
         </div>
       )}
+      {/* R2.5.A: 彩蛋积分气泡 */}
+      {luckyBubble && (
+        <div className="flex justify-center -mb-2">
+          <SpeechBubble text={luckyBubble} />
+        </div>
+      )}
 
       {/* === 当前块 === */}
       <AnimatePresence mode="wait">
@@ -816,6 +868,9 @@ function TaskActiveCard({
       <div className="mt-3 text-sm text-white/60">当前小怪</div>
       <div className="text-2xl font-bold mt-1">{task.title}</div>
 
+      {/* R2.5.A: 4 颗专注⭐ — 每过 1/4 时长亮一颗 */}
+      <FocusStars usedMs={elapsedMs} totalMs={totalSec * 1000} />
+
       {/* 倒计时显示 — R2.2.8: 超时时显示具体超时多久 */}
       <div className={`text-5xl font-black my-4 tabular-nums ${overtime ? 'text-rose-400 animate-pulse' : paused ? 'text-amber-300' : 'text-white'}`}>
         {paused
@@ -891,9 +946,15 @@ function ScoreDetail({
     db.points.where('reason').equals('early_bonus').filter(p => p.refId !== undefined && allTodayTaskIds.includes(p.refId)).toArray(),
     [allTodayTaskIds.join(',')],
   );
+  // R2.5.A: lucky_bonus 累计
+  const luckyEntries = useLiveQuery(() =>
+    db.points.where('reason').equals('lucky_bonus').filter(p => p.refId !== undefined && allTodayTaskIds.includes(p.refId)).toArray(),
+    [allTodayTaskIds.join(',')],
+  );
   const coreSum = (evs ?? []).reduce((s, e) => s + e.finalPoints, 0);
   const earlySum = (earlyEntries ?? []).reduce((s, p) => s + p.delta, 0);
-  const totalEarned = coreSum + earlySum + (schedule.comboBonusPoints ?? 0);
+  const luckySum = (luckyEntries ?? []).reduce((s, p) => s + p.delta, 0);
+  const totalEarned = coreSum + earlySum + luckySum + (schedule.comboBonusPoints ?? 0);
   const evaluatedCount = evs?.length ?? 0;
   const totalCount = (todayTasks ?? []).filter(t => t.status === 'done' || t.status === 'evaluated').length;
 
@@ -934,6 +995,47 @@ function ScoreDetail({
             <div className="font-bold text-amber-300">+{schedule.comboBonusPoints} 分</div>
           </div>
         </div>
+      )}
+      {/* R2.5.A: 彩蛋积分汇总 */}
+      {luckySum > 0 && (
+        <div className="space-card p-3 my-2 bg-gradient-to-r from-pink-500/15 to-amber-500/15">
+          <div className="flex items-center gap-2">
+            <div className="text-2xl">🎲</div>
+            <div className="flex-1 text-sm">蛋仔彩蛋（今日 {luckyEntries?.length ?? 0} 次）</div>
+            <div className="font-bold text-pink-200">+{luckySum} 分</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// R2.5.A: 4 颗专注⭐显示
+function FocusStars({ usedMs, totalMs }: { usedMs: number; totalMs: number }) {
+  const count = focusStarsCount(usedMs, totalMs);
+  const playedFullRef = useRef(false);
+  useEffect(() => {
+    if (count === 4 && !playedFullRef.current) {
+      playedFullRef.current = true;
+      sounds.play('fanfare');
+    }
+  }, [count]);
+  return (
+    <div className="flex items-center justify-center gap-1.5 mt-2" aria-label={`专注 ${count}/4`}>
+      {[0, 1, 2, 3].map(i => (
+        <span
+          key={i}
+          className={`text-lg transition-all duration-300 ${
+            i < count ? 'opacity-100 scale-100 text-amber-300' : 'opacity-25 scale-90 text-white/30'
+          }`}
+        >
+          ⭐
+        </span>
+      ))}
+      {count === 4 && (
+        <span className="ml-1 text-xs text-amber-300 font-bold animate-pulse">
+          专注力满！
+        </span>
       )}
     </div>
   );

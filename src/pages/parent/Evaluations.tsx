@@ -3,18 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../db';
-import { newId } from '../../lib/ids';
-import { calcFinalPoints, makeEvaluation } from '../../lib/points';
+import { calcFinalPoints } from '../../lib/points';
 import { earlyBonus, summarizeExecution } from '../../lib/earlyBonus';
-import { calcCombo, comboBonusPoints } from '../../lib/combo';
 import { StarRating } from '../../components/StarRating';
 import { SubjectIcon } from '../HomePage';
 import { useAppStore } from '../../store/useAppStore';
+import { evaluateTaskOnce, QUICK_PRESETS, smartDefaultBasePoints } from '../../lib/evaluate';
 import type { Task } from '../../types';
 
 export function Evaluations() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const pendingTasks = useLiveQuery(() => db.tasks.where({ status: 'done' }).reverse().sortBy('completedAt'));
   const evaluatedTasks = useLiveQuery(() => db.tasks.where({ status: 'evaluated' }).reverse().sortBy('completedAt'));
 
@@ -50,58 +50,52 @@ export function Evaluations() {
 
   async function submit() {
     if (!openTask) return;
-    const ev = makeEvaluation(openTask, { completion, quality, attitude }, basePoints, note.trim() || undefined);
-    if (parentReminder.trim()) ev.parentReminderForNext = parentReminder.trim();
-    await db.transaction('rw', db.evaluations, db.tasks, db.points, db.schedules, async () => {
-      await db.evaluations.add(ev);
-      await db.tasks.update(openTask.id, {
-        status: 'evaluated',
-        evaluationId: ev.id,
-        earlyBonusPoints: earlyBonusPts,
-      });
-      // 核心积分
-      await db.points.add({
-        id: newId('pt'), ts: Date.now(), delta: ev.finalPoints,
-        reason: 'task_evaluated', refId: openTask.id,
-      });
-      // 提前奖励（如果有）
-      if (earlyBonusPts > 0) {
-        await db.points.add({
-          id: newId('pt'), ts: Date.now(), delta: earlyBonusPts,
-          reason: 'early_bonus', refId: openTask.id,
-        });
-      }
-      // 检查所属 schedule 是否所有任务都已评分 → combo 加分
-      const schedules = await db.schedules.where({ date: openTask.date }).toArray();
-      for (const sch of schedules) {
-        if (!sch.lockedAt) continue;
-        if (!sch.items.some(i => i.taskId === openTask.id)) continue;
-        const ids = sch.items.filter(i => i.kind === 'task' && i.taskId).map(i => i.taskId!);
-        const all = await db.tasks.bulkGet(ids);
-        const allEvaluated = all.every(t => t?.status === 'evaluated');
-        if (allEvaluated && !sch.comboBonusPoints) {
-          const taskMap = new Map<string, Task>();
-          for (const t of all) if (t) taskMap.set(t.id, t);
-          const combo = calcCombo(sch, taskMap);
-          if (combo.peak >= 2) {
-            // 计算本轮 contributing 任务的 finalPoints 总和
-            const evs = await db.evaluations.where('taskId').anyOf(combo.contributingTaskIds).toArray();
-            const sumFinal = evs.reduce((s, e) => s + e.finalPoints, 0);
-            const bonus = comboBonusPoints(sumFinal, combo.bonusPct);
-            if (bonus > 0) {
-              await db.points.add({
-                id: newId('pt'), ts: Date.now(), delta: bonus,
-                reason: 'combo_bonus', refId: sch.id,
-              });
-              await db.schedules.update(sch.id, { comboBonusPoints: bonus });
-              toast(`⚡ ${combo.peak} 连击！本轮额外 +${bonus} 积分`, 'success');
-            }
-          }
-        }
-      }
+    const r = await evaluateTaskOnce(db, {
+      taskId: openTask.id,
+      basePoints,
+      completion, quality, attitude,
+      note: note.trim() || undefined,
+      parentReminderForNext: parentReminder.trim() || undefined,
     });
-    toast(`✓ 已评分 +${totalPts} 积分`, 'success');
+    if (r.comboBonusPoints) {
+      toast(`⚡ 连击额外 +${r.comboBonusPoints} 积分`, 'success');
+    }
+    toast(`✓ 已评分 +${r.finalPoints + r.earlyBonusPoints} 积分`, 'success');
     setOpenTask(null);
+  }
+
+  // R2.4.1: 快速套餐评分（跳过 modal）
+  async function quickEvaluate(task: Task, preset: typeof QUICK_PRESETS[number]) {
+    const r = await evaluateTaskOnce(db, {
+      taskId: task.id,
+      basePoints: smartDefaultBasePoints(task),
+      ...preset.stars,
+    });
+    toast(`✓ ${task.title} ${preset.label} +${r.finalPoints + r.earlyBonusPoints} 积分`, 'success');
+  }
+
+  // R2.4.2: 批量评分 — 给所有待评分任务一键 5/5/5
+  async function evaluateAllPerfect() {
+    const tasks = pendingTasks ?? [];
+    if (tasks.length === 0) return;
+    const ok = await confirmModal({
+      title: `全部完美评分？`,
+      body: `把所有 ${tasks.length} 个待评分任务一键 5⭐5⭐5⭐。\n之后还能在已评分里点进去修改。`,
+      emoji: '🌟',
+      tone: 'info',
+      confirmLabel: `全部 +5⭐`,
+    });
+    if (!ok) return;
+    let totalAdded = 0;
+    for (const t of tasks) {
+      const r = await evaluateTaskOnce(db, {
+        taskId: t.id,
+        basePoints: smartDefaultBasePoints(t),
+        completion: 5, quality: 5, attitude: 5,
+      });
+      totalAdded += r.finalPoints + r.earlyBonusPoints + (r.comboBonusPoints ?? 0);
+    }
+    toast(`✓ 批量评分完成，共 +${totalAdded} 积分`, 'success');
   }
 
   return (
@@ -111,23 +105,47 @@ export function Evaluations() {
         <div className="text-xl font-bold">⭐ 待评分</div>
       </div>
 
-      <div className="text-sm text-white/60 mb-2">待评分 ({pendingTasks?.length ?? 0})</div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm text-white/60">待评分 ({pendingTasks?.length ?? 0})</div>
+        {(pendingTasks?.length ?? 0) >= 2 && (
+          <button onClick={evaluateAllPerfect}
+            className="px-3 py-1.5 rounded-xl bg-amber-500/30 border border-amber-300/50 text-amber-100 text-xs active:scale-95">
+            🌟 全部完美评分
+          </button>
+        )}
+      </div>
       <div className="space-y-2">
         {pendingTasks?.map(t => (
-          <button key={t.id} onClick={() => setOpenTask(t)}
-            className="space-card p-3 flex items-center gap-3 w-full text-left active:scale-95">
-            <SubjectIcon subject={t.subject} />
-            <div className="flex-1">
-              <div className="font-medium flex items-center gap-2">
-                {t.title}
-                {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">孩子加的</span>}
+          <div key={t.id} className="space-card p-3">
+            <button onClick={() => setOpenTask(t)}
+              className="flex items-center gap-3 w-full text-left active:scale-95">
+              <SubjectIcon subject={t.subject} />
+              <div className="flex-1">
+                <div className="font-medium flex items-center gap-2">
+                  {t.title}
+                  {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">孩子加的</span>}
+                </div>
+                <div className="text-xs text-white/50">
+                  完成于 {t.completedAt ? new Date(t.completedAt).toLocaleString() : '?'}
+                </div>
               </div>
-              <div className="text-xs text-white/50">
-                完成于 {t.completedAt ? new Date(t.completedAt).toLocaleString() : '?'}
-              </div>
+              <span className="text-xs text-space-plasma">详细 →</span>
+            </button>
+            {/* R2.4.1: 快速套餐评分（4 个一键按钮） */}
+            <div className="grid grid-cols-4 gap-1.5 mt-2.5">
+              {QUICK_PRESETS.map(preset => (
+                <button key={preset.id}
+                  onClick={() => quickEvaluate(t, preset)}
+                  className={`px-2 py-2 rounded-xl text-xs font-medium active:scale-95
+                    ${preset.tone === 'amber' ? 'bg-amber-500/25 border border-amber-300/50 text-amber-100' :
+                      preset.tone === 'emerald' ? 'bg-emerald-500/25 border border-emerald-300/50 text-emerald-100' :
+                      preset.tone === 'cyan' ? 'bg-cyan-500/25 border border-cyan-300/50 text-cyan-100' :
+                      'bg-rose-500/25 border border-rose-300/50 text-rose-100'}`}>
+                  {preset.label}
+                </button>
+              ))}
             </div>
-            <span className="text-space-plasma">→</span>
-          </button>
+          </div>
         ))}
         {pendingTasks?.length === 0 && (
           <div className="text-white/40 text-sm text-center py-4">没有待评分的作业 ✨</div>

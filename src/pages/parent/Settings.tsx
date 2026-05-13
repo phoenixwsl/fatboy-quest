@@ -10,6 +10,7 @@ import type { SoundPack } from '../../lib/sounds';
 import {
   planCurrentStateReset, isResetNeeded, taskResetPatch, scheduleResetPatch,
 } from '../../lib/reset';
+import { exportErrorLogsJSON } from '../../lib/errorLogger';
 
 export function ParentSettings() {
   const nav = useNavigate();
@@ -119,6 +120,44 @@ export function ParentSettings() {
         </button>
       </div>
 
+      {/* R2.4.3: 未评分提醒阈值 */}
+      <div className="space-card p-4 mb-3">
+        <div className="text-sm text-white/70 mb-1">⏰ 未评分提醒（孩子完成后多久没评分就推送你）</div>
+        <div className="text-xs text-white/50 mb-2">设 0 关闭。默认 45 分钟。</div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => db.settings.update('singleton', {
+              unevaluatedNotifyMinutes: Math.max(0, (settings.unevaluatedNotifyMinutes ?? 45) - 15),
+            })}
+            className="px-3 py-2 bg-white/10 rounded-xl">−15</button>
+          <div className="flex-1 text-center text-lg tabular-nums">
+            {settings.unevaluatedNotifyMinutes === 0
+              ? '已关闭'
+              : `${settings.unevaluatedNotifyMinutes ?? 45} 分钟`}
+          </div>
+          <button onClick={() => db.settings.update('singleton', {
+              unevaluatedNotifyMinutes: Math.min(240, (settings.unevaluatedNotifyMinutes ?? 45) + 15),
+            })}
+            className="px-3 py-2 bg-white/10 rounded-xl">+15</button>
+        </div>
+      </div>
+
+      {/* R2.5.C: ADHD 友好模式 */}
+      <div className="space-card p-4 mb-3 border border-pink-300/30">
+        <div className="text-sm text-pink-200 mb-1">🌈 ADHD 友好模式（推荐）</div>
+        <div className="text-xs text-white/50 mb-3 leading-relaxed">
+          超时反馈分级、无焦虑放大：<br/>
+          • 0-3 分钟超时：仅视觉提示（无声）<br/>
+          • 3-5 分钟超时：温和提示音（不是警报）<br/>
+          • 5+ 分钟超时：推送家长（文案：陪一下）<br/>
+          关闭后回退到原"立刻响 + 3min 推送"行为。
+        </div>
+        <button
+          onClick={() => db.settings.update('singleton', { adhdFriendlyMode: !(settings.adhdFriendlyMode !== false) })}
+          className={`w-full px-3 py-2 rounded-xl text-sm ${settings.adhdFriendlyMode !== false ? 'bg-pink-500/30' : 'bg-white/10'}`}>
+          {settings.adhdFriendlyMode !== false ? '✓ 已开启（推荐）' : '✗ 已关闭'}
+        </button>
+      </div>
+
       <div className="space-card p-4 mb-3">
         <div className="text-sm text-white/70 mb-2">本地通知</div>
         <div className="text-xs text-white/50 mb-3">
@@ -149,6 +188,14 @@ export function ParentSettings() {
           单击确认即重置全部数据。建议测试场景使用。
         </div>
         <QuickResetButton />
+      </div>
+
+      <div className="space-card p-4 mb-3 border border-cyan-500/30">
+        <div className="text-sm text-cyan-300 mb-2">🔍 诊断 / 错误日志（R2.3.4）</div>
+        <div className="text-xs text-white/50 mb-3">
+          App 启动后 catch 到的 JS 错误会写入日志（上限 50 条）。出 bug 时点这里导出给我。
+        </div>
+        <ErrorLogExportButton />
       </div>
 
       <div className="space-card p-4 mb-3 border border-rose-500/30">
@@ -320,6 +367,45 @@ function ResetAllButton() {
           disabled={confirmText !== '重置'}
           className="flex-1 px-3 py-2 rounded-xl bg-rose-600 text-white disabled:opacity-40">
           🗑 删除全部
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// R2.3.4: 错误日志导出
+function ErrorLogExportButton() {
+  const toast = useAppStore(s => s.showToast);
+  const count = useLiveQuery(() => db.errorLogs.count(), []) ?? 0;
+
+  async function exportLogs() {
+    const json = await exportErrorLogsJSON();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fatboy-error-logs-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`✓ 已导出 ${count} 条日志`, 'success');
+  }
+
+  async function clearLogs() {
+    await db.errorLogs.clear();
+    toast('✓ 已清空错误日志', 'success');
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs text-white/60">当前共 <b className="text-white">{count}</b> 条日志</div>
+      <div className="flex gap-2">
+        <button onClick={exportLogs} disabled={count === 0}
+          className="flex-1 px-3 py-2 rounded-xl bg-cyan-500/30 border border-cyan-300/50 text-cyan-100 disabled:opacity-40 active:scale-95">
+          📥 导出 JSON
+        </button>
+        <button onClick={clearLogs} disabled={count === 0}
+          className="px-3 py-2 rounded-xl bg-white/10 disabled:opacity-40 active:scale-95">
+          🗑 清空
         </button>
       </div>
     </div>

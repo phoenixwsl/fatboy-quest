@@ -8,7 +8,8 @@ export default defineConfig({
     plugins: [
         react(),
         VitePWA({
-            registerType: 'autoUpdate',
+            // R2.3.1: 改成 prompt，前端能用 needRefresh 显示"新版本"banner
+            registerType: 'prompt',
             includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
             manifest: {
                 name: '肥仔大闯关',

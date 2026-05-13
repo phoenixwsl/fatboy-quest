@@ -4,7 +4,7 @@
 // 并在 db/index.ts 里写迁移逻辑。
 // ============================================================
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 // v2: 新增 Task.createdBy, Settings.soundEnabled
 // v3: 新增 actualStartedAt / pause / extend / undo 字段，templateHidden 表
 // v5: Fatboy v4 集成 - 旧 pet.skinId='skin_xxx' 迁移到新 character id
@@ -64,6 +64,8 @@ export interface Task {
   // R2.2.8: 任务超时后的提醒
   overtimeNagSentAt?: number;       // 超时 3 分钟后给家长推送的时间（防重）
   overtimeSoundPlayedAt?: number;   // 第一次进入超时时声音已响起的时间（防重）
+  // R2.4.3: 完成后家长长时间未评分的提醒
+  unevaluatedNotifySentAt?: number; // 防重戳
 }
 
 // v4: 循环任务定义
@@ -130,6 +132,9 @@ export interface StreakState {
   lastFullDate: string | null;
   guardCards: number;
   lastWeeklyGiftWeek: string | null;
+  // R2.5.D: 豁免券（断击保护）
+  pardonCardsThisWeek?: number;     // 本周剩余豁免券（每周一重置为 2）
+  lastPardonResetWeek?: string;     // 上次重置发生在哪个 ISO 周
 }
 
 export interface Pet {
@@ -218,6 +223,10 @@ export interface Settings {
   developerMode?: boolean;          // 影响快速 reset 等
   dailyPointsGoal?: number;         // 家长设的"每日积分目标"，0=未设
   idleNagEnabled?: boolean;         // 默认 true
+  // R2.5.C: ADHD 友好模式 — 超时提醒分级 + 推送家长延后到 5min + 文案软化
+  adhdFriendlyMode?: boolean;       // 默认 true
+  // R2.4.3: 完成后家长 X 分钟未评分 → 自动 Bark 提醒；0=关闭
+  unevaluatedNotifyMinutes?: number; // 默认 45
 }
 
 export interface TemplateHidden {
@@ -229,7 +238,18 @@ export interface TemplateHidden {
 //     实际进度从 Task instances 即时统计
 export interface RitualLog {
   id: string;                       // YYYY-MM-DD-kind
-  kind: 'evening-summary' | 'sunday-ritual' | 'streak-alert';
+  kind: 'evening-summary' | 'sunday-ritual' | 'streak-alert' | 'streak-pardon';
   date: string;                     // 当天 YYYY-MM-DD
   shownAt: number;
+}
+
+// v6 (R2.3.4): 运行时错误日志，便于在 iPad 上事后排查
+export interface ErrorLog {
+  id: string;
+  ts: number;
+  kind: 'window-error' | 'unhandled-rejection' | 'manual';
+  message: string;
+  stack?: string;
+  url?: string;
+  appVersion?: string;
 }
