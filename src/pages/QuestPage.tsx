@@ -12,6 +12,7 @@ import { pushToRecipients, messages } from '../lib/bark';
 import { applyDayComplete } from '../lib/streak';
 import { totalPoints } from '../lib/points';
 import { canUndoCompletion } from '../lib/templates';
+import { detectHealActions, isHealNeeded } from '../lib/heal';
 import { nextExtensionOffer, canShowExtensionButton } from '../lib/extension';
 import { calcCombo } from '../lib/combo';
 import { summarizeExecution } from '../lib/earlyBonus';
@@ -37,6 +38,36 @@ export function QuestPage() {
     const all = await db.schedules.where({ date: today }).reverse().sortBy('round');
     return all.find(s => s.lockedAt && !s.completedAt);
   }, [today]);
+
+  // R2.2.1: 自愈死锁——QuestPage 也加上（之前只在 HomePage 跑，用户点 banner 跳进来时
+  // heal 可能还没完成，导致显示空白）
+  const allTasksForHeal = useLiveQuery(() => db.tasks.toArray(), []);
+  const todaySchedulesForHeal = useLiveQuery(() => db.schedules.where({ date: today }).toArray(), [today]);
+  useEffect(() => {
+    if (!allTasksForHeal || !todaySchedulesForHeal) return;
+    const plan = detectHealActions(allTasksForHeal, todaySchedulesForHeal, today);
+    if (!isHealNeeded(plan)) return;
+    (async () => {
+      for (const sid of plan.uncompleteScheduleIds) {
+        await db.schedules.update(sid, {
+          completedAt: undefined,
+          comboPeakInRound: undefined,
+          comboBonusPoints: undefined,
+          reportShownAt: undefined,
+        });
+      }
+      for (const tid of plan.resetTaskIds) {
+        await db.tasks.update(tid, {
+          status: 'pending',
+          actualStartedAt: undefined,
+          pausedAt: undefined,
+          completedAt: undefined,
+        });
+      }
+      toast(`🔧 自动修复了 ${plan.uncompleteScheduleIds.length + plan.resetTaskIds.length} 处状态异常`, 'info');
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTasksForHeal?.length, todaySchedulesForHeal?.length, today]);
 
   const tasksOnTimeline = useLiveQuery(async () => {
     if (!schedule) return [];
@@ -395,10 +426,23 @@ export function QuestPage() {
   }
 
   if (!schedule) {
+    // R2.2.1: 区分两种空状态
+    //   - 有 inFlight task 但 schedule 异常（自愈中）→ "正在恢复"
+    //   - 没有 inFlight task → 正常的"去规划"提示
+    const hasInFlight = (allTasksForHeal ?? []).some(t =>
+      t.date === today && (t.status === 'scheduled' || t.status === 'inProgress'),
+    );
     return (
-      <div className="min-h-full flex flex-col items-center justify-center text-white p-6">
+      <div className="min-h-full flex flex-col items-center justify-center text-white p-6 text-center">
         <PetAvatar mood="sleepy" />
-        <div className="mt-4 text-white/60">还没有锁定的时间轴</div>
+        {hasInFlight ? (
+          <>
+            <div className="mt-4 text-amber-300 font-bold">🔧 正在恢复任务状态...</div>
+            <div className="mt-2 text-white/50 text-sm">如果几秒后还没好，回首页重新规划即可</div>
+          </>
+        ) : (
+          <div className="mt-4 text-white/60">还没有锁定的时间轴</div>
+        )}
         <button onClick={() => nav('/schedule')} className="space-btn mt-4">📅 去规划</button>
         <button onClick={() => nav('/')} className="space-btn-ghost mt-2">回首页</button>
       </div>
