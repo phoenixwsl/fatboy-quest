@@ -5,6 +5,8 @@ import { db, hashAnswer, initializeDB } from '../../db';
 import { useAppStore } from '../../store/useAppStore';
 import { ensurePermission } from '../../lib/notifications';
 import { APP_VERSION, APP_BUILD_DATE } from '../../version';
+import { SOUND_PACK_LABELS, sounds } from '../../lib/sounds';
+import type { SoundPack } from '../../lib/sounds';
 
 export function ParentSettings() {
   const nav = useNavigate();
@@ -84,6 +86,34 @@ export function ParentSettings() {
           placeholder="新答案"
           className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
         <button onClick={updateSecurity} className="space-btn w-full">更新密保</button>
+      </div>
+
+      <div className="space-card p-4 mb-3">
+        <div className="text-sm text-white/70 mb-2">🔊 声音包</div>
+        <div className="space-y-2">
+          {(['default', 'cartoon', 'minimal'] as SoundPack[]).map(p => (
+            <button key={p}
+              onClick={async () => {
+                await db.settings.update('singleton', { soundPack: p });
+                sounds.setPack(p);
+                sounds.play('unlock');
+              }}
+              className={`w-full px-3 py-2 rounded-xl text-left text-sm ${settings.soundPack === p ? 'bg-space-nebula ring-1 ring-space-plasma' : 'bg-white/5'}`}>
+              {settings.soundPack === p && '✓ '}
+              {SOUND_PACK_LABELS[p]}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs text-white/40 mt-2">点选项可试听</div>
+      </div>
+
+      <div className="space-card p-4 mb-3">
+        <div className="text-sm text-white/70 mb-2">💤 Idle Nag（5 分钟无操作蛋仔催）</div>
+        <button
+          onClick={() => db.settings.update('singleton', { idleNagEnabled: !settings.idleNagEnabled })}
+          className={`w-full px-3 py-2 rounded-xl text-sm ${settings.idleNagEnabled !== false ? 'bg-emerald-500/30' : 'bg-white/10'}`}>
+          {settings.idleNagEnabled !== false ? '✓ 已开启' : '✗ 已关闭'}
+        </button>
       </div>
 
       <div className="space-card p-4 mb-3">

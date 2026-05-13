@@ -24,6 +24,7 @@ export function Evaluations() {
   const [quality, setQuality] = useState(5);
   const [attitude, setAttitude] = useState(5);
   const [note, setNote] = useState('');
+  const [parentReminder, setParentReminder] = useState('');
 
   useEffect(() => {
     if (!openTask) return;
@@ -33,7 +34,7 @@ export function Evaluations() {
     } else {
       setBasePoints(openTask.basePoints || 20);
     }
-    setCompletion(5); setQuality(5); setAttitude(5); setNote('');
+    setCompletion(5); setQuality(5); setAttitude(5); setNote(''); setParentReminder('');
   }, [openTask?.id]);
 
   const summary = openTask ? summarizeExecution(openTask) : null;
@@ -50,6 +51,7 @@ export function Evaluations() {
   async function submit() {
     if (!openTask) return;
     const ev = makeEvaluation(openTask, { completion, quality, attitude }, basePoints, note.trim() || undefined);
+    if (parentReminder.trim()) ev.parentReminderForNext = parentReminder.trim();
     await db.transaction('rw', db.evaluations, db.tasks, db.points, db.schedules, async () => {
       await db.evaluations.add(ev);
       await db.tasks.update(openTask.id, {
@@ -205,8 +207,15 @@ export function Evaluations() {
                 <div>
                   <div className="text-sm text-white/70 mb-1">备注（可选）</div>
                   <textarea value={note} onChange={e => setNote(e.target.value)}
-                    rows={3}
+                    rows={2}
                     placeholder="给孩子的反馈..."
+                    className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none resize-none" />
+                </div>
+                <div>
+                  <div className="text-sm text-white/70 mb-1">💡 下次提醒（同名任务下次出现时给孩子看）</div>
+                  <textarea value={parentReminder} onChange={e => setParentReminder(e.target.value)}
+                    rows={2}
+                    placeholder="比如：明天先做数学；这次第 3 题不会，可以多练"
                     className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none resize-none" />
                 </div>
               </div>

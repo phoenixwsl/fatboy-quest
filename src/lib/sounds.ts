@@ -1,72 +1,76 @@
 // ============================================================
 // 音效系统（Web Audio 合成，无需外部文件）
-// 用 oscillator + gain envelope 合成几个反馈音
-// 通过 setEnabled(false) 静音
+// R2.1: 加入 3 套音效包 default / cartoon / minimal
+// - default: 电子合成（R1 原配置）
+// - cartoon: 明亮卡通风（高频 + 三角波）
+// - minimal: 短促 click，主要为不打扰
 // ============================================================
 
 export type SoundEffect =
-  | 'tap'        // 轻触反馈
-  | 'kill'       // 击败小怪（击杀）
-  | 'unlock'     // 解锁/升级
-  | 'error'      // 错误/无效操作
-  | 'fanfare'    // 一轮完成 / 里程碑
-  | 'undo';      // 撤回
+  | 'tap' | 'kill' | 'unlock' | 'error' | 'fanfare' | 'undo';
+
+export type SoundPack = 'default' | 'cartoon' | 'minimal';
 
 interface SoundConfig {
-  freq: number | number[];   // Hz, 数组 = 序列
-  duration: number;          // 秒
-  type?: OscillatorType;     // sine/square/triangle/sawtooth
-  gain?: number;             // 音量 0-1
-  decay?: number;            // 衰减系数
+  freq: number | number[];
+  duration: number;
+  type?: OscillatorType;
+  gain?: number;
 }
 
-const PRESETS: Record<SoundEffect, SoundConfig> = {
-  tap:     { freq: 880, duration: 0.05, type: 'sine', gain: 0.15 },
-  kill:    { freq: [440, 660, 880, 1320], duration: 0.35, type: 'square', gain: 0.2 },
-  unlock:  { freq: [523, 659, 784, 1046], duration: 0.5, type: 'sine', gain: 0.25 }, // C-E-G-C 八度
-  error:   { freq: 220, duration: 0.18, type: 'sawtooth', gain: 0.18 },
-  fanfare: { freq: [523, 587, 659, 783, 1046], duration: 0.7, type: 'triangle', gain: 0.3 },
-  undo:    { freq: [440, 330], duration: 0.2, type: 'sine', gain: 0.15 },
+const PACKS: Record<SoundPack, Record<SoundEffect, SoundConfig>> = {
+  default: {
+    tap:     { freq: 880, duration: 0.05, type: 'sine', gain: 0.15 },
+    kill:    { freq: [440, 660, 880, 1320], duration: 0.35, type: 'square', gain: 0.2 },
+    unlock:  { freq: [523, 659, 784, 1046], duration: 0.5, type: 'sine', gain: 0.25 },
+    error:   { freq: 220, duration: 0.18, type: 'sawtooth', gain: 0.18 },
+    fanfare: { freq: [523, 587, 659, 783, 1046], duration: 0.7, type: 'triangle', gain: 0.3 },
+    undo:    { freq: [440, 330], duration: 0.2, type: 'sine', gain: 0.15 },
+  },
+  cartoon: {
+    tap:     { freq: 1320, duration: 0.04, type: 'triangle', gain: 0.18 },
+    kill:    { freq: [659, 880, 1175, 1568], duration: 0.4, type: 'triangle', gain: 0.22 },
+    unlock:  { freq: [659, 880, 1046, 1318, 1760], duration: 0.55, type: 'triangle', gain: 0.28 },
+    error:   { freq: [330, 247], duration: 0.18, type: 'triangle', gain: 0.18 },
+    fanfare: { freq: [659, 784, 988, 1175, 1568], duration: 0.75, type: 'triangle', gain: 0.32 },
+    undo:    { freq: [880, 587], duration: 0.18, type: 'triangle', gain: 0.16 },
+  },
+  minimal: {
+    tap:     { freq: 1000, duration: 0.03, type: 'sine', gain: 0.08 },
+    kill:    { freq: [600, 900], duration: 0.15, type: 'sine', gain: 0.1 },
+    unlock:  { freq: [800, 1000], duration: 0.18, type: 'sine', gain: 0.12 },
+    error:   { freq: 200, duration: 0.1, type: 'sine', gain: 0.1 },
+    fanfare: { freq: [800, 1000, 1200], duration: 0.25, type: 'sine', gain: 0.12 },
+    undo:    { freq: [600, 400], duration: 0.12, type: 'sine', gain: 0.08 },
+  },
 };
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private enabled = true;
   private masterVolume = 1.0;
+  private pack: SoundPack = 'default';
 
-  /**
-   * 设置开关（持久化由调用方负责）
-   */
-  setEnabled(on: boolean) {
-    this.enabled = on;
-  }
+  setEnabled(on: boolean) { this.enabled = on; }
   isEnabled(): boolean { return this.enabled; }
+  setPack(pack: SoundPack) { this.pack = pack; }
+  getPack(): SoundPack { return this.pack; }
 
-  /**
-   * 必须在第一次 user gesture 后初始化 AudioContext
-   * （浏览器策略：autoplay 限制）
-   */
   private ensureContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     if (this.ctx) return this.ctx;
     const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
     if (!Ctx) return null;
-    try {
-      this.ctx = new Ctx();
-      return this.ctx;
-    } catch {
-      return null;
-    }
+    try { this.ctx = new Ctx(); return this.ctx; } catch { return null; }
   }
 
   play(effect: SoundEffect): void {
     if (!this.enabled) return;
     const ctx = this.ensureContext();
     if (!ctx) return;
-    // 恢复挂起的 context（iOS Safari 经常这样）
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
-    const cfg = PRESETS[effect];
+    const cfg = PACKS[this.pack][effect];
     const freqs = Array.isArray(cfg.freq) ? cfg.freq : [cfg.freq];
     const now = ctx.currentTime;
     const stepDur = cfg.duration / freqs.length;
@@ -77,7 +81,6 @@ class SoundEngine {
       const gain = ctx.createGain();
       osc.type = cfg.type ?? 'sine';
       osc.frequency.setValueAtTime(f, now + i * stepDur);
-      // 包络：快速 attack + 指数衰减，避免咔哒声
       gain.gain.setValueAtTime(0, now + i * stepDur);
       gain.gain.linearRampToValueAtTime(baseGain, now + i * stepDur + 0.005);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + i * stepDur + stepDur);
@@ -92,8 +95,15 @@ class SoundEngine {
 export const sounds = new SoundEngine();
 
 /**
- * 静默工具：从 settings 同步开关状态
+ * 从 settings 同步开关 + 声音包
  */
-export function syncFromSettings(soundEnabled: boolean | undefined) {
+export function syncFromSettings(soundEnabled: boolean | undefined, pack?: SoundPack) {
   sounds.setEnabled(soundEnabled !== false);
+  if (pack) sounds.setPack(pack);
 }
+
+export const SOUND_PACK_LABELS: Record<SoundPack, string> = {
+  default: '电子合成（默认）',
+  cartoon: '卡通明亮',
+  minimal: '极简静音',
+};

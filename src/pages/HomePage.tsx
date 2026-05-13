@@ -16,6 +16,8 @@ import { isWeekend } from '../lib/weekendMode';
 import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance, hasInstanceToday } from '../lib/recurrence';
 import { scoreRatio, ratioColorClass } from '../lib/points';
 import { detectHealActions, isHealNeeded } from '../lib/heal';
+import { SkinPicker } from '../components/SkinPicker';
+import { IdleNagBubble } from '../components/IdleNagBubble';
 
 export function HomePage() {
   const nav = useNavigate();
@@ -30,6 +32,7 @@ export function HomePage() {
   const pointsEntries = useLiveQuery(() => db.points.toArray());
   const taskDefs = useLiveQuery(() => db.taskDefinitions.toArray());
   const [addOpen, setAddOpen] = useState(false);
+  const [skinPickerOpen, setSkinPickerOpen] = useState(false);
   const [doneCollapsed, setDoneCollapsed] = useState(true);
   const weekendMode = !!(settings?.weekendModeEnabled !== false && isWeekend(new Date()));
 
@@ -63,8 +66,10 @@ export function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTasks?.length, todaySchedules?.length, today]);
 
-  // 同步音效开关
-  useEffect(() => { syncFromSettings(settings?.soundEnabled); }, [settings?.soundEnabled]);
+  // 同步音效开关 + 声音包
+  useEffect(() => {
+    syncFromSettings(settings?.soundEnabled, settings?.soundPack);
+  }, [settings?.soundEnabled, settings?.soundPack]);
 
   const total = pointsEntries ? totalPoints(pointsEntries) : 0;
   const rank = getRank(total);
@@ -197,7 +202,9 @@ export function HomePage() {
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       >
         <div className="flex items-center gap-4">
-          <PetAvatar skinId={pet?.skinId} size={96} mood={weekendMode ? 'happy' : 'happy'} />
+          <button onClick={() => { sounds.play('tap'); setSkinPickerOpen(true); }} className="active:scale-95 transition-transform">
+            <PetAvatar skinId={pet?.skinId} size={96} mood={weekendMode ? 'happy' : 'happy'} />
+          </button>
           <div className="flex-1">
             <div className="text-lg font-bold">{pet?.name ?? '蛋仔'}</div>
             <div className={`text-sm ${rank.color}`}>{rank.emoji} {rank.name}</div>
@@ -242,19 +249,8 @@ export function HomePage() {
               {pendingTasks.map(t => {
                 const tt = (t.taskType ?? 'normal');
                 const badge = TASK_TYPE_BADGE[tt];
-                return (
-                <div key={t.id} className={`space-card p-3 flex items-center gap-3 ${TASK_TYPE_BORDER[tt]}`}>
-                  <SubjectIcon subject={t.subject} />
-                  <div className="flex-1">
-                    <div className="font-medium flex items-center gap-2 flex-wrap">
-                      {t.title}
-                      {badge && <span className={`text-xs px-1.5 py-0.5 rounded ${badge.class}`}>{badge.label}</span>}
-                      {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">我加的</span>}
-                    </div>
-                    <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟{t.basePoints ? ` · ${t.basePoints} 积分` : ' · 积分由家长评分时给'}</div>
-                  </div>
-                </div>
-              )})}
+                return <PendingTaskCard key={t.id} task={t} tt={tt} badge={badge} />;
+              })}
             </div>
             <button onClick={() => { sounds.play('tap'); nav('/schedule'); }} className="space-btn w-full mt-3">📅 去规划今天</button>
           </div>
@@ -299,9 +295,45 @@ export function HomePage() {
       )}
 
       <ChildAddTaskModal open={addOpen} onClose={() => setAddOpen(false)} settings={settings} />
+      <SkinPicker open={skinPickerOpen} onClose={() => setSkinPickerOpen(false)} />
+      <IdleNagBubble enabled={settings?.idleNagEnabled !== false} />
 
       <div className="mt-6 text-center text-[10px] text-white/30">
         🚀 肥仔大闯关 · {APP_VERSION}
+      </div>
+    </div>
+  );
+}
+
+// R2.1.D: 显示家长留的"下次提醒"
+function PendingTaskCard({ task: t, tt, badge }: { task: any; tt: any; badge: any }) {
+  const lastReminder = useLiveQuery(async () => {
+    const allEvals = await db.evaluations.orderBy('evaluatedAt').reverse().limit(50).toArray();
+    for (const e of allEvals) {
+      if (!e.parentReminderForNext) continue;
+      const srcTask = await db.tasks.get(e.taskId);
+      if (srcTask && srcTask.title === t.title && srcTask.id !== t.id) {
+        return e.parentReminderForNext;
+      }
+    }
+    return undefined;
+  }, [t.title, t.id]);
+
+  return (
+    <div className={`space-card p-3 flex items-center gap-3 ${TASK_TYPE_BORDER[tt as keyof typeof TASK_TYPE_BORDER]}`}>
+      <SubjectIcon subject={t.subject} />
+      <div className="flex-1">
+        <div className="font-medium flex items-center gap-2 flex-wrap">
+          {t.title}
+          {badge && <span className={`text-xs px-1.5 py-0.5 rounded ${badge.class}`}>{badge.label}</span>}
+          {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">我加的</span>}
+        </div>
+        <div className="text-xs text-white/50">{t.estimatedMinutes} 分钟{t.basePoints ? ` · ${t.basePoints} 积分` : ' · 积分由家长评分时给'}</div>
+        {lastReminder && (
+          <div className="mt-1.5 text-xs text-amber-200 bg-amber-500/10 rounded-lg px-2 py-1 border-l-2 border-amber-300">
+            💡 家长说：{lastReminder}
+          </div>
+        )}
       </div>
     </div>
   );

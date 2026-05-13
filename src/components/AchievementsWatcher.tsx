@@ -8,6 +8,7 @@ import {
 } from '../lib/achievements';
 import { totalPoints } from '../lib/points';
 import { sounds } from '../lib/sounds';
+import { detectUnlockedSkins, mergeUnlockedSkins, SKINS } from '../lib/skins';
 
 export function AchievementsWatcher() {
   const tasks = useLiveQuery(() => db.tasks.toArray());
@@ -22,19 +23,54 @@ export function AchievementsWatcher() {
 
   useEffect(() => {
     if (!tasks || !evals || !schedules || !badges || !streak || !points) return;
+    const tot = totalPoints(points);
     const snap = {
       tasks, evaluations: evals, schedules,
       currentStreak: streak.currentStreak,
       longestStreak: streak.longestStreak,
-      totalPoints: totalPoints(points),
+      totalPoints: tot,
       guardCards: streak.guardCards,
     };
     const known = unlockedIds(badges);
-    // 也过滤已经在本次会话队列处理过的，防止 race
     for (const id of processedRef.current) known.add(id);
     const newly = detectNewlyUnlocked(snap, known);
-    if (newly.length === 0) return;
+
+    // 同时检测皮肤解锁
     (async () => {
+      // skin
+      const completedTaskCount = tasks.filter(t => t.status === 'done' || t.status === 'evaluated').length;
+      const shopRedeems = points.filter(p => p.reason === 'shop_redeem').length;
+      const skinSnap = {
+        longestStreak: streak.longestStreak,
+        totalTasksCompleted: completedTaskCount,
+        totalPoints: tot,
+        fiveStarWeeks: evals.filter(e => e.completion === 5 && e.quality === 5 && e.attitude === 5).length >= 3 ? 3 : 0,
+        shopRedeemsCount: shopRedeems,
+      };
+      const detected = detectUnlockedSkins(skinSnap);
+      const pet = await db.pet.get('singleton');
+      if (pet) {
+        const merged = mergeUnlockedSkins(pet.unlockedSkins, detected);
+        if (merged.length > pet.unlockedSkins.length) {
+          await db.pet.update('singleton', { unlockedSkins: merged });
+          // 找到刚解锁的皮肤推到队列
+          const newSkins = merged.filter(id => !pet.unlockedSkins.includes(id));
+          for (const sid of newSkins) {
+            const skin = SKINS.find(s => s.id === sid);
+            if (skin) {
+              queueRef.current.push({
+                id: `skin_unlock_${sid}`,
+                title: `🎨 解锁皮肤：${skin.name}`,
+                description: skin.desc,
+                emoji: '🥚',
+                type: 'visible',
+                check: () => true,
+              });
+            }
+          }
+        }
+      }
+
       for (const a of newly) {
         if (processedRef.current.has(a.id)) continue;
         processedRef.current.add(a.id);
