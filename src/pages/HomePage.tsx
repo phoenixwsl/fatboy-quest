@@ -203,7 +203,15 @@ export function HomePage() {
       >
         <div className="flex items-center gap-4">
           <button onClick={() => { sounds.play('tap'); setSkinPickerOpen(true); }} className="active:scale-95 transition-transform">
-            <PetAvatar skinId={pet?.skinId} size={96} mood={weekendMode ? 'happy' : 'happy'} />
+            <PetAvatar
+              skinId={pet?.skinId}
+              size={96}
+              state={(() => {
+                const h = new Date().getHours();
+                if (h >= 22 || h < 6) return 'sleeping';
+                return 'default';
+              })()}
+            />
           </button>
           <div className="flex-1">
             <div className="text-lg font-bold">{pet?.name ?? '蛋仔'}</div>

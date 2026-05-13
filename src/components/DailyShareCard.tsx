@@ -75,7 +75,7 @@ export function DailyShareCard({
                 </div>
 
                 <div className="flex-1 flex flex-col items-center justify-center -mt-4">
-                  <PetAvatar skinId={petSkinId} size={120} mood="happy" bobbing={false} />
+                  <PetAvatar skinId={petSkinId} size={120} state="victory" bobbing={false} />
                   <div className="mt-3 text-2xl font-black drop-shadow-lg">
                     {childName} 今日通关 ✨
                   </div>

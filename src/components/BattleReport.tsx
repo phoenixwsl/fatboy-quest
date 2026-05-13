@@ -61,7 +61,7 @@ export function BattleReport({
                 transition={{ duration: 1.2, repeat: Infinity }}
                 className="inline-block"
               >
-                <PetAvatar skinId={petSkinId} size={140} mood="happy" bobbing={false} />
+                <PetAvatar skinId={petSkinId} size={140} state="celebrate" bobbing={false} />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}

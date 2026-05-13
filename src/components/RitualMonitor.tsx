@@ -97,7 +97,7 @@ export function RitualMonitor() {
               <>
                 <div className="text-5xl mb-2">🌙</div>
                 <div className="text-xl font-bold mb-3">今日总结</div>
-                <PetAvatar skinId={pet?.skinId} size={80} mood="sleepy" bobbing={false} />
+                <PetAvatar skinId={pet?.skinId} size={80} state="sleeping" bobbing={false} />
                 <div className="my-4 space-y-2 text-left">
                   <Row label="✅ 完成" value={`${active.payload.completed}/${active.payload.total} 项`} />
                   <Row label="⭐ 获得" value={`${active.payload.points} 积分`} />

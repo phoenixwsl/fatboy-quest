@@ -570,7 +570,7 @@ function TaskActiveCard({
         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
         className={`space-card p-6 text-center ${overdue ? 'ring-2 ring-amber-400/60' : ''}`}
       >
-        <PetAvatar skinId={petSkinId} size={120} mood={overdue ? 'sleepy' : 'normal'} />
+        <PetAvatar skinId={petSkinId} size={120} state={overdue ? 'sleeping' : 'focused'} />
         <div className="mt-3 text-sm text-white/60">下一只小怪</div>
         <div className="text-2xl font-bold mt-1">{task.title}</div>
         <div className="text-sm text-white/60 mt-1">⏱ 预估 {task.estimatedMinutes} 分钟 · ⭐ {task.basePoints || '由家长评分时定'}</div>
@@ -595,7 +595,7 @@ function TaskActiveCard({
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
       className="space-card p-6 text-center"
     >
-      <PetAvatar skinId={petSkinId} size={120} mood="happy" />
+      <PetAvatar skinId={petSkinId} size={120} state={remSec < 5 * 60 ? 'tense' : 'focused'} />
       <div className="mt-3 text-sm text-white/60">当前小怪</div>
       <div className="text-2xl font-bold mt-1">{task.title}</div>
 
