@@ -31,6 +31,7 @@ const TYPE_OPTIONS: { id: TaskType; label: string; desc: string }[] = [
 export function TaskManager() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const allTasks = useLiveQuery(() => db.tasks.toArray());
   const allDefs = useLiveQuery(() => db.taskDefinitions.toArray());
   const hiddenRows = useLiveQuery(() => db.templateHidden.toArray());
@@ -64,7 +65,14 @@ export function TaskManager() {
   }
 
   async function hideTemplate(t: TaskTemplate) {
-    if (!confirm(`从模板列表移除「${t.title}」？`)) return;
+    const ok = await confirmModal({
+      title: `从模板列表移除「${t.title}」？`,
+      body: '只是隐藏模板，不影响已经创建的任务。',
+      emoji: '🚫',
+      tone: 'warn',
+      confirmLabel: '移除',
+    });
+    if (!ok) return;
     await db.templateHidden.put({ title: t.title, hiddenAt: Date.now() });
   }
 
@@ -109,11 +117,25 @@ export function TaskManager() {
   }
 
   async function delTask(id: string) {
-    if (!confirm('确定删除这项作业？')) return;
+    const ok = await confirmModal({
+      title: '删除这项作业？',
+      body: '作业会从列表里消失，不可恢复。',
+      emoji: '🗑',
+      tone: 'danger',
+      confirmLabel: '删除',
+    });
+    if (!ok) return;
     await db.tasks.delete(id);
   }
   async function delDef(d: TaskDefinition) {
-    if (!confirm(`删除循环任务「${d.title}」？已生成的实例不受影响。`)) return;
+    const ok = await confirmModal({
+      title: `删除循环任务「${d.title}」？`,
+      body: '已经生成的任务实例不受影响。\n以后不会再自动生成新实例。',
+      emoji: '🗑',
+      tone: 'danger',
+      confirmLabel: '删除',
+    });
+    if (!ok) return;
     await db.taskDefinitions.delete(d.id);
   }
   async function toggleActive(d: TaskDefinition) {

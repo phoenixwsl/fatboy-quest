@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, initializeDB } from './db';
 import { SpaceBackground } from './components/SpaceBackground';
 import { Toast } from './components/Toast';
+import { ConfirmModal } from './components/ConfirmModal';
 import { SetupWizard } from './pages/SetupWizard';
 import { HomePage } from './pages/HomePage';
 import { SchedulePage } from './pages/SchedulePage';
@@ -84,6 +85,7 @@ export default function App() {
         </HashRouter>
       </div>
       <Toast />
+      <ConfirmModal />
       {settings.setupComplete && <RitualMonitor />}
       {settings.setupComplete && <AchievementsWatcher />}
     </div>

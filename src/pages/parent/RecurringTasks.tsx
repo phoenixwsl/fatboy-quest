@@ -18,6 +18,7 @@ const SUBJECTS: { id: SubjectType; label: string }[] = [
 export function RecurringTasks() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const defs = useLiveQuery(() => db.taskDefinitions.toArray());
   const allTasks = useLiveQuery(() => db.tasks.toArray());
 
@@ -51,7 +52,14 @@ export function RecurringTasks() {
     await db.taskDefinitions.update(d.id, { active: !d.active });
   }
   async function delDef(d: TaskDefinition) {
-    if (!confirm(`删除「${d.title}」？已生成的任务实例不受影响。`)) return;
+    const ok = await confirmModal({
+      title: `删除「${d.title}」？`,
+      body: '已生成的任务实例不受影响。\n以后不会再自动生成新实例。',
+      emoji: '🗑',
+      tone: 'danger',
+      confirmLabel: '删除',
+    });
+    if (!ok) return;
     await db.taskDefinitions.delete(d.id);
   }
 

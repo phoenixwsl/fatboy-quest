@@ -10,6 +10,7 @@ const EMOJIS = ['🍦', '🥤', '🍕', '🍔', '🍩', '🍪', '🎮', '📺', 
 export function ShopManager() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const items = useLiveQuery(() => db.shop.toArray());
 
   const [name, setName] = useState('');
@@ -33,7 +34,14 @@ export function ShopManager() {
   }
 
   async function delItem(id: string) {
-    if (!confirm('确定删除？历史兑换记录会保留')) return;
+    const ok = await confirmModal({
+      title: '删除这个奖励？',
+      body: '历史兑换记录会保留，孩子那边不再能选这个奖励。',
+      emoji: '🗑',
+      tone: 'danger',
+      confirmLabel: '删除',
+    });
+    if (!ok) return;
     await db.shop.delete(id);
   }
 

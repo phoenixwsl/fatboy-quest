@@ -12,6 +12,7 @@ const EMOJIS = ['👨', '👩', '👴', '👵', '👦', '👧', '🧑', '🐱'];
 export function Recipients() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const list = useLiveQuery(() => db.recipients.toArray());
 
   const [label, setLabel] = useState('');
@@ -44,7 +45,14 @@ export function Recipients() {
   }
 
   async function del(id: string) {
-    if (!confirm('确定删除？')) return;
+    const ok = await confirmModal({
+      title: '删除这个接收人？',
+      body: 'Ta 不会再收到推送通知。',
+      emoji: '🗑',
+      tone: 'danger',
+      confirmLabel: '删除',
+    });
+    if (!ok) return;
     await db.recipients.delete(id);
   }
 

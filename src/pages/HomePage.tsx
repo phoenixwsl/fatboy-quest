@@ -22,6 +22,7 @@ import { IdleNagBubble } from '../components/IdleNagBubble';
 export function HomePage() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const today = todayString();
   const pet = useLiveQuery(() => db.pet.get('singleton'));
   const settings = useLiveQuery(() => db.settings.get('singleton'));
@@ -104,7 +105,14 @@ export function HomePage() {
   async function undoComplete(taskId: string) {
     const t = await db.tasks.get(taskId);
     if (!t || !canUndoCompletion(t)) return;
-    if (!confirm('确定撤回？这一项会回到"待开始"，可以重新点开始。')) return;
+    const ok = await confirmModal({
+      title: '撤回这一项？',
+      body: '会回到"待开始"，可以重新点开始。\n已得的积分先不动。',
+      emoji: '↩️',
+      tone: 'warn',
+      confirmLabel: '撤回',
+    });
+    if (!ok) return;
     await db.tasks.update(taskId, {
       status: 'scheduled',
       completedAt: undefined,

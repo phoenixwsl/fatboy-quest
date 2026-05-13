@@ -14,6 +14,7 @@ import type { ShopItem, Redemption } from '../types';
 export function ShopPage() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const allItems = useLiveQuery(() => db.shop.toArray());
   const pointsEntries = useLiveQuery(() => db.points.toArray());
   const streak = useLiveQuery(() => db.streak.get('singleton'));
@@ -79,7 +80,14 @@ export function ShopPage() {
   }
 
   async function useItem(red: Redemption) {
-    if (!confirm(`确定使用「${red.shopItemName}」？使用后请家长兑现承诺。`)) return;
+    const ok = await confirmModal({
+      title: `使用「${red.shopItemName}」？`,
+      body: '使用后请家长兑现承诺 🎉',
+      emoji: red.shopItemEmoji ?? '🎁',
+      tone: 'info',
+      confirmLabel: '使用',
+    });
+    if (!ok) return;
     await db.redemptions.update(red.id, { usedAt: Date.now() });
     sounds.play('fanfare');
     toast(`✓ 已使用 ${red.shopItemName}`, 'success');

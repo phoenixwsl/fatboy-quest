@@ -28,6 +28,7 @@ const PAUSE_LIMIT_SEC = 3 * 60; // 单次任务暂停最多 3 分钟
 export function QuestPage() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const today = todayString();
   const settings = useLiveQuery(() => db.settings.get('singleton'));
   const pet = useLiveQuery(() => db.pet.get('singleton'));
@@ -331,7 +332,14 @@ export function QuestPage() {
         sounds.play('error');
         return;
       }
-      if (!confirm(`${offer.description}？\n（消耗 ${offer.costPoints} 积分换 ${offer.addMinutes} 分钟）`)) return;
+      const ok = await confirmModal({
+        title: offer.description + '？',
+        body: `消耗 ${offer.costPoints} 积分换 ${offer.addMinutes} 分钟`,
+        emoji: '⏱',
+        tone: 'warn',
+        confirmLabel: `花 ${offer.costPoints} 分`,
+      });
+      if (!ok) return;
     }
     await db.transaction('rw', db.tasks, db.points, async () => {
       await db.tasks.update(taskId, {
@@ -359,7 +367,14 @@ export function QuestPage() {
   async function undoComplete(taskId: string) {
     const t = await db.tasks.get(taskId);
     if (!t || !canUndoCompletion(t)) return;
-    if (!confirm('确定撤回？这一项会回到"待开始"，可以重新点开始。')) return;
+    const ok = await confirmModal({
+      title: '撤回这一项？',
+      body: '会回到"待开始"，可以重新点开始。\n已得的积分先不动。',
+      emoji: '↩️',
+      tone: 'warn',
+      confirmLabel: '撤回',
+    });
+    if (!ok) return;
     await db.tasks.update(taskId, {
       status: 'scheduled',
       completedAt: undefined,
@@ -385,13 +400,20 @@ export function QuestPage() {
 
   // === 求助 ===
   async function sendHelp(taskTitle: string) {
-    if (!confirm('要给爸妈发"我需要帮助"的通知吗？')) return;
+    const ok = await confirmModal({
+      title: '要给爸妈发求助吗？',
+      body: '马上会推送一条"我需要帮助"的通知到爸妈手机。',
+      emoji: '🙋',
+      tone: 'help',
+      confirmLabel: '发出求助',
+    });
+    if (!ok) return;
     const recipients = await db.recipients.toArray();
     const childName = settings?.childName ?? '肥仔';
     const result = await pushToRecipients(recipients, 'help', messages.help(childName, taskTitle));
-    const ok = result.some(r => r.ok);
-    sounds.play(ok ? 'unlock' : 'error');
-    toast(ok ? '✓ 已通知爸妈' : '没发出去，检查 Bark 配置', ok ? 'success' : 'warn');
+    const sent = result.some(r => r.ok);
+    sounds.play(sent ? 'unlock' : 'error');
+    toast(sent ? '✓ 已通知爸妈' : '没发出去，检查 Bark 配置', sent ? 'success' : 'warn');
   }
 
   // === 完成 ===
@@ -514,7 +536,14 @@ export function QuestPage() {
     const lockedCompleted = (todaySchedulesForHeal ?? []).filter(s => s.lockedAt && s.completedAt).length;
 
     async function emergencyResetTasksToPending() {
-      if (!confirm(`把今日 ${inFlightTasks.length} 个卡住的任务全部重置为"待安排"？\n这样你可以重新规划。不影响已完成/已评分的任务。`)) return;
+      const ok = await confirmModal({
+        title: `重置 ${inFlightTasks.length} 个卡住的任务？`,
+        body: '会重新变成"待安排"，可以重新规划。\n✓ 不影响已完成/已评分的任务',
+        emoji: '🔧',
+        tone: 'danger',
+        confirmLabel: '紧急修复',
+      });
+      if (!ok) return;
       for (const t of inFlightTasks) {
         await db.tasks.update(t.id, {
           status: 'pending',

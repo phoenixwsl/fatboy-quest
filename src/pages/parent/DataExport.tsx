@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/useAppStore';
 export function DataExport() {
   const nav = useNavigate();
   const toast = useAppStore(s => s.showToast);
+  const confirmModal = useAppStore(s => s.confirmModal);
   const fileInput = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState<string>('');
 
@@ -46,7 +47,14 @@ export function DataExport() {
       toast(`备份来自更新的版本（v${data.schemaVersion}），请先升级 App`, 'warn');
       return;
     }
-    if (!confirm('确定恢复备份？当前数据将被覆盖。')) return;
+    const ok = await confirmModal({
+      title: '恢复备份？',
+      body: '⚠️ 当前所有数据会被备份文件**完全覆盖**，不可撤销。\n请确认这是正确的备份文件。',
+      emoji: '⚠️',
+      tone: 'danger',
+      confirmLabel: '确认恢复',
+    });
+    if (!ok) return;
 
     await db.transaction('rw',
       [db.tasks, db.evaluations, db.schedules, db.points, db.streak, db.pet,
