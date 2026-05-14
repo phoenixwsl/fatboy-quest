@@ -36,12 +36,17 @@ const CAB_H = CAB_BASE_Y - CAB_TOP_Y;  // 305
 const CAB_L_X = 80;   const CAB_L_W = 375;
 const CAB_M_X = 575;  const CAB_M_W = 450;
 const CAB_R_X = 1145; const CAB_R_W = 375;
-const DESK_TOP_Y = 870;
-const FB_SIZE = 260;
-const FB_Y = 600;
+// M1.1: desk shrunk to ~60% width, top raised for Z-depth feel
+const DESK_X1 = 320;
+const DESK_X2 = 1280;
+const DESK_W = DESK_X2 - DESK_X1;   // 960
+const DESK_TOP_Y = 830;              // was 870 → up 40 to give thicker visible top
+const FB_SIZE = 260;                 // unchanged per user request
+const FB_Y = 610;                    // adjusted so head/shoulders show above new chair
 const CHAIR_CX = STAGE_W / 2;
-const CHAIR_W = 360;
-const CHAIR_TOP_Y = 720;
+const CHAIR_W = 300;                 // was 360 → shrunk
+const CHAIR_H = 100;                 // was 150 → much smaller, like office chair backrest
+const CHAIR_TOP_Y = DESK_TOP_Y - CHAIR_H;  // 730
 const PAINT_Y = 200;
 const PAINT_H = 130;
 const P1_W = 210;
@@ -50,9 +55,10 @@ const P3_W = 210;
 const P1_X = CAB_L_X + (CAB_L_W - P1_W) / 2;  // 162.5
 const P2_X = CAB_M_X + (CAB_M_W - P2_W) / 2;  // 670
 const P3_X = CAB_R_X + (CAB_R_W - P3_W) / 2;  // 1227.5
-const PLANT_L_CX = 530;
-const PLANT_R_CX = 1070;
-const PLANT_BASE_Y = FLOOR_LINE_Y + 50;  // 740
+// M1.1: plants moved from behind-desk to flanking the desk on the floor
+const PLANT_L_CX = 200;
+const PLANT_R_CX = 1400;
+const PLANT_BASE_Y = 820;            // sits on floor next to desk
 
 // =====================================================
 //  Hook: scale stage to fit viewport (16:10 letterbox)
@@ -317,106 +323,178 @@ function CabinetFloorShadow({ x, w }: { x: number; w: number }) {
   );
 }
 
-// ----- 左柜 · 经典实木 (空骨架 + 9 个空槽位 M1) -----
+// ============================================================
+// M1.1: cabinets redesigned — opaque doors (no peeking inside),
+//   theme emblem on door front for identity, 3D depth (top board,
+//   side shadow, raised panels, deeper base)
+// ============================================================
+
+// ----- 左柜 · 经典实木 + 金色奖杯铜雕门 -----
 function ClassicTrophyCabinet({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
-  const PED_H = 24;
+  const PED_H = 20;
+  const TOP_BOARD = 12;  // 顶板厚度
+  const BASE_H = 26;     // 底座厚度
   return (
-    <div className="study-cab study-cab-classic" style={{ left: x - 14, top: y - 8 - PED_H, width: w + 28, height: h + 8 + PED_H + 22 }}>
-      {/* Pediment (decorative top, arch + medallion) */}
+    <div className="study-cab study-cab-classic" style={{ left: x - 14, top: y - 8 - PED_H, width: w + 28, height: h + 8 + PED_H + BASE_H + 12 }}>
+      {/* Pediment (decorative top) */}
       <div className="cab-classic-pediment" style={{ width: w + 28, height: PED_H }} />
       <div className="cab-classic-pediment-inner" style={{ left: 4, top: 2, width: w + 20, height: PED_H - 4 }} />
-      {/* Arch */}
-      <svg className="cab-classic-arch" viewBox={`0 0 ${w + 28} 30`} style={{ left: 0, top: -6, width: w + 28, height: 30 }} preserveAspectRatio="none">
-        <path d={`M ${(w + 28) / 2 - 50} 20 Q ${(w + 28) / 2} -10 ${(w + 28) / 2 + 50} 20`} fill="none" stroke="var(--cab-classic-dark)" strokeWidth="3" />
-      </svg>
-      {/* Medallion */}
-      <div className="cab-classic-medallion" style={{ left: (w + 28) / 2 - 10, top: 2 }} />
-      <div className="cab-classic-medallion-inner" style={{ left: (w + 28) / 2 - 6, top: 6 }} />
+      {/* Center medallion on pediment */}
+      <div className="cab-classic-medallion" style={{ left: (w + 28) / 2 - 9, top: 1 }} />
+      <div className="cab-classic-medallion-inner" style={{ left: (w + 28) / 2 - 5, top: 5 }} />
 
-      {/* Body */}
-      <div className="cab-classic-body" style={{ left: 8, top: PED_H + 8 - 8, width: w + 12, height: h + 14 }}>
-        <div className="cab-classic-body-frame" style={{ left: 4, top: 4, width: w + 4, height: h + 6 }} />
-        <div className="cab-classic-body-inner" style={{ left: 10, top: 8, width: w - 8, height: h - 40 }}>
-          {/* Spotlight */}
-          <div className="cab-spotlight" />
-          {/* Shelves (2 horizontal dividers) */}
-          <div className="cab-shelf" style={{ top: `${100 / 3}%` }} />
-          <div className="cab-shelf" style={{ top: `${200 / 3}%` }} />
-          {/* 9 empty trophy slots (3×3) */}
-          <div className="cab-grid cab-grid-3x3">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="cab-slot cab-slot-empty">
-                <span className="cab-slot-q">?</span>
-              </div>
-            ))}
+      {/* Cabinet body */}
+      <div className="cab-classic-body" style={{ left: 8, top: PED_H, width: w + 12, height: h + 14 }}>
+        {/* Top board (slight 3D perspective hint) */}
+        <div className="cab-classic-top-board" style={{ width: w + 12, height: TOP_BOARD }} />
+        {/* Door frame */}
+        <div className="cab-classic-door-frame" style={{ left: 4, top: TOP_BOARD, width: w + 4, height: h + 6 - TOP_BOARD }}>
+          {/* Door */}
+          <div className="cab-classic-door">
+            {/* Raised panel border */}
+            <div className="cab-classic-door-panel">
+              {/* Center: large trophy emblem */}
+              <ClassicDoorEmblem />
+            </div>
+            {/* Door knob */}
+            <div className="cab-classic-knob" />
           </div>
-          {/* Glass divider + brass handles */}
-          <div className="cab-classic-glass-divider" />
-          <div className="cab-classic-handle cab-classic-handle-l" />
-          <div className="cab-classic-handle cab-classic-handle-r" />
-          {/* Glass reflections */}
-          <div className="cab-glass-reflect cab-glass-reflect-1" />
-          <div className="cab-glass-reflect cab-glass-reflect-2" />
         </div>
+        {/* Right edge shadow (light from upper-left) */}
+        <div className="cab-3d-right-shadow" style={{ width: 5, top: TOP_BOARD, height: h + 6 - TOP_BOARD }} />
       </div>
 
-      {/* Bottom plate (gold) */}
-      <div className="cab-classic-plate" style={{ left: 22, top: PED_H + h - 30, width: w - 12 }}>
-        <span className="cab-plate-text study-num">收藏 0 件</span>
-      </div>
-
-      {/* Floor base */}
-      <div className="cab-classic-base" style={{ left: 0, top: PED_H + h - 6 + 8, width: w + 28 }} />
-      <div className="cab-classic-base-inner" style={{ left: 4, top: PED_H + h - 6 + 10, width: w + 20 }} />
+      {/* Floor base (thicker, with visible top surface) */}
+      <div className="cab-classic-base" style={{ left: 0, top: PED_H + h + 8, width: w + 28, height: BASE_H }} />
+      <div className="cab-classic-base-top" style={{ left: 4, top: PED_H + h + 6, width: w + 20, height: 4 }} />
       {/* 2 square feet */}
-      <div className="cab-classic-foot" style={{ left: 10, top: PED_H + h + 18 }} />
-      <div className="cab-classic-foot" style={{ left: w + 6, top: PED_H + h + 18 }} />
+      <div className="cab-classic-foot" style={{ left: 10, top: PED_H + h + 8 + BASE_H }} />
+      <div className="cab-classic-foot" style={{ left: w + 6, top: PED_H + h + 8 + BASE_H }} />
     </div>
   );
 }
 
-// ----- 中柜 · 现代银灰 (LED 灯带 + 4×2 槽位) -----
-function ModernLegoCabinet({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+// 左柜门图案：大金色奖杯
+function ClassicDoorEmblem() {
   return (
-    <div className="study-cab study-cab-modern" style={{ left: x - 10, top: y - 4, width: w + 20, height: h + 26 }}>
-      {/* Outer frame */}
+    <svg className="cab-door-emblem" viewBox="0 0 120 160" preserveAspectRatio="xMidYMid meet">
+      {/* Trophy cup body */}
+      <defs>
+        <linearGradient id="trophy-gold" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#FFE182" />
+          <stop offset="50%" stopColor="#F0C350" />
+          <stop offset="100%" stopColor="#AF8228" />
+        </linearGradient>
+      </defs>
+      {/* Handles */}
+      <path d="M 28 50 Q 12 50 12 72 Q 12 88 28 88" stroke="url(#trophy-gold)" strokeWidth="6" fill="none" strokeLinecap="round" />
+      <path d="M 92 50 Q 108 50 108 72 Q 108 88 92 88" stroke="url(#trophy-gold)" strokeWidth="6" fill="none" strokeLinecap="round" />
+      {/* Cup */}
+      <path d="M 26 42 L 94 42 L 88 96 Q 60 110 32 96 Z" fill="url(#trophy-gold)" stroke="#8C5523" strokeWidth="1.5" />
+      {/* Rim */}
+      <ellipse cx="60" cy="42" rx="34" ry="5" fill="#FFE182" stroke="#8C5523" strokeWidth="1" />
+      {/* Star on cup */}
+      <polygon
+        points={(() => {
+          const cx = 60, cy = 72;
+          const pts: string[] = [];
+          for (let i = 0; i < 10; i++) {
+            const ang = (-90 + 36 * i) * Math.PI / 180;
+            const r = i % 2 === 0 ? 14 : 6;
+            pts.push(`${(cx + r * Math.cos(ang)).toFixed(1)},${(cy + r * Math.sin(ang)).toFixed(1)}`);
+          }
+          return pts.join(' ');
+        })()}
+        fill="#FFFFFF" opacity="0.85"
+      />
+      {/* Stem */}
+      <rect x="54" y="106" width="12" height="14" fill="#AF8228" />
+      {/* Base */}
+      <rect x="42" y="120" width="36" height="10" rx="2" fill="url(#trophy-gold)" stroke="#8C5523" strokeWidth="1" />
+      <rect x="38" y="130" width="44" height="6" rx="1" fill="#8C5523" />
+    </svg>
+  );
+}
+
+// ----- 中柜 · 现代银灰 + LEGO logo 门 -----
+function ModernLegoCabinet({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+  const TOP_BOARD = 10;
+  const BASE_H = 22;
+  return (
+    <div className="study-cab study-cab-modern" style={{ left: x - 10, top: y - 4, width: w + 20, height: h + 4 + BASE_H + 14 }}>
+      {/* Outer metal frame */}
       <div className="cab-modern-outer" style={{ width: w + 8, height: h + 8 }} />
       <div className="cab-modern-inner-frame" style={{ left: 2, top: 2, width: w + 4, height: h + 4 }} />
-      <div className="cab-modern-cavity" style={{ left: 12, top: 12, width: w - 12, height: h - 44 }}>
-        {/* LED strip */}
-        <div className="cab-modern-led-bar" />
-        <div className="cab-modern-led-glow" />
-        {/* Shelves (4×2 grid, so 3 dividers) */}
-        <div className="cab-modern-grid">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="cab-slot cab-slot-empty cab-modern-slot">
-              <span className="cab-slot-q">?</span>
-            </div>
-          ))}
-        </div>
-        {/* Big diagonal glass reflection */}
-        <div className="cab-glass-reflect cab-modern-glass-reflect" />
+      {/* Top board (silver, slight highlight strip) */}
+      <div className="cab-modern-top-board" style={{ left: 6, top: 6, width: w + 0, height: TOP_BOARD }} />
+      {/* LED strip (decorative — under top board) */}
+      <div className="cab-modern-led-bar" style={{ left: 14, top: 6 + TOP_BOARD, width: w - 16 }} />
+      {/* Door */}
+      <div className="cab-modern-door" style={{ left: 10, top: 6 + TOP_BOARD + 10, width: w, height: h - TOP_BOARD - 32 }}>
+        <ModernDoorEmblem />
+        {/* Vertical handle (modern minimalist) */}
+        <div className="cab-modern-handle" />
       </div>
-      {/* Bottom plate */}
-      <div className="cab-modern-plate" style={{ left: 18, top: h - 26, width: w - 16 }}>
-        <span className="cab-plate-text-dk study-num">收藏 0 件</span>
-      </div>
+      {/* Right edge shadow */}
+      <div className="cab-3d-right-shadow" style={{ width: 5, top: 6 + TOP_BOARD, height: h - TOP_BOARD - 10 }} />
+
       {/* Floor base */}
-      <div className="cab-modern-base" style={{ left: 4, top: h + 6, width: w + 12 }} />
-      <div className="cab-modern-base-inner" style={{ left: 8, top: h + 8, width: w + 4 }} />
+      <div className="cab-modern-base" style={{ left: 0, top: h + 4, width: w + 20, height: BASE_H }} />
+      <div className="cab-modern-base-top" style={{ left: 4, top: h + 2, width: w + 12, height: 4 }} />
       {/* 2 thin metal feet */}
-      <div className="cab-modern-foot" style={{ left: 36, top: h + 22 }} />
-      <div className="cab-modern-foot" style={{ left: w - 16, top: h + 22 }} />
+      <div className="cab-modern-foot" style={{ left: 36, top: h + 4 + BASE_H }} />
+      <div className="cab-modern-foot" style={{ left: w - 16, top: h + 4 + BASE_H }} />
     </div>
   );
 }
 
-// ----- 右柜 · 趣味 (弧形顶 + 紫红内衬 + 3×3 槽位 + 圆脚) -----
-function PlayfulToyCabinet({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
-  const ARCH_H = 26;
+// 中柜门图案：经典 LEGO 黄色 logo
+function ModernDoorEmblem() {
   return (
-    <div className="study-cab study-cab-playful" style={{ left: x - 12, top: y - ARCH_H, width: w + 24, height: h + ARCH_H + 26 }}>
-      {/* Arch top */}
+    <svg className="cab-door-emblem" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="lego-yellow" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#FFD93D" />
+          <stop offset="100%" stopColor="#F0B722" />
+        </linearGradient>
+        <linearGradient id="lego-red" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#E22D2D" />
+          <stop offset="100%" stopColor="#B81818" />
+        </linearGradient>
+        <linearGradient id="lego-blue" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#4A92E0" />
+          <stop offset="100%" stopColor="#1F5FAD" />
+        </linearGradient>
+      </defs>
+
+      {/* Decorative small bricks top-left and bottom-right */}
+      <g transform="translate(20 30)">
+        <rect x="0" y="6" width="38" height="22" rx="3" fill="url(#lego-blue)" stroke="#11366B" strokeWidth="1" />
+        <circle cx="8" cy="6" r="5" fill="url(#lego-blue)" stroke="#11366B" strokeWidth="1" />
+        <circle cx="20" cy="6" r="5" fill="url(#lego-blue)" stroke="#11366B" strokeWidth="1" />
+        <circle cx="32" cy="6" r="5" fill="url(#lego-blue)" stroke="#11366B" strokeWidth="1" />
+      </g>
+      <g transform="translate(140 145)">
+        <rect x="0" y="6" width="38" height="22" rx="3" fill="url(#lego-red)" stroke="#7A1010" strokeWidth="1" />
+        <circle cx="8" cy="6" r="5" fill="url(#lego-red)" stroke="#7A1010" strokeWidth="1" />
+        <circle cx="20" cy="6" r="5" fill="url(#lego-red)" stroke="#7A1010" strokeWidth="1" />
+        <circle cx="32" cy="6" r="5" fill="url(#lego-red)" stroke="#7A1010" strokeWidth="1" />
+      </g>
+
+      {/* Center: LEGO yellow square + red "LEGO" text */}
+      <rect x="48" y="68" width="104" height="68" rx="14" fill="url(#lego-yellow)" stroke="#000" strokeWidth="3" />
+      <text x="100" y="116" textAnchor="middle" fontFamily="Impact, 'Arial Black', sans-serif" fontSize="38" fontWeight="900" fill="url(#lego-red)" stroke="#000" strokeWidth="1.5">LEGO</text>
+    </svg>
+  );
+}
+
+// ----- 右柜 · 趣味紫木 + 玩具图案门 -----
+function PlayfulToyCabinet({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+  const ARCH_H = 22;
+  const BASE_H = 26;
+  return (
+    <div className="study-cab study-cab-playful" style={{ left: x - 12, top: y - ARCH_H, width: w + 24, height: h + ARCH_H + BASE_H + 12 }}>
+      {/* Arched top */}
       <div className="cab-playful-arch" style={{ left: 0, top: 0, width: w + 24, height: ARCH_H + 6 }}>
         <div className="cab-playful-arch-outer" />
         <div className="cab-playful-arch-inner" />
@@ -424,48 +502,83 @@ function PlayfulToyCabinet({ x, y, w, h }: { x: number; y: number; w: number; h:
 
       {/* Body */}
       <div className="cab-playful-body" style={{ left: 6, top: ARCH_H, width: w + 12, height: h + 8 }}>
-        <div className="cab-playful-body-frame" style={{ left: 4, top: 4, width: w + 4, height: h + 2 }} />
-        <div className="cab-playful-body-inner" style={{ left: 12, top: ARCH_H - 8, width: w - 8, height: h - 38 }}>
-          {/* Spotlight */}
-          <div className="cab-spotlight" />
-          {/* Wooden shelves (visible) */}
-          <div className="cab-playful-shelf" style={{ top: `${100 / 3}%` }} />
-          <div className="cab-playful-shelf" style={{ top: `${200 / 3}%` }} />
-          {/* 9 empty slots */}
-          <div className="cab-grid cab-grid-3x3">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="cab-slot cab-slot-empty">
-                <span className="cab-slot-q">?</span>
-              </div>
-            ))}
-          </div>
+        {/* Top board */}
+        <div className="cab-playful-top-board" style={{ width: w + 12, height: 10 }} />
+        {/* Door */}
+        <div className="cab-playful-door" style={{ left: 4, top: 10, width: w + 4, height: h - 6 }}>
+          <PlayfulDoorEmblem />
+          <div className="cab-playful-knob" />
         </div>
-      </div>
-
-      {/* Bottom plate (wood) */}
-      <div className="cab-playful-plate" style={{ left: 20, top: ARCH_H + h - 30, width: w - 12 }}>
-        <span className="cab-plate-text-dk study-num">收藏 0 件</span>
+        {/* Right edge shadow */}
+        <div className="cab-3d-right-shadow" style={{ width: 5, top: 10, height: h - 6 }} />
       </div>
 
       {/* Floor base */}
-      <div className="cab-playful-base" style={{ left: 0, top: ARCH_H + h + 4, width: w + 24 }} />
-      <div className="cab-playful-base-inner" style={{ left: 4, top: ARCH_H + h + 6, width: w + 16 }} />
+      <div className="cab-playful-base" style={{ left: 0, top: ARCH_H + h + 8, width: w + 24, height: BASE_H }} />
+      <div className="cab-playful-base-top" style={{ left: 4, top: ARCH_H + h + 6, width: w + 16, height: 4 }} />
       {/* 2 round feet */}
-      <div className="cab-playful-foot" style={{ left: 10, top: ARCH_H + h + 20 }} />
-      <div className="cab-playful-foot" style={{ left: w + 2, top: ARCH_H + h + 20 }} />
+      <div className="cab-playful-foot" style={{ left: 10, top: ARCH_H + h + 8 + BASE_H }} />
+      <div className="cab-playful-foot" style={{ left: w + 2, top: ARCH_H + h + 8 + BASE_H }} />
     </div>
   );
 }
 
+// 右柜门图案：玩具组合（机器人 + 火箭 + 球）
+function PlayfulDoorEmblem() {
+  return (
+    <svg className="cab-door-emblem" viewBox="0 0 200 220" preserveAspectRatio="xMidYMid meet">
+      {/* Robot (left) */}
+      <g transform="translate(35 60)">
+        {/* Head */}
+        <rect x="8" y="0" width="36" height="32" rx="6" fill="#E8E8EC" stroke="#3A3A40" strokeWidth="1.5" />
+        <rect x="14" y="8" width="8" height="8" rx="1" fill="#4A92E0" />
+        <rect x="30" y="8" width="8" height="8" rx="1" fill="#4A92E0" />
+        <rect x="20" y="22" width="12" height="3" fill="#3A3A40" />
+        {/* Antenna */}
+        <line x1="26" y1="0" x2="26" y2="-8" stroke="#3A3A40" strokeWidth="2" />
+        <circle cx="26" cy="-10" r="3" fill="#E22D2D" />
+        {/* Body */}
+        <rect x="4" y="32" width="44" height="38" rx="4" fill="#D2D7E1" stroke="#3A3A40" strokeWidth="1.5" />
+        <circle cx="26" cy="48" r="6" fill="#F0C350" stroke="#3A3A40" strokeWidth="1" />
+      </g>
+
+      {/* Rocket (right) */}
+      <g transform="translate(120 30)">
+        <polygon points="22,0 36,30 8,30" fill="#E8E8EC" stroke="#3A3A40" strokeWidth="1.5" />
+        <rect x="8" y="30" width="28" height="44" fill="#FFFFFF" stroke="#3A3A40" strokeWidth="1.5" />
+        <circle cx="22" cy="46" r="5" fill="#4A92E0" stroke="#3A3A40" strokeWidth="1" />
+        {/* Wings */}
+        <polygon points="8,74 0,90 8,90" fill="#E22D2D" stroke="#3A3A40" strokeWidth="1" />
+        <polygon points="36,74 44,90 36,90" fill="#E22D2D" stroke="#3A3A40" strokeWidth="1" />
+        {/* Flame */}
+        <polygon points="14,90 30,90 22,108" fill="#FFC83C" />
+        <polygon points="18,90 26,90 22,102" fill="#FFFFFF" opacity="0.7" />
+      </g>
+
+      {/* Ball (bottom center) */}
+      <g transform="translate(80 160)">
+        <circle cx="20" cy="20" r="20" fill="#E22D2D" stroke="#3A3A40" strokeWidth="1.5" />
+        <path d="M 4 20 Q 20 8 36 20" fill="none" stroke="#3A3A40" strokeWidth="1" />
+        <path d="M 4 20 Q 20 32 36 20" fill="none" stroke="#3A3A40" strokeWidth="1" />
+      </g>
+    </svg>
+  );
+}
+
 function Plant({ cx, baseY, width, height, children }: { cx: number; baseY: number; width: number; height: number; children: React.ReactNode }) {
-  // Position: cx, baseY is plant POT TOP. SVG viewBox has plant pot top at y ≈ 80 for pothos and 130 for monstera.
-  // Wrapper places SVG centered on cx, with bottom-anchored alignment.
+  // baseY = pot top y (where the plant "sits" on floor logically).
+  // Each SVG has its pot top at different internal y, so we anchor by pot:
+  //   Pothos viewBox 0..220, pot top at y≈80 → place wrapper so that 80/220 of wrapper height is at baseY
+  //   Monstera viewBox -10..250, pot top at y≈130 → similar but baseline at 140/260
+  const isMonstera = (children as React.ReactElement)?.type === MonsteraSVG;
+  // ratio of "pot top" within SVG height
+  const potTopRatio = isMonstera ? 140 / 260 : 90 / 220;
   return (
     <div
       className="study-plant"
       style={{
         left: cx - width / 2,
-        top: baseY - height + (children && (children as React.ReactElement).type === MonsteraSVG ? 75 : 80),
+        top: baseY - height * potTopRatio,
         width,
         height,
       }}
@@ -490,7 +603,8 @@ function ChairFloorShadow() {
 }
 
 function ChairBack() {
-  // 360 × 150, top-y=720
+  // M1.1: smaller chair — 300w × 100h
+  // Fewer stitches (4 instead of 6), proportional offsets for narrower chair
   return (
     <div
       className="study-chair-back"
@@ -498,22 +612,19 @@ function ChairBack() {
         left: CHAIR_CX - CHAIR_W / 2,
         top: CHAIR_TOP_Y,
         width: CHAIR_W,
-        height: DESK_TOP_Y - CHAIR_TOP_Y,  // 150
+        height: CHAIR_H,
       }}
     >
-      {/* Inner padding (lighter color) */}
       <div className="study-chair-inner" />
-      {/* Top headrest band */}
       <div className="study-chair-headrest" />
-      {/* 6 vertical stitches at offsets -90, -55, -20, 20, 55, 90 from center */}
-      {[-90, -55, -20, 20, 55, 90].map((offset) => (
+      {/* 4 stitches scaled for narrower chair */}
+      {[-60, -22, 22, 60].map((offset) => (
         <div
           key={offset}
           className="study-chair-stitch"
-          style={{ left: CHAIR_W / 2 + offset, top: 22, height: DESK_TOP_Y - CHAIR_TOP_Y - 36 }}
+          style={{ left: CHAIR_W / 2 + offset, top: 16, height: CHAIR_H - 28 }}
         />
       ))}
-      {/* Gold emblem */}
       <div className="study-chair-emblem">
         <div className="study-chair-emblem-inner" />
       </div>
@@ -526,31 +637,37 @@ function DeskShadow() {
     <div
       className="study-desk-shadow"
       style={{
-        left: 40,
-        top: DESK_TOP_Y - 10,
-        width: STAGE_W - 80,
-        height: 12,
+        left: DESK_X1 - 6,
+        top: DESK_TOP_Y - 14,
+        width: DESK_W + 12,
+        height: 18,
       }}
     />
   );
 }
 
 function Desk() {
+  // M1.1: thicker desk top (50px depth) — "桌面看着宽一些"（Z 轴深度感）
+  // Layout (relative to top of desk box):
+  //   0-18px:  desk top highlight band (var(--study-desk-top-light))
+  //   18-44px: desk top main (var(--study-desk-top))      ← thick top surface
+  //   44-50px: desk edge band (var(--study-desk-edge))
+  //   50-end:  front panel (var(--study-desk-front))
   return (
-    <div className="study-desk" style={{ left: 40, top: DESK_TOP_Y, width: STAGE_W - 80, height: STAGE_H - DESK_TOP_Y - 60 }}>
-      {/* Top edge: 0-14 = TOP_LT (#A07050), 12-24 = TOP (#8B5A2B), 22-30 = EDGE (#3E2614) */}
-      <div className="study-desk-top-lt" />
-      <div className="study-desk-top" />
-      <div className="study-desk-top-edge" />
-      <div className="study-desk-front" />
-      {/* Wood grain horizontal lines */}
-      <svg className="study-desk-grain" viewBox={`0 0 ${STAGE_W - 80} 80`} preserveAspectRatio="none">
-        {[2, 4, 6, 8, 10, 12].map((y) => (
-          <line key={y} x1={0} x2={STAGE_W - 80} y1={y} y2={y} stroke="var(--study-desk-grain)" strokeWidth="0.5" opacity="0.6" />
+    <div className="study-desk study-desk-v2" style={{ left: DESK_X1, top: DESK_TOP_Y, width: DESK_W, height: STAGE_H - DESK_TOP_Y - 60 }}>
+      <div className="study-desk-top-lt v2" />
+      <div className="study-desk-top v2" />
+      <div className="study-desk-top-edge v2" />
+      <div className="study-desk-front v2" />
+      {/* Wood grain on thick top */}
+      <svg className="study-desk-grain v2" viewBox={`0 0 ${DESK_W} 50`} preserveAspectRatio="none">
+        {[4, 8, 14, 22, 32, 40].map((y) => (
+          <line key={y} x1={6} x2={DESK_W - 6} y1={y} y2={y} stroke="var(--study-desk-grain)" strokeWidth="0.6" opacity="0.5" />
         ))}
-        <line x1={20} x2={STAGE_W - 100} y1={50} y2={50} stroke="var(--study-desk-edge)" strokeWidth="1" opacity="0.4" />
-        <line x1={20} x2={STAGE_W - 100} y1={75} y2={75} stroke="var(--study-desk-edge)" strokeWidth="1" opacity="0.4" />
       </svg>
+      {/* Side end panels (suggest desk has 3D thickness on left/right edges) */}
+      <div className="study-desk-side-l" />
+      <div className="study-desk-side-r" />
     </div>
   );
 }
@@ -568,9 +685,9 @@ function DeskItems() {
 }
 
 function DeskLamp() {
-  // Python: lamp_x=220, base on DESK_TOP_Y+14 = 884
-  const LX = 220;
-  const BY = DESK_TOP_Y + 14;
+  // M1.1: moved from 220 → 400 to fit inside new desk (x=320..1280)
+  const LX = 400;
+  const BY = DESK_TOP_Y + 20;
   return (
     <>
       {/* Glow halo (rendered behind lamp) */}
@@ -607,7 +724,7 @@ function DeskLamp() {
 }
 
 function DeskNotebook() {
-  // Python: nb_x = chair_cx - 110 = 690, nb_y = DESK_TOP_Y+26 = 896, w=220, h=28
+  // Notebook in front of fatboy, sits on desk top
   const NX = CHAIR_CX - 110;
   const NY = DESK_TOP_Y + 26;
   return (
@@ -637,9 +754,9 @@ function DeskNotebook() {
 }
 
 function DeskGlobe() {
-  // Python: globe_cx = chair_cx + 240 = 1040, globe_cy = DESK_TOP_Y - 30 = 840
-  const GX = CHAIR_CX + 240;
-  const GY = DESK_TOP_Y - 30;
+  // Globe right of fatboy, still within new desk (x=320..1280)
+  const GX = CHAIR_CX + 200;  // was +240 → moved in a bit
+  const GY = DESK_TOP_Y - 25;
   return (
     <svg
       className="study-desk-item-svg"
@@ -664,8 +781,8 @@ function DeskGlobe() {
 }
 
 function DeskFrame() {
-  // Python: frame_cx = W - 220 = 1380, frame_cy = DESK_TOP_Y - 25, w=60, h=70
-  const FX = STAGE_W - 220;
+  // M1.1: moved from 1380 → 1200 to fit inside new desk (x=320..1280)
+  const FX = 1200;
   const FY = DESK_TOP_Y - 25;
   return (
     <svg

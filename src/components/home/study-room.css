@@ -208,273 +208,208 @@
   position: absolute;
 }
 
-.cab-spotlight {
+/* =====================================================
+   M1.1: cabinets w/ opaque doors + 3D depth
+   ===================================================== */
+
+/* Right-side shadow strip (3D — light from upper left) */
+.cab-3d-right-shadow {
   position: absolute;
-  left: 0; top: -10%;
-  width: 100%;
-  height: 60%;
-  background: radial-gradient(ellipse at center top, rgba(255, 220, 150, 0.6) 0%, transparent 70%);
-  filter: blur(10px);
+  right: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.35) 100%);
+  z-index: 4;
   pointer-events: none;
-  z-index: 1;
 }
-.cab-grid {
+
+/* Door emblem (SVG that fills door) */
+.cab-door-emblem {
   position: absolute;
-  inset: 8% 6%;
-  display: grid;
-  gap: 4px;
-  z-index: 2;
-}
-.cab-grid-3x3 {
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-}
-.cab-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-}
-.cab-slot-empty {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.cab-slot-q {
-  font-size: 20px;
-  font-weight: 700;
-  opacity: 0.25;
-  color: #C0B098;
-}
-.cab-glass-reflect {
-  position: absolute;
+  inset: 12% 14%;
+  width: 72%;
+  height: 76%;
   pointer-events: none;
-  z-index: 5;
-  filter: blur(1px);
-}
-.cab-plate-text {
-  color: var(--cab-classic-dark);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.cab-plate-text-dk {
-  color: var(--study-ink);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
 /* =====================================================
-   Classic Trophy Cabinet
+   Classic Trophy Cabinet (left) — wooden, gold trophy emblem
    ===================================================== */
 .cab-classic-pediment {
   position: absolute;
   left: 0; top: 0;
   background: var(--cab-classic-dark);
-  border-radius: 4px;
+  border-radius: 4px 4px 0 0;
 }
 .cab-classic-pediment-inner {
   position: absolute;
   background: var(--cab-classic-frame);
   border-radius: 3px;
 }
-.cab-classic-arch {
-  position: absolute;
-  pointer-events: none;
-}
 .cab-classic-medallion {
   position: absolute;
-  width: 20px; height: 20px;
+  width: 18px; height: 18px;
   background: var(--acc-gold-dark);
   border: 1px solid var(--cab-classic-dark);
   border-radius: 50%;
+  z-index: 2;
 }
 .cab-classic-medallion-inner {
   position: absolute;
-  width: 12px; height: 12px;
+  width: 10px; height: 10px;
   background: var(--acc-gold-light);
   border-radius: 50%;
+  z-index: 3;
 }
 .cab-classic-body {
   position: absolute;
   background: var(--cab-classic-dark);
-  border-radius: 4px;
+  border-radius: 0 0 4px 4px;
 }
-.cab-classic-body-frame {
+.cab-classic-top-board {
+  position: absolute;
+  left: 0; top: 0;
+  background: linear-gradient(180deg, var(--cab-classic-frame) 0%, var(--cab-classic-dark) 100%);
+  border-radius: 4px 4px 0 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+}
+.cab-classic-door-frame {
   position: absolute;
   background: var(--cab-classic-frame);
-  border-radius: 3px;
-}
-.cab-classic-body-inner {
-  position: absolute;
-  background: var(--cab-classic-inner);
   border-radius: 2px;
   overflow: hidden;
 }
-.cab-shelf {
+.cab-classic-door {
   position: absolute;
-  left: 6px;
-  right: 6px;
-  height: 5px;
-  background: var(--study-wood-mid);
-  z-index: 3;
+  inset: 4px 6px;
+  background:
+    /* Door wood grain — vertical subtle stripes */
+    repeating-linear-gradient(90deg,
+      var(--cab-classic-inner) 0px,
+      var(--cab-classic-inner) 1px,
+      rgba(0, 0, 0, 0.04) 1px,
+      rgba(0, 0, 0, 0.04) 3px),
+    linear-gradient(180deg, var(--cab-classic-inner) 0%, #2A1810 100%);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 }
-.cab-shelf::before {
-  content: '';
+.cab-classic-door-panel {
   position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 1px;
-  background: var(--study-wood-light);
+  inset: 14px 12px;
+  background:
+    linear-gradient(135deg,
+      rgba(255, 200, 140, 0.08) 0%,
+      rgba(0, 0, 0, 0.15) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  border-radius: 3px;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 220, 170, 0.1),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.45);
 }
-.cab-classic-glass-divider {
+.cab-classic-knob {
   position: absolute;
-  top: 4px; bottom: 40px;
   left: 50%;
-  width: 2px;
-  background: var(--cab-classic-dark);
-  z-index: 4;
-}
-.cab-classic-handle {
-  position: absolute;
-  width: 6px;
-  height: 26px;
-  background: var(--acc-gold-dark);
-  border-radius: 2px;
-  bottom: 50px;
-  z-index: 4;
-}
-.cab-classic-handle-l { right: calc(50% + 10px); }
-.cab-classic-handle-r { left: calc(50% + 10px); }
-.cab-glass-reflect-1 {
-  left: 12px; top: 4px;
-  width: 48px; height: 86px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
-  transform: skew(15deg);
-}
-.cab-glass-reflect-2 {
-  right: 30px; top: 100px;
-  width: 30px; height: 80px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
-  transform: skew(15deg);
-}
-.cab-classic-plate {
-  position: absolute;
-  height: 22px;
-  background: linear-gradient(180deg, var(--acc-gold) 0%, var(--acc-gold-dark) 100%);
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 0 var(--acc-gold-dark);
-  z-index: 6;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 14px;
+  background: linear-gradient(180deg, var(--acc-gold-light) 0%, var(--acc-gold) 50%, var(--acc-gold-dark) 100%);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 .cab-classic-base {
   position: absolute;
-  height: 16px;
-  background: var(--cab-classic-dark);
+  background: linear-gradient(180deg, var(--cab-classic-dark) 0%, #1F100A 100%);
   border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
-.cab-classic-base-inner {
+.cab-classic-base-top {
   position: absolute;
-  height: 10px;
   background: var(--cab-classic-frame);
-  border-radius: 2px;
+  border-radius: 2px 2px 0 0;
 }
 .cab-classic-foot {
   position: absolute;
-  width: 12px;
-  height: 8px;
+  width: 14px;
+  height: 10px;
   background: var(--cab-classic-dark);
+  border-radius: 0 0 2px 2px;
 }
 
 /* =====================================================
-   Modern Lego Cabinet
+   Modern Lego Cabinet (center) — silver, LEGO emblem
    ===================================================== */
 .cab-modern-outer {
   position: absolute;
+  left: 0; top: 0;
   background: var(--cab-modern-frame-dk);
-  border-radius: 12px;
+  border-radius: 14px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 .cab-modern-inner-frame {
   position: absolute;
   background: var(--cab-modern-frame);
-  border-radius: 10px;
+  border-radius: 12px;
 }
-.cab-modern-cavity {
+.cab-modern-top-board {
   position: absolute;
-  background: var(--cab-modern-inner);
-  border-radius: 6px;
-  overflow: hidden;
+  background: linear-gradient(180deg, #EAEAF0 0%, var(--cab-modern-frame) 100%);
+  border-radius: 6px 6px 0 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 }
 .cab-modern-led-bar {
   position: absolute;
-  left: 4px; top: 0;
-  right: 4px;
-  height: 8px;
+  height: 5px;
   background: var(--cab-modern-led);
-  border-radius: 3px;
-  box-shadow: 0 0 8px var(--cab-modern-led);
+  border-radius: 2px;
+  box-shadow:
+    0 0 8px var(--cab-modern-led),
+    0 0 14px rgba(255, 240, 200, 0.5);
 }
-.cab-modern-led-glow {
+.cab-modern-door {
   position: absolute;
-  left: 0; top: 8px;
-  width: 100%; height: 80px;
-  background: radial-gradient(ellipse at top, rgba(255, 220, 150, 0.45) 0%, transparent 70%);
-  filter: blur(8px);
-  pointer-events: none;
+  background:
+    linear-gradient(180deg, #EAEAF0 0%, #C8CAD2 100%);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1),
+    inset 2px 0 0 rgba(255, 255, 255, 0.7),
+    inset -2px 0 4px rgba(0, 0, 0, 0.08);
 }
-.cab-modern-grid {
+.cab-modern-handle {
   position: absolute;
-  left: 8px; right: 8px;
-  top: 22px;
-  bottom: 8px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: 4px;
-  z-index: 2;
-}
-.cab-modern-slot {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.cab-modern-glass-reflect {
-  left: 18px; top: 28px;
-  width: 90px; height: 200px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03));
-  transform: skew(12deg);
-}
-.cab-modern-plate {
-  position: absolute;
-  height: 22px;
-  background: var(--cab-modern-frame);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 6;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60px;
+  background: linear-gradient(180deg, #8C919B 0%, #5A5E68 100%);
+  border-radius: 2px;
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.3);
 }
 .cab-modern-base {
   position: absolute;
-  height: 18px;
-  background: var(--cab-modern-frame-dk);
+  background: linear-gradient(180deg, var(--cab-modern-frame-dk) 0%, #6F7480 100%);
   border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
-.cab-modern-base-inner {
+.cab-modern-base-top {
   position: absolute;
-  height: 12px;
   background: var(--cab-modern-frame);
-  border-radius: 3px;
+  border-radius: 3px 3px 0 0;
 }
 .cab-modern-foot {
   position: absolute;
-  width: 4px;
-  height: 8px;
+  width: 5px;
+  height: 10px;
   background: var(--cab-modern-frame-dk);
+  border-radius: 0 0 2px 2px;
 }
 
 /* =====================================================
-   Playful Toy Cabinet (arched top, purple inner)
+   Playful Toy Cabinet (right) — purple, toy emblem
    ===================================================== */
 .cab-playful-arch {
   position: absolute;
@@ -494,53 +429,51 @@
 .cab-playful-body {
   position: absolute;
   background: var(--cab-playful-frame-dk);
+  border-radius: 0 0 4px 4px;
+}
+.cab-playful-top-board {
+  position: absolute;
+  left: 0; top: 0;
+  background: linear-gradient(180deg, var(--cab-playful-frame) 0%, var(--cab-playful-frame-dk) 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+}
+.cab-playful-door {
+  position: absolute;
+  background:
+    linear-gradient(135deg,
+      var(--cab-playful-inner) 0%,
+      #3D2638 100%);
   border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 2px 6px rgba(0, 0, 0, 0.3),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.25);
 }
-.cab-playful-body-frame {
+.cab-playful-knob {
   position: absolute;
-  background: var(--cab-playful-frame);
-  border-radius: 3px;
-}
-.cab-playful-body-inner {
-  position: absolute;
-  background: var(--cab-playful-inner);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.cab-playful-shelf {
-  position: absolute;
-  left: 4px; right: 4px;
-  height: 8px;
-  background: var(--study-wood-light);
-  border-top: 2px solid var(--study-wood-highlight);
-  border-bottom: 1px solid var(--study-wood-mid);
-  z-index: 3;
-}
-.cab-playful-plate {
-  position: absolute;
-  height: 22px;
-  background: linear-gradient(180deg, var(--study-wood-highlight) 0%, var(--study-wood-light) 100%);
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 6;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle at 35% 35%, var(--acc-gold-light) 0%, var(--acc-gold) 60%, var(--acc-gold-dark) 100%);
+  border-radius: 50%;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
 }
 .cab-playful-base {
   position: absolute;
-  height: 18px;
-  background: var(--cab-playful-frame-dk);
+  background: linear-gradient(180deg, var(--cab-playful-frame-dk) 0%, #6B4A3A 100%);
   border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
 }
-.cab-playful-base-inner {
+.cab-playful-base-top {
   position: absolute;
-  height: 12px;
   background: var(--cab-playful-frame);
-  border-radius: 2px;
+  border-radius: 2px 2px 0 0;
 }
 .cab-playful-foot {
   position: absolute;
-  width: 14px;
+  width: 16px;
   height: 14px;
   background: var(--cab-playful-frame-dk);
   border-radius: 50%;
@@ -629,52 +562,81 @@
 }
 
 /* =====================================================
-   Desk
+   Desk (M1.1: thicker top to give Z-axis depth feel)
+   Layout per .study-desk-v2 (positions in px, top of desk at 0):
+   0-18px   highlight band (DESK_TOP_LT)
+   18-44px  main top         (DESK_TOP)        ← thick surface
+   44-50px  edge / front lip (DESK_EDGE)
+   50px-end front panel      (DESK_FRONT)
    ===================================================== */
 .study-desk-shadow {
-  background: rgb(0, 0, 0);
-  opacity: 0.4;
-  filter: blur(4px);
+  background: rgba(0, 0, 0, 0.55);
+  filter: blur(6px);
+  border-radius: 50%;
   z-index: 21;
   pointer-events: none;
 }
 .study-desk {
   z-index: 22;
 }
-.study-desk-top-lt {
+/* v2 (M1.1) thicker top */
+.study-desk-top-lt.v2 {
   position: absolute;
   left: 0; top: 0;
   width: 100%;
-  height: 14px;
-  background: var(--study-desk-top-light);
+  height: 18px;
+  background: linear-gradient(180deg, #B58563 0%, var(--study-desk-top-light) 100%);
+  border-radius: 4px 4px 0 0;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.4);
 }
-.study-desk-top {
+.study-desk-top.v2 {
   position: absolute;
-  left: 0; top: 12px;
+  left: 0; top: 16px;
   width: 100%;
-  height: 12px;
-  background: var(--study-desk-top);
+  height: 28px;
+  background: linear-gradient(180deg, var(--study-desk-top-light) 0%, var(--study-desk-top) 100%);
 }
-.study-desk-top-edge {
+.study-desk-top-edge.v2 {
   position: absolute;
-  left: 0; top: 22px;
+  left: 0; top: 42px;
   width: 100%;
   height: 8px;
-  background: var(--study-desk-edge);
+  background: linear-gradient(180deg, var(--study-desk-top) 0%, var(--study-desk-edge) 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
-.study-desk-front {
+.study-desk-front.v2 {
   position: absolute;
-  left: 0; top: 30px;
+  left: 0; top: 50px;
   width: 100%;
   bottom: 0;
-  background: var(--study-desk-front);
+  background: linear-gradient(180deg, var(--study-desk-front) 0%, #4A2D17 100%);
 }
-.study-desk-grain {
+.study-desk-grain.v2 {
   position: absolute;
   left: 0; top: 0;
   width: 100%;
-  height: 80px;
+  height: 50px;
   pointer-events: none;
+}
+/* Side end panels (slight 3D thickness on left/right desk edges) */
+.study-desk-side-l,
+.study-desk-side-r {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 50px;
+  background: linear-gradient(180deg, #6B4225 0%, #3E2614 100%);
+  z-index: 1;
+}
+.study-desk-side-l {
+  left: -4px;
+  border-radius: 4px 0 0 0;
+  box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.15);
+}
+.study-desk-side-r {
+  right: -4px;
+  border-radius: 0 4px 0 0;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.25);
 }
 
 /* =====================================================
