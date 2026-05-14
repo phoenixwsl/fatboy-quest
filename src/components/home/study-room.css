@@ -9,7 +9,15 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #2A1F18;  /* dark letterbox behind stage */
+  /* Extend wall + floor gradient so no black bars on iPad */
+  background:
+    linear-gradient(
+      to bottom,
+      var(--study-wall-top)  0%,
+      var(--study-wall-bot)  69%,
+      var(--study-floor-mid) 69%,
+      var(--study-floor-dark) 100%
+    );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -740,4 +748,170 @@
 .study-shop-btn:active {
   transform: translateY(2px);
   box-shadow: 0 2px 0 var(--acc-gold-dark);
+}
+
+/* =====================================================
+   Trophy Overlay (M1.2)
+   ===================================================== */
+.trophy-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.trophy-overlay-panel {
+  background: var(--study-paper);
+  border-radius: var(--study-radius-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 20px 60px rgba(40, 25, 12, 0.35),
+    0 0 0 1px rgba(200, 180, 150, 0.3);
+  overflow: hidden;
+}
+
+.trophy-overlay-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(200, 180, 150, 0.3);
+  flex-shrink: 0;
+}
+
+.trophy-overlay-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--study-ink);
+  margin: 0;
+}
+
+.trophy-overlay-count {
+  margin-left: 10px;
+  font-size: 14px;
+  color: var(--study-ink-muted);
+  font-weight: 500;
+}
+
+.trophy-overlay-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--study-ink-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.trophy-overlay-close:hover {
+  background: rgba(200, 180, 150, 0.2);
+  color: var(--study-ink);
+}
+
+.trophy-overlay-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 20px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Empty state */
+.trophy-overlay-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.trophy-empty-star {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.trophy-empty-text {
+  font-size: 16px;
+  color: var(--study-ink-muted);
+  font-weight: 500;
+}
+
+/* Grid: 3-4 columns depending on width */
+.trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+/* Individual card */
+.trophy-card {
+  background: rgba(244, 238, 226, 0.6);
+  border-radius: var(--study-radius-md);
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+.trophy-card:hover {
+  border-color: var(--acc-gold-light);
+}
+.trophy-card--expanded {
+  background: rgba(240, 195, 80, 0.12);
+  border-color: var(--acc-gold);
+  grid-column: span 1;
+}
+
+.trophy-card-emoji {
+  font-size: 32px;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.trophy-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--study-ink);
+  line-height: 1.3;
+}
+
+/* Detail section (when expanded) */
+.trophy-card-detail {
+  overflow: hidden;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(200, 180, 150, 0.3);
+}
+.trophy-card-desc {
+  font-size: 12px;
+  color: var(--study-ink-muted);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.trophy-card-date {
+  font-size: 11px;
+  color: var(--acc-gold-dark);
+  font-weight: 600;
+}
+
+/* Clickable trophy emblem on cabinet */
+.trophy-emblem-clickable {
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring);
+}
+.trophy-emblem-clickable:hover {
+  transform: scale(1.08);
+  filter: brightness(1.1);
+}
+.trophy-emblem-clickable:active {
+  transform: scale(0.95);
 }
