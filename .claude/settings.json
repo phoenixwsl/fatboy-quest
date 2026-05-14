@@ -30,6 +30,6 @@
       "Bash(git checkout -- .)",
       "Bash(git branch -D *)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "bypassPermissions"
   }
 }
