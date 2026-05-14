@@ -33,7 +33,7 @@ export function ParentGate() {
   };
 
   return (
-    <div className="min-h-full flex flex-col items-center justify-center p-6 text-white">
+    <div className="min-h-full flex flex-col items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -52,20 +52,22 @@ export function ParentGate() {
               onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setError(''); }}
               onKeyDown={e => e.key === 'Enter' && submit()}
               placeholder="输入 4 位 PIN"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none text-center tracking-widest text-2xl"
+              className="w-full px-4 py-3 rounded-xl outline-none text-center tracking-widest text-2xl"
+              style={{ background: 'var(--surface-mist)' }}
               autoFocus
             />
             <button onClick={submit} className="space-btn w-full mt-3">确定</button>
-            <button onClick={() => { setForgot(true); setError(''); }} className="text-white/50 text-sm w-full mt-3">忘记 PIN？</button>
+            <button onClick={() => { setForgot(true); setError(''); }} className="text-sm w-full mt-3" style={{ color: 'var(--ink-faint)' }}>忘记 PIN？</button>
           </>
         ) : (
           <>
-            <div className="text-sm text-white/70 mb-3">密保问题：{settings?.securityQuestion}</div>
+            <div className="text-sm mb-3" style={{ color: 'var(--ink-muted)' }}>密保问题：{settings?.securityQuestion}</div>
             <input
               value={answer}
               onChange={e => setAnswer(e.target.value)}
               placeholder="密保答案"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none mb-2"
+              className="w-full px-4 py-3 rounded-xl outline-none mb-2"
+              style={{ background: 'var(--surface-mist)' }}
             />
             <input
               type="password"
@@ -74,14 +76,15 @@ export function ParentGate() {
               value={newPin}
               onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
               placeholder="设置新的 4 位 PIN"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none text-center tracking-widest text-2xl"
+              className="w-full px-4 py-3 rounded-xl outline-none text-center tracking-widest text-2xl"
+              style={{ background: 'var(--surface-mist)' }}
             />
             <button onClick={resetPin} className="space-btn w-full mt-3">重置 PIN</button>
-            <button onClick={() => setForgot(false)} className="text-white/50 text-sm w-full mt-2">返回</button>
+            <button onClick={() => setForgot(false)} className="text-sm w-full mt-2" style={{ color: 'var(--ink-faint)' }}>返回</button>
           </>
         )}
 
-        {error && <div className="text-red-300 text-sm text-center mt-3">{error}</div>}
+        {error && <div className="text-sm text-center mt-3" style={{ color: 'var(--state-danger)' }}>{error}</div>}
 
         <button onClick={() => nav('/')} className="space-btn-ghost w-full mt-6">取消，回首页</button>
       </motion.div>

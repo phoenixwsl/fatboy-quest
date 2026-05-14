@@ -47,18 +47,23 @@ export interface Rank {
   id: string;
   name: string;
   minPoints: number;
-  color: string;     // tailwind class
+  /** @deprecated R3.4.1: use colorVar (CSS color string) for theme-aware rendering */
+  color: string;
+  /** CSS color string (var() or hex) — set via style={{ color: rank.colorVar }} */
+  colorVar: string;
   emoji: string;
 }
 
+// R3.4.1: rank colors 用 CSS color strings 而非 tailwind class，跨主题自动跟随
+// 段位本身是品牌色彩（铜银金等"金属拟物"），用 hex / var() 直接传到 style
 export const RANKS: Rank[] = [
-  { id: 'rookie',    name: '新兵',     minPoints: 0,     color: 'text-zinc-300',  emoji: '🌑' },
-  { id: 'bronze',    name: '青铜',     minPoints: 200,   color: 'text-amber-600', emoji: '🥉' },
-  { id: 'silver',    name: '白银',     minPoints: 600,   color: 'text-slate-300', emoji: '🥈' },
-  { id: 'gold',      name: '黄金',     minPoints: 1500,  color: 'text-yellow-400',emoji: '🥇' },
-  { id: 'platinum',  name: '铂金',     minPoints: 3500,  color: 'text-cyan-300',  emoji: '💎' },
-  { id: 'diamond',   name: '钻石',     minPoints: 7000,  color: 'text-sky-300',   emoji: '💠' },
-  { id: 'master',    name: '王者',     minPoints: 14000, color: 'text-fuchsia-300', emoji: '👑' },
+  { id: 'rookie',   name: '新兵', minPoints: 0,     color: 'text-zinc-300',    colorVar: 'var(--ink-muted)',   emoji: '🌑' },
+  { id: 'bronze',   name: '青铜', minPoints: 200,   color: 'text-amber-600',   colorVar: '#B08D57',            emoji: '🥉' },
+  { id: 'silver',   name: '白银', minPoints: 600,   color: 'text-slate-300',   colorVar: '#C0C4CC',            emoji: '🥈' },
+  { id: 'gold',     name: '黄金', minPoints: 1500,  color: 'text-yellow-400',  colorVar: '#FFD23F',            emoji: '🥇' },
+  { id: 'platinum', name: '铂金', minPoints: 3500,  color: 'text-cyan-300',    colorVar: '#7FE6DA',            emoji: '💎' },
+  { id: 'diamond',  name: '钻石', minPoints: 7000,  color: 'text-sky-300',     colorVar: '#5BC2FF',            emoji: '💠' },
+  { id: 'master',   name: '王者', minPoints: 14000, color: 'text-fuchsia-300', colorVar: 'var(--accent)',      emoji: '👑' },
 ];
 
 export function getRank(totalPoints: number): Rank {
@@ -120,12 +125,22 @@ export function scoreRatio(basePointsAtEval: number, finalPoints: number, extraB
  *   110-129: 蓝（优秀）
  *   >=130 : 金（超神）
  */
+/** @deprecated R3.4.1: use ratioColorStyle */
 export function ratioColorClass(ratio: number): string {
   if (ratio >= 130) return 'text-amber-300';
   if (ratio >= 110) return 'text-sky-300';
   if (ratio >= 90)  return 'text-emerald-300';
   if (ratio >= 60)  return 'text-yellow-300';
   return 'text-rose-300';
+}
+
+// R3.4.1: 跨主题跟随 token 的版本，返回 style 对象
+export function ratioColorStyle(ratio: number): { color: string } {
+  if (ratio >= 130) return { color: 'var(--state-warn)' };
+  if (ratio >= 110) return { color: 'var(--state-info)' };
+  if (ratio >= 90)  return { color: 'var(--state-success)' };
+  if (ratio >= 60)  return { color: 'var(--state-warn)' };
+  return { color: 'var(--state-danger)' };
 }
 
 /**

@@ -51,7 +51,7 @@ export function SetupWizard() {
   };
 
   return (
-    <div className="min-h-full flex flex-col items-center justify-center p-6 text-white">
+    <div className="min-h-full flex flex-col items-center justify-center p-6">
       <motion.div
         key={step}
         initial={{ opacity: 0, y: 20 }}
@@ -60,7 +60,7 @@ export function SetupWizard() {
       >
         <div className="text-center mb-6">
           <div className="text-3xl font-bold glow-text">🚀 肥仔大闯关</div>
-          <div className="text-white/60 mt-2 text-sm">第 {step + 1} / 4 步</div>
+          <div className="mt-2 text-sm" style={{ color: 'var(--ink-faint)' }}>第 {step + 1} / 4 步</div>
         </div>
 
         {step === 0 && (
@@ -70,9 +70,10 @@ export function SetupWizard() {
               value={childName}
               onChange={e => setChildName(e.target.value)}
               placeholder="例如：肥仔"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none focus:bg-white/20"
+              className="w-full px-4 py-3 rounded-xl outline-none"
+              style={{ background: 'var(--surface-mist)' }}
             />
-            <div className="text-xs text-white/50">这个名字会出现在通知和分享卡片里</div>
+            <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>这个名字会出现在通知和分享卡片里</div>
           </div>
         )}
 
@@ -82,18 +83,17 @@ export function SetupWizard() {
             <div className="flex justify-center">
               <PetAvatar skinId={skinId} size={120} mood="happy" />
             </div>
-            <div className="text-xs text-white/50 text-center">{SKINS.find(s => s.id === skinId)?.desc}</div>
+            <div className="text-xs text-center" style={{ color: 'var(--ink-faint)' }}>{SKINS.find(s => s.id === skinId)?.desc}</div>
             <div className="grid grid-cols-4 gap-2">
               {SKINS.map(s => (
                 <button
                   key={s.id}
                   onClick={() => setSkinId(s.id)}
-                  className={`p-2 rounded-xl flex flex-col items-center ${
-                    s.id === skinId ? 'ring-2 ring-space-plasma bg-space-card' : 'bg-white/5'
-                  }`}
+                  className={`p-2 rounded-xl flex flex-col items-center ${s.id === skinId ? 'ring-2 ring-space-plasma bg-space-card' : ''}`}
+                  style={s.id === skinId ? undefined : { background: 'var(--surface-mist)' }}
                 >
                   <PetAvatar skinId={s.id} size={48} bobbing={false} />
-                  <div className="text-[10px] mt-1 text-white/70">{s.name}</div>
+                  <div className="text-[10px] mt-1" style={{ color: 'var(--ink-muted)' }}>{s.name}</div>
                 </button>
               ))}
             </div>
@@ -101,7 +101,8 @@ export function SetupWizard() {
               value={petName}
               onChange={e => setPetName(e.target.value)}
               placeholder="给蛋仔起个名字"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none focus:bg-white/20"
+              className="w-full px-4 py-3 rounded-xl outline-none"
+              style={{ background: 'var(--surface-mist)' }}
             />
           </div>
         )}
@@ -116,7 +117,8 @@ export function SetupWizard() {
               value={pin}
               onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
               placeholder="设置 4 位 PIN"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none focus:bg-white/20 text-center tracking-widest text-2xl"
+              className="w-full px-4 py-3 rounded-xl outline-none text-center tracking-widest text-2xl"
+              style={{ background: 'var(--surface-mist)' }}
             />
             <input
               type="password"
@@ -125,19 +127,22 @@ export function SetupWizard() {
               value={pinConfirm}
               onChange={e => setPinConfirm(e.target.value.replace(/\D/g, ''))}
               placeholder="再输一次"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none focus:bg-white/20 text-center tracking-widest text-2xl"
+              className="w-full px-4 py-3 rounded-xl outline-none text-center tracking-widest text-2xl"
+              style={{ background: 'var(--surface-mist)' }}
             />
             <input
               value={securityQuestion}
               onChange={e => setSecurityQuestion(e.target.value)}
               placeholder="密保问题"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none focus:bg-white/20"
+              className="w-full px-4 py-3 rounded-xl outline-none"
+              style={{ background: 'var(--surface-mist)' }}
             />
             <input
               value={securityAnswer}
               onChange={e => setSecurityAnswer(e.target.value)}
               placeholder="密保答案（PIN 忘了用这个重置）"
-              className="w-full px-4 py-3 bg-white/10 rounded-xl outline-none focus:bg-white/20"
+              className="w-full px-4 py-3 rounded-xl outline-none"
+              style={{ background: 'var(--surface-mist)' }}
             />
           </div>
         )}
@@ -146,15 +151,15 @@ export function SetupWizard() {
           <div className="space-y-4 text-center">
             <div className="text-lg">准备就绪！</div>
             <PetAvatar skinId={skinId} size={120} mood="happy" />
-            <div className="text-white/70 text-sm leading-relaxed">
+            <div className="text-sm leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
               <p>蛋仔「{petName}」已就位 🚀</p>
               <p className="mt-2">下一步家长可以通过 <b>长按右上角图标 3 秒</b> 进入家长模式，添加作业。</p>
-              <p className="mt-2 text-white/40">通知权限会在第一次需要时请求</p>
+              <p className="mt-2" style={{ color: 'var(--ink-faint)' }}>通知权限会在第一次需要时请求</p>
             </div>
           </div>
         )}
 
-        {error && <div className="text-red-300 text-sm mt-3">{error}</div>}
+        {error && <div className="text-sm mt-3" style={{ color: 'var(--state-danger)' }}>{error}</div>}
 
         <div className="flex justify-between mt-6 gap-3">
           {step > 0 && step < 3 && (

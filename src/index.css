@@ -46,9 +46,18 @@
   --ink-faint:         #BFA88E;
 
   /* 状态色（语义恒定，跨主题仅微调饱和度） */
-  --state-success:     #58CC02;
-  --state-warn:        #FFC800;
-  --state-danger:      #E25555;
+  --state-success:        #58CC02;
+  --state-success-soft:   rgba(88,204,2,.16);
+  --state-success-strong: #3A8A02;
+  --state-warn:           #FFC800;
+  --state-warn-soft:      rgba(255,200,0,.18);
+  --state-warn-strong:    #8A6A00;
+  --state-danger:         #E25555;
+  --state-danger-soft:    rgba(226,85,85,.18);
+  --state-danger-strong:  #8E2828;
+  --state-info:           #4A9EE7;
+  --state-info-soft:      rgba(74,158,231,.18);
+  --state-info-strong:    #1C5C95;
 
   /* ===== B. 背景渐变（被时段覆盖） ===== */
   --bg-from:           #FFF8EC;
@@ -148,9 +157,18 @@ body[data-theme="starry"] {
   --ink-muted:         #B8C0DD;
   --ink-faint:         #6E7799;
 
-  --state-success:     #6BE3A0;
-  --state-warn:        #FFD66B;
-  --state-danger:      #FF7A8A;
+  --state-success:        #6BE3A0;
+  --state-success-soft:   rgba(107,227,160,.20);
+  --state-success-strong: #B0F2C8;
+  --state-warn:           #FFD66B;
+  --state-warn-soft:      rgba(255,214,107,.22);
+  --state-warn-strong:    #FFEDB0;
+  --state-danger:         #FF7A8A;
+  --state-danger-soft:    rgba(255,122,138,.22);
+  --state-danger-strong:  #FFB5BE;
+  --state-info:           #6F5BE9;
+  --state-info-soft:      rgba(111,91,233,.22);
+  --state-info-strong:    #B8A9F5;
 
   --bg-from:           #1B2547;
   --bg-to:             #0E1226;
@@ -218,9 +236,18 @@ body[data-theme="mecha"] {
   --ink-muted:         #93B5AC;
   --ink-faint:         #5E807A;
 
-  --state-success:     #00FF9C;     /* 霓虹绿 */
-  --state-warn:        #FBBF24;
-  --state-danger:      #FB7185;
+  --state-success:        #00FF9C;     /* 霓虹绿 */
+  --state-success-soft:   rgba(0,255,156,.20);
+  --state-success-strong: #80FFCE;
+  --state-warn:           #FBBF24;
+  --state-warn-soft:      rgba(251,191,36,.22);
+  --state-warn-strong:    #FDDC8C;
+  --state-danger:         #FB7185;
+  --state-danger-soft:    rgba(251,113,133,.22);
+  --state-danger-strong:  #FDA4B0;
+  --state-info:           #2DD4BF;
+  --state-info-soft:      rgba(45,212,191,.22);
+  --state-info-strong:    #7FE6DA;
 
   --bg-from:           #1A1F2E;
   --bg-to:             #0E121E;

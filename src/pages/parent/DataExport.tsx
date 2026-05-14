@@ -98,7 +98,7 @@ export function DataExport() {
   }
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24">
       <div className="flex items-center gap-2 mb-4">
         <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
         <div className="text-xl font-bold">💾 数据 导出 / 导入</div>
@@ -106,7 +106,7 @@ export function DataExport() {
 
       <div className="space-card p-4 mb-3">
         <div className="text-sm font-bold mb-2">📤 导出备份</div>
-        <div className="text-xs text-white/60 mb-3">
+        <div className="text-xs mb-3" style={{ color: 'var(--ink-faint)' }}>
           导出一个 JSON 文件，建议每周日存一份到 iCloud Drive。
           升级 App 不会丢数据，但是 iPadOS 在极端情况下可能清理 PWA 存储——所以备份很重要。
         </div>
@@ -115,8 +115,8 @@ export function DataExport() {
 
       <div className="space-card p-4 mb-3">
         <div className="text-sm font-bold mb-2">📥 从备份恢复</div>
-        <div className="text-xs text-white/60 mb-3">
-          上传之前导出的 JSON 文件。<b className="text-amber-300">注意：会覆盖当前所有数据</b>。
+        <div className="text-xs mb-3" style={{ color: 'var(--ink-faint)' }}>
+          上传之前导出的 JSON 文件。<b style={{ color: 'var(--state-warn)' }}>注意：会覆盖当前所有数据</b>。
         </div>
         <input ref={fileInput} type="file" accept="application/json"
           onChange={e => e.target.files?.[0] && importData(e.target.files[0])}
@@ -127,7 +127,7 @@ export function DataExport() {
       <div className="space-card p-4">
         <div className="text-sm font-bold mb-2">📊 数据统计</div>
         <button onClick={showStats} className="space-btn-ghost mb-2">查看</button>
-        {stats && <div className="text-xs text-white/60 break-words">{stats}</div>}
+        {stats && <div className="text-xs break-words" style={{ color: 'var(--ink-faint)' }}>{stats}</div>}
       </div>
     </div>
   );

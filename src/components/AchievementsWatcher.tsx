@@ -111,7 +111,11 @@ export function AchievementsWatcher() {
             initial={{ scale: 0.3, rotate: -10 }}
             animate={{ scale: 1, rotate: 0 }}
             exit={{ scale: 0.3, opacity: 0 }}
-            className="space-card p-6 max-w-sm w-full text-center bg-gradient-to-br from-amber-500/30 to-fuchsia-500/30 ring-2 ring-amber-300/60"
+            className="space-card p-6 max-w-sm w-full text-center ring-2"
+            style={{
+              background: 'linear-gradient(135deg, var(--state-warn-soft), var(--accent-soft))',
+              boxShadow: '0 0 0 2px var(--state-warn)',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <motion.div
@@ -119,9 +123,9 @@ export function AchievementsWatcher() {
               transition={{ duration: 1, repeat: Infinity }}
               className="text-7xl mb-2"
             >{popup.emoji}</motion.div>
-            <div className="text-xs text-amber-200/80 mb-1">解锁新成就</div>
-            <div className="text-2xl font-black text-white drop-shadow">{popup.title}</div>
-            <div className="text-sm text-white/70 mt-2">{popup.description}</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--state-warn)' }}>解锁新成就</div>
+            <div className="text-2xl font-black drop-shadow" style={{ color: 'var(--ink-strong)' }}>{popup.title}</div>
+            <div className="text-sm mt-2" style={{ color: 'var(--ink-muted)' }}>{popup.description}</div>
             <button onClick={() => setPopup(null)} className="space-btn w-full mt-4">太棒了 🎉</button>
           </motion.div>
         </motion.div>

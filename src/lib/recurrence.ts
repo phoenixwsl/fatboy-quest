@@ -8,7 +8,25 @@ import type { Task, TaskDefinition, TaskType } from '../types';
 import { todayString, isoWeekString } from './time';
 import { newId } from './ids';
 
-// 任务类型 → 视觉边框 class
+// R3.4.1: 任务类型 → 视觉样式（用 style 对象 + token，跨主题跟随）
+// 用 Record<string, string> 而不是 React.CSSProperties，避免 lib 文件依赖 React 类型
+type SimpleStyle = Record<string, string>;
+
+export const TASK_TYPE_BORDER_STYLE: Record<TaskType, SimpleStyle> = {
+  'normal':           {},
+  'daily-required':   { borderLeft: '4px solid var(--state-danger)' },
+  'weekly-min':       { borderLeft: '4px solid var(--accent)' },
+  'weekly-once':      { borderLeft: '4px solid var(--state-info)' },
+};
+
+export const TASK_TYPE_BADGE_STYLE: Record<TaskType, { label: string; style: SimpleStyle } | null> = {
+  'normal':           null,
+  'daily-required':   { label: '🔴 必做',      style: { background: 'var(--state-danger-soft)',  color: 'var(--state-danger-strong)' } },
+  'weekly-min':       { label: '🟣 每周 N 次', style: { background: 'var(--accent-soft)',         color: 'var(--accent-strong)' } },
+  'weekly-once':      { label: '🔵 每周一次',  style: { background: 'var(--state-info-soft)',     color: 'var(--state-info-strong)' } },
+};
+
+/** @deprecated use TASK_TYPE_BORDER_STYLE */
 export const TASK_TYPE_BORDER: Record<TaskType, string> = {
   'normal': '',
   'daily-required': 'border-l-4 border-l-rose-500',
@@ -16,6 +34,7 @@ export const TASK_TYPE_BORDER: Record<TaskType, string> = {
   'weekly-once': 'border-l-4 border-l-sky-500',
 };
 
+/** @deprecated use TASK_TYPE_BADGE_STYLE */
 export const TASK_TYPE_BADGE: Record<TaskType, { label: string; class: string } | null> = {
   'normal': null,
   'daily-required': { label: '🔴 必做', class: 'bg-rose-500/40 text-rose-100' },

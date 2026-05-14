@@ -7,33 +7,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import { useAppStore, type ConfirmTone } from '../store/useAppStore';
 
-const TONE_STYLES: Record<ConfirmTone, {
-  ring: string; confirmBtn: string; titleColor: string; defaultEmoji: string;
-}> = {
-  info:   {
-    ring: 'ring-2 ring-cyan-300/40',
-    confirmBtn: 'bg-cyan-500 hover:bg-cyan-400 text-white',
-    titleColor: 'text-cyan-100',
-    defaultEmoji: 'ℹ️',
-  },
-  warn:   {
-    ring: 'ring-2 ring-amber-300/60',
-    confirmBtn: 'bg-amber-500 hover:bg-amber-400 text-white',
-    titleColor: 'text-amber-100',
-    defaultEmoji: '⚠️',
-  },
-  danger: {
-    ring: 'ring-2 ring-rose-300/60',
-    confirmBtn: 'bg-rose-500 hover:bg-rose-400 text-white',
-    titleColor: 'text-rose-100',
-    defaultEmoji: '🗑',
-  },
-  help:   {
-    ring: 'ring-2 ring-pink-300/60',
-    confirmBtn: 'bg-pink-500 hover:bg-pink-400 text-white',
-    titleColor: 'text-pink-100',
-    defaultEmoji: '🙋',
-  },
+// R3.4.1: TONE_STYLES 原有 ring/confirmBtn/titleColor 是死代码（JSX 已用 inline style 接 token），
+// 简化为只保留 defaultEmoji
+const TONE_EMOJI: Record<ConfirmTone, string> = {
+  info:   'ℹ️',
+  warn:   '⚠️',
+  danger: '🗑',
+  help:   '🙋',
 };
 
 export function ConfirmModal() {
@@ -91,7 +71,7 @@ export function ConfirmModal() {
           >
             {/* Emoji 大图标 */}
             <div className="text-6xl text-center mb-2 leading-none">
-              {confirm.emoji ?? TONE_STYLES[confirm.tone ?? 'info'].defaultEmoji}
+              {confirm.emoji ?? TONE_EMOJI[confirm.tone ?? 'info']}
             </div>
             {/* 标题 */}
             <div

@@ -66,56 +66,71 @@ export function RecurringTasks() {
   const grouped = (kind: TaskDefinition['type']) => (defs ?? []).filter(d => d.type === kind);
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24">
       <div className="flex items-center gap-2 mb-4">
         <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
         <div className="text-xl font-bold">🔁 循环任务</div>
       </div>
 
       <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">新建循环任务</div>
+        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>新建循环任务</div>
         <div className="grid grid-cols-3 gap-2 mb-3">
-          {(['daily-required', 'weekly-min', 'weekly-once'] as const).map(k => (
-            <button key={k} onClick={() => setType(k)}
-              className={`px-2 py-2 rounded-xl text-xs ${
-                type === k
-                  ? k === 'daily-required' ? 'bg-rose-500/40 ring-1 ring-rose-300/60'
-                  : k === 'weekly-min' ? 'bg-fuchsia-500/40 ring-1 ring-fuchsia-300/60'
-                  : 'bg-sky-500/40 ring-1 ring-sky-300/60'
-                  : 'bg-white/10'
-              }`}>
-              {TASK_TYPE_LABEL[k]}
-            </button>
-          ))}
+          {(['daily-required', 'weekly-min', 'weekly-once'] as const).map(k => {
+            const active = type === k;
+            const activeBg = k === 'daily-required'
+              ? 'var(--state-danger-soft)'
+              : k === 'weekly-min'
+                ? 'var(--accent-soft)'
+                : 'var(--state-info-soft)';
+            const activeBorder = k === 'daily-required'
+              ? 'var(--state-danger)'
+              : k === 'weekly-min'
+                ? 'var(--accent)'
+                : 'var(--state-info)';
+            return (
+              <button key={k} onClick={() => setType(k)}
+                className="px-2 py-2 rounded-xl text-xs"
+                style={active
+                  ? { background: activeBg, borderColor: activeBorder, borderWidth: 1, borderStyle: 'solid' }
+                  : { background: 'var(--surface-mist)' }}>
+                {TASK_TYPE_LABEL[k]}
+              </button>
+            );
+          })}
         </div>
         <input value={title} onChange={e => setTitle(e.target.value)}
           placeholder="任务标题（例如：数学口算）"
-          className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
+          className="w-full px-3 py-2 rounded-xl outline-none mb-2"
+          style={{ background: 'var(--surface-mist)' }} />
         <div className="flex flex-wrap gap-1.5 mb-2">
           {SUBJECTS.map(s => (
             <button key={s.id} onClick={() => setSubject(s.id)}
-              className={`px-2 py-1 rounded-lg text-xs ${subject === s.id ? 'bg-space-nebula' : 'bg-white/10'}`}>
+              className="px-2 py-1 rounded-lg text-xs"
+              style={{ background: subject === s.id ? 'var(--accent-soft)' : 'var(--surface-mist)' }}>
               {s.label}
             </button>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <label>
-            <div className="text-xs text-white/60 mb-1">基础积分</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>基础积分</div>
             <input type="number" value={basePoints} onChange={e => setBasePoints(Number(e.target.value))}
-              className="w-full px-2 py-1.5 bg-white/10 rounded outline-none text-sm" />
+              className="w-full px-2 py-1.5 rounded outline-none text-sm"
+              style={{ background: 'var(--surface-mist)' }} />
           </label>
           <label>
-            <div className="text-xs text-white/60 mb-1">预估分钟</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>预估分钟</div>
             <input type="number" value={minutes} onChange={e => setMinutes(Number(e.target.value))}
-              className="w-full px-2 py-1.5 bg-white/10 rounded outline-none text-sm" />
+              className="w-full px-2 py-1.5 rounded outline-none text-sm"
+              style={{ background: 'var(--surface-mist)' }} />
           </label>
         </div>
         {type === 'weekly-min' && (
           <label>
-            <div className="text-xs text-white/60 mb-1">每周最少做几次</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>每周最少做几次</div>
             <input type="number" value={weeklyMinTimes} onChange={e => setWeeklyMinTimes(Number(e.target.value))}
-              className="w-full px-2 py-1.5 bg-white/10 rounded outline-none text-sm" />
+              className="w-full px-2 py-1.5 rounded outline-none text-sm"
+              style={{ background: 'var(--surface-mist)' }} />
           </label>
         )}
         <button onClick={addDef} className="space-btn w-full mt-3">+ 添加</button>
@@ -156,7 +171,7 @@ function SectionList({ title, defs, allTasks, toggleActive, del }: {
   if (defs.length === 0) return null;
   return (
     <div className="mt-4">
-      <div className="text-sm text-white/70 mb-2">{title}</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>{title}</div>
       {defs.map(d => {
         const p = (d.type === 'weekly-min' || d.type === 'weekly-once') ? weeklyProgress(d, allTasks) : null;
         return (
@@ -164,16 +179,17 @@ function SectionList({ title, defs, allTasks, toggleActive, del }: {
             <SubjectIcon subject={d.subject} />
             <div className="flex-1">
               <div className="font-medium">{d.title}</div>
-              <div className="text-xs text-white/50">
+              <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>
                 {d.estimatedMinutes}分 · {d.basePoints}积分
                 {d.type === 'weekly-min' && ` · 本周目标 ${d.weeklyMinTimes} 次`}
                 {p && ` · 本周完成 ${p.done}/${p.target} ${p.achieved ? '✓' : ''}`}
               </div>
             </div>
-            <button onClick={() => toggleActive(d)} className={`px-2 py-1 rounded text-xs ${d.active ? 'bg-emerald-500/30' : 'bg-white/10'}`}>
+            <button onClick={() => toggleActive(d)} className="px-2 py-1 rounded text-xs"
+              style={{ background: d.active ? 'var(--state-success-soft)' : 'var(--surface-mist)' }}>
               {d.active ? '启用' : '停用'}
             </button>
-            <button onClick={() => del(d)} className="text-rose-400 px-1">🗑</button>
+            <button onClick={() => del(d)} className="px-1" style={{ color: 'var(--state-danger)' }}>🗑</button>
           </div>
         );
       })}

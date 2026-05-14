@@ -29,6 +29,15 @@ export function compute7DayHeatmap(allTasks: Task[], today = todayString()): Hea
   return out;
 }
 
+// R3.4.1: 返回 style 对象而非 tailwind class，跨主题跟随 token
+export const HEAT_STYLES: Record<HeatStatus, { background: string }> = {
+  none:    { background: 'var(--surface-mist)' },
+  partial: { background: 'color-mix(in srgb, var(--state-success) 30%, transparent)' },
+  full:    { background: 'color-mix(in srgb, var(--state-success) 70%, transparent)' },
+  perfect: { background: 'var(--state-warn)' },
+};
+
+/** @deprecated use HEAT_STYLES — kept for transitional compatibility */
 export const HEAT_COLORS: Record<HeatStatus, string> = {
   none: 'bg-white/10',
   partial: 'bg-emerald-500/30',

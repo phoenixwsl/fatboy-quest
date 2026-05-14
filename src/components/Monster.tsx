@@ -158,9 +158,13 @@ export function Monster({ subject, size = 48, hp, defeated }: Props) {
         )}
       </AnimatePresence>
       {hp !== undefined && !defeated && size >= 80 && (
-        <div className="absolute -bottom-3 left-0 right-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div
+          className="absolute -bottom-3 left-0 right-0 h-1.5 rounded-full overflow-hidden"
+          style={{ background: 'var(--surface-mist)' }}
+        >
           <motion.div
-            className="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400"
+            className="h-full"
+            style={{ background: 'linear-gradient(90deg, var(--state-danger), var(--state-warn), var(--state-success))' }}
             animate={{ width: `${Math.max(0, Math.min(100, hp))}%` }}
             transition={{ duration: 0.5 }}
           />

@@ -37,8 +37,14 @@ export function HardWarning({ message, show, onDismiss, durationMs = 3000 }: Pro
           exit={{ opacity: 0, scale: 1.5 }}
           className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
         >
-          <div className="px-10 py-6 rounded-3xl bg-gradient-to-br from-rose-500/90 to-orange-500/90 border-4 border-white/30 shadow-2xl">
-            <div className="text-5xl font-black text-white text-center whitespace-nowrap drop-shadow-lg">
+          <div
+            className="px-10 py-6 rounded-3xl border-4 shadow-2xl"
+            style={{
+              background: 'linear-gradient(135deg, var(--state-danger), var(--state-warn))',
+              borderColor: 'var(--surface-fog)',
+            }}
+          >
+            <div className="text-5xl font-black text-center whitespace-nowrap drop-shadow-lg" style={{ color: 'var(--ink-strong)' }}>
               {message}
             </div>
           </div>

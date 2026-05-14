@@ -63,37 +63,44 @@ export function Recipients() {
   }
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24">
       <div className="flex items-center gap-2 mb-4">
         <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
         <div className="text-xl font-bold">📱 通知接收人</div>
       </div>
 
-      <div className="space-card p-3 mb-3 text-sm text-white/70">
-        在 iPhone App Store 搜「Bark」安装并打开，复制里面的 URL（形如 <code className="text-amber-300">https://api.day.app/AbCdEf123</code>），把 <b>最后那段 Key</b> 粘到下面即可。每条通知都会同时推给所有 enabled 的人。
+      <div className="space-card p-3 mb-3 text-sm" style={{ color: 'var(--ink-muted)' }}>
+        在 iPhone App Store 搜「Bark」安装并打开，复制里面的 URL（形如 <code style={{ color: 'var(--state-warn)' }}>https://api.day.app/AbCdEf123</code>），把 <b>最后那段 Key</b> 粘到下面即可。每条通知都会同时推给所有 enabled 的人。
       </div>
 
       <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">添加接收人</div>
+        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>添加接收人</div>
         <input value={label} onChange={e => setLabel(e.target.value)}
           placeholder="标签（例如：爸爸）"
-          className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
+          className="w-full px-3 py-2 rounded-xl outline-none mb-2"
+          style={{ background: 'var(--surface-mist)' }} />
         <div className="flex flex-wrap gap-1 mb-2">
           {EMOJIS.map(e => (
-            <button key={e} onClick={() => setEmoji(e)}
-              className={`text-2xl w-10 h-10 rounded-lg ${emoji === e ? 'bg-space-nebula' : 'bg-white/5'}`}>{e}</button>
+            <button
+              key={e}
+              onClick={() => setEmoji(e)}
+              className="text-2xl w-10 h-10 rounded-lg"
+              style={{ background: emoji === e ? 'var(--surface-fog)' : 'var(--surface-mist)' }}
+            >{e}</button>
           ))}
         </div>
         <input value={serverUrl} onChange={e => setServerUrl(e.target.value)}
           placeholder="Bark 服务器地址（默认即可）"
-          className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2 text-sm" />
+          className="w-full px-3 py-2 rounded-xl outline-none mb-2 text-sm"
+          style={{ background: 'var(--surface-mist)' }} />
         <input value={key} onChange={e => setKey(e.target.value)}
           placeholder="Bark Key"
-          className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2 font-mono text-sm" />
+          className="w-full px-3 py-2 rounded-xl outline-none mb-2 font-mono text-sm"
+          style={{ background: 'var(--surface-mist)' }} />
         <button onClick={add} className="space-btn w-full">+ 添加</button>
       </div>
 
-      <div className="text-sm text-white/70 mb-2">已配置（{list?.length ?? 0}）</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>已配置（{list?.length ?? 0}）</div>
       <div className="space-y-3">
         {list?.map(r => (
           <div key={r.id} className={`space-card p-4 ${!r.enabled ? 'opacity-50' : ''}`}>
@@ -101,11 +108,14 @@ export function Recipients() {
               <div className="text-3xl">{r.emoji}</div>
               <div className="flex-1">
                 <div className="font-medium">{r.label}</div>
-                <div className="text-xs text-white/50 font-mono">...{r.key.slice(-6)}</div>
+                <div className="text-xs font-mono" style={{ color: 'var(--ink-faint)' }}>...{r.key.slice(-6)}</div>
               </div>
               <button onClick={() => test(r)} className="space-btn-ghost text-xs">测试</button>
-              <button onClick={() => update(r.id, { enabled: !r.enabled })}
-                className={`px-3 py-1.5 rounded-lg text-xs ${r.enabled ? 'bg-emerald-500/30' : 'bg-white/10'}`}>
+              <button
+                onClick={() => update(r.id, { enabled: !r.enabled })}
+                className="px-3 py-1.5 rounded-lg text-xs"
+                style={{ background: r.enabled ? 'var(--state-success-soft)' : 'var(--surface-mist)' }}
+              >
                 {r.enabled ? '启用' : '禁用'}
               </button>
             </div>
@@ -117,7 +127,7 @@ export function Recipients() {
               <SubToggle label="周日周报" v={r.subWeeklyReport} on={(v) => update(r.id, { subWeeklyReport: v })} />
               <SubToggle label="🙋 求助" v={r.subHelp !== false} on={(v) => update(r.id, { subHelp: v })} />
             </div>
-            <button onClick={() => del(r.id)} className="text-rose-400 text-xs mt-3">删除</button>
+            <button onClick={() => del(r.id)} className="text-xs mt-3" style={{ color: 'var(--state-danger)' }}>删除</button>
           </div>
         ))}
       </div>
@@ -127,8 +137,11 @@ export function Recipients() {
 
 function SubToggle({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) {
   return (
-    <button onClick={() => on(!v)}
-      className={`px-2 py-2 rounded-lg text-left ${v ? 'bg-space-nebula/30' : 'bg-white/5'}`}>
+    <button
+      onClick={() => on(!v)}
+      className="px-2 py-2 rounded-lg text-left"
+      style={{ background: v ? 'var(--accent-soft)' : 'var(--surface-mist)' }}
+    >
       <span className="mr-1">{v ? '✓' : '○'}</span>
       {label}
     </button>

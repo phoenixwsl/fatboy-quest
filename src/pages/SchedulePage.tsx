@@ -38,7 +38,7 @@ function SortableRow({ item, onRemove, onAdjust }: {
           <SubjectIcon subject={item.task?.subject ?? 'other'} />
           <div className="flex-1">
             <div className="font-medium">{item.task?.title}</div>
-            <div className="text-xs text-white/50">
+            <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>
               {formatDuration(item.duration)}
               {item.task?.basePoints ? ` · ${item.task.basePoints} 分` : ' · 积分待评分'}
             </div>
@@ -46,18 +46,18 @@ function SortableRow({ item, onRemove, onAdjust }: {
         </>
       ) : (
         <>
-          <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center text-xl">☕</div>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style={{ background: 'var(--state-info-soft)' }}>☕</div>
           <div className="flex-1">
             <div className="font-medium">休息一下</div>
-            <div className="flex items-center gap-1 text-xs text-white/50">
-              <button onClick={() => onAdjust(-5)} className="px-1 bg-white/10 rounded">−</button>
+            <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--ink-faint)' }}>
+              <button onClick={() => onAdjust(-5)} className="px-1 rounded" style={{ background: 'var(--surface-mist)' }}>−</button>
               <span className="px-2">{formatDuration(item.duration)}</span>
-              <button onClick={() => onAdjust(5)} className="px-1 bg-white/10 rounded">+</button>
+              <button onClick={() => onAdjust(5)} className="px-1 rounded" style={{ background: 'var(--surface-mist)' }}>+</button>
             </div>
           </div>
         </>
       )}
-      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="text-white/40 active:scale-90 px-2">✕</button>
+      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="active:scale-90 px-2" style={{ color: 'var(--ink-faint)' }}>✕</button>
     </div>
   );
 }
@@ -204,7 +204,7 @@ export function SchedulePage() {
   if (locked) return null;
 
   return (
-    <div className="min-h-full p-4 pb-32 text-white">
+    <div className="min-h-full p-4 pb-32">
       <div className="flex items-center gap-2 mb-4">
         <button onClick={() => nav(-1)} className="space-btn-ghost">← 返回</button>
         <div className="text-xl font-bold flex-1">📅 规划今天</div>
@@ -214,7 +214,7 @@ export function SchedulePage() {
       </div>
 
       <div className="space-card p-3 mb-3">
-        <div className="text-sm text-white/70 mb-2">什么时候开始？</div>
+        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>什么时候开始？</div>
         <div className="flex items-center gap-2">
           <input
             type="time"
@@ -223,53 +223,56 @@ export function SchedulePage() {
               const [h, m] = e.target.value.split(':').map(Number);
               setStartMinute(h * 60 + m);
             }}
-            className="bg-white/10 px-3 py-2 rounded-xl outline-none text-lg"
+            className="px-3 py-2 rounded-xl outline-none text-lg"
+            style={{ background: 'var(--surface-mist)' }}
           />
-          <div className="text-sm text-white/60">起点时间</div>
+          <div className="text-sm" style={{ color: 'var(--ink-faint)' }}>起点时间</div>
         </div>
       </div>
 
       <div className="space-card p-3 mb-3">
-        <div className="text-sm text-white/70 mb-2">📋 待安排（{pendingTasks?.length ?? 0}）</div>
+        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>📋 待安排（{pendingTasks?.length ?? 0}）</div>
         <div className="flex flex-wrap gap-2">
           {(pendingTasks ?? []).filter(t => !board.find(b => b.taskId === t.id)).map(t => (
             <button key={t.id} onClick={() => addTask(t)}
-              className="bg-white/10 hover:bg-white/20 active:scale-95 px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-transform"
+              className="active:scale-95 px-3 py-2 rounded-xl text-sm flex items-center gap-2 transition-transform"
+              style={{ background: 'var(--surface-mist)' }}
             >
               <SubjectIcon subject={t.subject} />
               <div className="text-left">
                 <div>{t.title}</div>
-                <div className="text-xs text-white/50">{t.estimatedMinutes}分</div>
+                <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>{t.estimatedMinutes}分</div>
               </div>
               <span className="text-space-plasma">+</span>
             </button>
           ))}
           {(pendingTasks ?? []).filter(t => !board.find(b => b.taskId === t.id)).length === 0 && (
-            <div className="text-white/40 text-sm">没有更多了</div>
+            <div className="text-sm" style={{ color: 'var(--ink-faint)' }}>没有更多了</div>
           )}
         </div>
       </div>
 
       <div className="space-card p-3 mb-3">
-        <div className="text-sm text-white/70 mb-2">☕ 加休息块</div>
+        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>☕ 加休息块</div>
         <div className="flex gap-2 flex-wrap mb-2">
           {REST_PRESETS.map(min => (
             <button key={min} onClick={() => addRest(min)}
-              className="bg-cyan-500/20 px-3 py-1.5 rounded-xl text-sm active:scale-95 transition-transform">
+              className="px-3 py-1.5 rounded-xl text-sm active:scale-95 transition-transform"
+              style={{ background: 'var(--state-info-soft)' }}>
               + {min}分
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-white/60">自定义：</span>
-          <button onClick={() => setCustomRest(Math.max(5, customRest - 5))} className="px-2 py-1 bg-white/10 rounded">−</button>
-          <span className="px-3 py-1 bg-white/5 rounded min-w-[60px] text-center">{customRest} 分</span>
-          <button onClick={() => setCustomRest(Math.min(120, customRest + 5))} className="px-2 py-1 bg-white/10 rounded">+</button>
+          <span style={{ color: 'var(--ink-faint)' }}>自定义：</span>
+          <button onClick={() => setCustomRest(Math.max(5, customRest - 5))} className="px-2 py-1 rounded" style={{ background: 'var(--surface-mist)' }}>−</button>
+          <span className="px-3 py-1 rounded min-w-[60px] text-center" style={{ background: 'var(--surface-mist)' }}>{customRest} 分</span>
+          <button onClick={() => setCustomRest(Math.min(120, customRest + 5))} className="px-2 py-1 rounded" style={{ background: 'var(--surface-mist)' }}>+</button>
           <button onClick={() => addRest(customRest)} className="ml-2 space-btn-ghost text-xs">添加</button>
         </div>
       </div>
 
-      <div className="text-sm text-white/60 mb-2">⚡ 今日时间轴 (拖把手调顺序)</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-faint)' }}>⚡ 今日时间轴 (拖把手调顺序)</div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={board.map(b => b.uid)} strategy={verticalListSortingStrategy}>
           <AnimatePresence>
@@ -279,7 +282,7 @@ export function SchedulePage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
               >
-                <div className="text-xs text-white/40 ml-2 mt-2 mb-1">
+                <div className="text-xs ml-2 mt-2 mb-1" style={{ color: 'var(--ink-faint)' }}>
                   {minutesToHHMM(item.start)} - {minutesToHHMM(item.end)}
                 </div>
                 <SortableRow
@@ -294,7 +297,7 @@ export function SchedulePage() {
       </DndContext>
 
       {board.length === 0 && (
-        <div className="text-center text-white/40 mt-12">
+        <div className="text-center mt-12" style={{ color: 'var(--ink-faint)' }}>
           <div className="text-4xl mb-2">👆</div>
           <div>点上面的作业添加到时间轴</div>
         </div>

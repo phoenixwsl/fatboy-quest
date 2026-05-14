@@ -111,8 +111,8 @@ function Row({ icon, label, value }: { icon: string; label: string; value: strin
   return (
     <div className="flex items-center gap-3">
       <div className="text-2xl">{icon}</div>
-      <div className="flex-1 text-white/70">{label}</div>
-      <div className="font-bold text-white">{value}</div>
+      <div className="flex-1" style={{ color: 'var(--ink-muted)' }}>{label}</div>
+      <div className="font-bold" style={{ color: 'var(--ink-strong)' }}>{value}</div>
     </div>
   );
 }

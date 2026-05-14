@@ -8,7 +8,7 @@ import { db } from '../../db';
 import { newId } from '../../lib/ids';
 import { todayString, addDays, formatChineseDate } from '../../lib/time';
 import { extractTemplates, type TaskTemplate } from '../../lib/templates';
-import { TASK_TYPE_LABEL, TASK_TYPE_BORDER, TASK_TYPE_BADGE, weeklyProgress } from '../../lib/recurrence';
+import { TASK_TYPE_LABEL, TASK_TYPE_BORDER_STYLE, TASK_TYPE_BADGE_STYLE, weeklyProgress } from '../../lib/recurrence';
 import { useAppStore } from '../../store/useAppStore';
 import { SubjectIcon } from '../HomePage';
 import { DifficultyStars } from '../../components/DifficultyStars';
@@ -199,23 +199,25 @@ export function TaskManager() {
       {/* 新建表单 */}
       {showForm && (
         <div className="space-card p-4 mb-3">
-          <div className="text-sm text-white/70 mb-2">类型</div>
+          <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>类型</div>
           <select value={taskType} onChange={e => setTaskType(e.target.value as TaskType)}
-            className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2 appearance-none cursor-pointer">
+            className="w-full px-3 py-2 rounded-xl outline-none mb-2 appearance-none cursor-pointer"
+            style={{ background: 'var(--surface-mist)' }}>
             {TYPE_OPTIONS.map(o => <option key={o.id} value={o.id} className="bg-space-card">{o.label}</option>)}
           </select>
-          <div className="text-xs text-white/40 mb-3">
+          <div className="text-xs mb-3" style={{ color: 'var(--ink-faint)' }}>
             {TYPE_OPTIONS.find(o => o.id === taskType)?.desc}
           </div>
 
           {templates.length > 0 && (
             <div className="mb-3">
-              <div className="text-xs text-white/60 mb-1">📋 历史模板</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>📋 历史模板</div>
               <div className="flex flex-wrap gap-1">
                 {templates.slice(0, 8).map(tpl => (
                   <button key={tpl.title} onClick={() => applyTemplate(tpl)}
                     onContextMenu={(e) => { e.preventDefault(); hideTemplate(tpl); }}
-                    className="bg-white/10 hover:bg-white/20 px-2 py-1 rounded-lg text-xs">
+                    className="px-2 py-1 rounded-lg text-xs"
+                    style={{ background: 'var(--surface-mist)' }}>
                     {tpl.title} ×{tpl.useCount}
                   </button>
                 ))}
@@ -225,10 +227,12 @@ export function TaskManager() {
 
           <input value={title} onChange={e => setTitle(e.target.value)}
             placeholder="标题（如：数学口算 P12）"
-            className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
+            className="w-full px-3 py-2 rounded-xl outline-none mb-2"
+            style={{ background: 'var(--surface-mist)' }} />
           <input value={description} onChange={e => setDescription(e.target.value)}
             placeholder="描述（可选）"
-            className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
+            className="w-full px-3 py-2 rounded-xl outline-none mb-2"
+            style={{ background: 'var(--surface-mist)' }} />
           <div className="flex flex-wrap gap-1.5 mb-2">
             {SUBJECTS.map(s => (
               <button
@@ -244,38 +248,43 @@ export function TaskManager() {
           </div>
           <div className="grid grid-cols-2 gap-2 mb-2">
             <label>
-              <div className="text-xs text-white/60 mb-1">基础积分</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>基础积分</div>
               <input type="number" value={points} onChange={e => setPoints(Number(e.target.value))}
-                className="w-full px-2 py-1.5 bg-white/10 rounded outline-none text-sm" />
+                className="w-full px-2 py-1.5 rounded outline-none text-sm"
+                style={{ background: 'var(--surface-mist)' }} />
             </label>
             <label>
-              <div className="text-xs text-white/60 mb-1">预估分钟</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>预估分钟</div>
               <input type="number" value={minutes} onChange={e => setMinutes(Number(e.target.value))}
-                className="w-full px-2 py-1.5 bg-white/10 rounded outline-none text-sm" />
+                className="w-full px-2 py-1.5 rounded outline-none text-sm"
+                style={{ background: 'var(--surface-mist)' }} />
             </label>
           </div>
 
           {taskType === 'normal' && (
             <>
               <label>
-                <div className="text-xs text-white/60 mb-1">日期</div>
+                <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>日期</div>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                  className="w-full px-2 py-1.5 bg-white/10 rounded outline-none text-sm mb-1" />
-                <div className="text-xs text-white/40 mb-2">{formatChineseDate(date)}</div>
+                  className="w-full px-2 py-1.5 rounded outline-none text-sm mb-1"
+                  style={{ background: 'var(--surface-mist)' }} />
+                <div className="text-xs mb-2" style={{ color: 'var(--ink-faint)' }}>{formatChineseDate(date)}</div>
               </label>
               <button onClick={() => setIsRequired(!isRequired)}
-                className={`w-full mt-1 px-3 py-2 rounded-xl text-sm ${
-                  isRequired ? 'bg-rose-500/30 ring-1 ring-rose-300/60' : 'bg-white/5'
-                }`}>
+                className="w-full mt-1 px-3 py-2 rounded-xl text-sm"
+                style={isRequired
+                  ? { background: 'var(--state-danger-soft)', borderColor: 'var(--state-danger)', borderWidth: 1, borderStyle: 'solid' }
+                  : { background: 'var(--surface-mist)' }}>
                 {isRequired ? '🔴 必做' : '○ 选填'}
               </button>
             </>
           )}
           {taskType === 'weekly-min' && (
             <label>
-              <div className="text-xs text-white/60 mb-1">每周最少做几次</div>
+              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>每周最少做几次</div>
               <input type="number" value={weeklyMinTimes} onChange={e => setWeeklyMinTimes(Number(e.target.value))}
-                className="w-full px-2 py-1.5 bg-white/10 rounded outline-none text-sm" />
+                className="w-full px-2 py-1.5 rounded outline-none text-sm"
+                style={{ background: 'var(--surface-mist)' }} />
             </label>
           )}
 
@@ -325,16 +334,17 @@ export function TaskManager() {
                   {t.title}
                   {/* R3.2: 难度星 */}
                   <DifficultyStars difficulty={t.difficulty} />
-                  {t.isRequired && <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/40 text-rose-100">🔴 必做</span>}
-                  {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/30">孩子加的</span>}
+                  {t.isRequired && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--state-danger-soft)', color: 'var(--state-danger)' }}>🔴 必做</span>}
+                  {t.createdBy === 'child' && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--state-info-soft)' }}>孩子加的</span>}
                 </div>
-                <div className="text-xs text-white/50">{t.date} · {t.estimatedMinutes}分 · {t.basePoints || '积分待定'} · {t.status}</div>
+                <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>{t.date} · {t.estimatedMinutes}分 · {t.basePoints || '积分待定'} · {t.status}</div>
               </div>
               <button onClick={() => toggleRequired(t)}
-                className={`px-2 py-1 rounded text-xs ${t.isRequired ? 'bg-rose-500/30' : 'bg-white/10'}`}>
+                className="px-2 py-1 rounded text-xs"
+                style={{ background: t.isRequired ? 'var(--state-danger-soft)' : 'var(--surface-mist)' }}>
                 {t.isRequired ? '取消必做' : '必做'}
               </button>
-              <button onClick={() => delTask(t.id)} className="text-rose-400 px-2">🗑</button>
+              <button onClick={() => delTask(t.id)} className="px-2" style={{ color: 'var(--state-danger)' }}>🗑</button>
             </div>
           ))}
         </Section>
@@ -362,7 +372,7 @@ export function TaskManager() {
       )}
 
       {(allTasks?.length === 0 && allDefs?.length === 0) && (
-        <div className="text-center text-white/40 mt-12">
+        <div className="text-center mt-12" style={{ color: 'var(--ink-faint)' }}>
           <div className="text-4xl">📭</div>
           <div className="mt-2">还没有任务，点右上角"+ 新建"</div>
         </div>
@@ -374,7 +384,7 @@ export function TaskManager() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-4">
-      <div className="text-sm text-white/70 mb-2">{title}</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>{title}</div>
       {children}
     </div>
   );
@@ -385,26 +395,28 @@ function DefRow({ d, allTasks, onToggle, onDel }: {
   onToggle: (d: TaskDefinition) => void; onDel: (d: TaskDefinition) => void;
 }) {
   const tt = d.type as TaskType;
-  const badge = TASK_TYPE_BADGE[tt];
+  const badge = TASK_TYPE_BADGE_STYLE[tt];
   const p = (d.type === 'weekly-min' || d.type === 'weekly-once') ? weeklyProgress(d, allTasks) : null;
   return (
-    <div className={`space-card p-3 mb-2 flex items-center gap-3 ${TASK_TYPE_BORDER[tt]} ${!d.active ? 'opacity-50' : ''}`}>
+    <div className={`space-card p-3 mb-2 flex items-center gap-3 ${!d.active ? 'opacity-50' : ''}`}
+      style={TASK_TYPE_BORDER_STYLE[tt]}>
       <SubjectIcon subject={d.subject} />
       <div className="flex-1">
         <div className="font-medium flex items-center gap-2">
           {d.title}
-          {badge && <span className={`text-[10px] px-1.5 py-0.5 rounded ${badge.class}`}>{badge.label}</span>}
+          {badge && <span className="text-[10px] px-1.5 py-0.5 rounded" style={badge.style}>{badge.label}</span>}
         </div>
-        <div className="text-xs text-white/50">
+        <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>
           {d.estimatedMinutes}分 · {d.basePoints}积分
           {d.type === 'weekly-min' && ` · 目标 ${d.weeklyMinTimes} 次/周`}
           {p && ` · 本周 ${p.done}/${p.target} ${p.achieved ? '✓' : ''}`}
         </div>
       </div>
-      <button onClick={() => onToggle(d)} className={`px-2 py-1 rounded text-xs ${d.active ? 'bg-emerald-500/30' : 'bg-white/10'}`}>
+      <button onClick={() => onToggle(d)} className="px-2 py-1 rounded text-xs"
+        style={{ background: d.active ? 'var(--state-success-soft)' : 'var(--surface-mist)' }}>
         {d.active ? '启用' : '停用'}
       </button>
-      <button onClick={() => onDel(d)} className="text-rose-400 px-2">🗑</button>
+      <button onClick={() => onDel(d)} className="px-2" style={{ color: 'var(--state-danger)' }}>🗑</button>
     </div>
   );
 }

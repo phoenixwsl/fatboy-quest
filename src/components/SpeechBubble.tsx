@@ -16,17 +16,21 @@ export function SpeechBubble({ text, tone = 'normal' }: Props) {
           exit={{ opacity: 0, y: 10, scale: 0.8 }}
           className="relative inline-block"
         >
-          <div className={`px-3 py-1.5 rounded-2xl text-sm font-medium shadow-lg ${
-            tone === 'warn'
-              ? 'bg-amber-500/90 text-white ring-1 ring-amber-200'
-              : 'bg-white/90 text-space-deep ring-1 ring-white/40'
-          }`}>
+          <div
+            className="px-3 py-1.5 rounded-2xl text-sm font-medium shadow-lg ring-1"
+            style={
+              tone === 'warn'
+                ? { background: 'var(--state-warn)', color: 'var(--ink-strong)', boxShadow: '0 0 0 1px var(--state-warn-strong)' }
+                : { background: 'var(--surface-paper)', color: 'var(--ink-strong)', boxShadow: '0 0 0 1px var(--surface-fog)' }
+            }
+          >
             {text}
           </div>
           {/* 气泡小尾巴 */}
-          <div className={`absolute left-1/2 -translate-x-1/2 -bottom-1 w-3 h-3 rotate-45 ${
-            tone === 'warn' ? 'bg-amber-500/90' : 'bg-white/90'
-          }`} />
+          <div
+            className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-3 h-3 rotate-45"
+            style={{ background: tone === 'warn' ? 'var(--state-warn)' : 'var(--surface-paper)' }}
+          />
         </motion.div>
       )}
     </AnimatePresence>

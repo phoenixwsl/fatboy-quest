@@ -107,7 +107,10 @@ export function DailyShareCard({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white/10 backdrop-blur rounded-xl p-2 text-center">
+    <div
+      className="backdrop-blur rounded-xl p-2 text-center"
+      style={{ background: 'var(--surface-mist)' }}
+    >
       <div className="text-[10px] opacity-70">{label}</div>
       <div className="text-lg font-bold">{value}</div>
     </div>

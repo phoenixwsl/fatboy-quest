@@ -19,7 +19,7 @@ export function PointsTrendCard({ entries }: { entries: PointsEntry[] }) {
   }));
   return (
     <div className="space-card p-4">
-      <div className="text-sm text-white/70 mb-2">📊 14 天积分</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>📊 14 天积分</div>
       <div style={{ height: 200 }}>
         <ResponsiveContainer>
           <BarChart data={data}>
@@ -41,7 +41,7 @@ export function SubjectPieCard({ tasks }: { tasks: Task[] }) {
   if (data.length === 0) return null;
   return (
     <div className="space-card p-4">
-      <div className="text-sm text-white/70 mb-2">🥧 近 30 天科目分布</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>🥧 近 30 天科目分布</div>
       <div style={{ height: 200 }}>
         <ResponsiveContainer>
           <PieChart>
@@ -63,7 +63,7 @@ export function TimeAccuracyCard({ tasks }: { tasks: Task[] }) {
   const plotData = data.map((d, i) => ({ idx: i + 1, ratio: d.ratio, title: d.taskTitle }));
   return (
     <div className="space-card p-4">
-      <div className="text-sm text-white/70 mb-2">📈 实际 / 预估 用时比 (1.0 = 准时)</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>📈 实际 / 预估 用时比 (1.0 = 准时)</div>
       <div style={{ height: 200 }}>
         <ResponsiveContainer>
           <LineChart data={plotData}>
@@ -91,7 +91,7 @@ export function RatingRadarCard({ evaluations }: { evaluations: Evaluation[] }) 
   ];
   return (
     <div className="space-card p-4">
-      <div className="text-sm text-white/70 mb-2">🎯 评分维度（近 10 项 vs 上 10 项）</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>🎯 评分维度（近 10 项 vs 上 10 项）</div>
       <div style={{ height: 220 }}>
         <ResponsiveContainer>
           <RadarChart data={data}>

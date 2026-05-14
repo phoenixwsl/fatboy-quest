@@ -101,29 +101,33 @@ export function ShopPage() {
   }
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24">
       <div className="flex items-center gap-2 mb-4">
         <button onClick={() => nav('/')} className="space-btn-ghost">← 首页</button>
         <div className="text-xl font-bold">🎁 奖励商店</div>
       </div>
 
       <div className="space-card p-4 mb-4">
-        <div className="text-sm text-white/60">当前积分</div>
+        <div className="text-sm" style={{ color: 'var(--ink-faint)' }}>当前积分</div>
         <div className="text-3xl font-bold glow-text">⭐ {total}</div>
-        <div className="text-xs text-white/40 mt-1">连击 {streak?.currentStreak ?? 0} 天 · 守护卡 {streak?.guardCards ?? 0} 张</div>
+        <div className="text-xs mt-1" style={{ color: 'var(--ink-faint)' }}>连击 {streak?.currentStreak ?? 0} 天 · 守护卡 {streak?.guardCards ?? 0} 张</div>
       </div>
 
       {/* 我的库存（已购未用） */}
       {myInventory && myInventory.length > 0 && (
         <>
-          <div className="text-sm text-white/70 mb-2">🎒 我的库存（已购买，未使用）</div>
+          <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>🎒 我的库存（已购买，未使用）</div>
           <div className="space-y-2 mb-4">
             {myInventory.map(r => (
-              <div key={r.id} className="space-card p-3 flex items-center gap-3 ring-1 ring-emerald-300/40">
+              <div
+                key={r.id}
+                className="space-card p-3 flex items-center gap-3 ring-1"
+                style={{ boxShadow: '0 0 0 1px var(--state-success)' }}
+              >
                 <div className="text-3xl">{r.shopItemEmoji ?? '🎁'}</div>
                 <div className="flex-1">
                   <div className="font-medium">{r.shopItemName}</div>
-                  <div className="text-xs text-white/50">
+                  <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>
                     购于 {new Date(r.redeemedAt).toLocaleDateString()} · 花了 {r.costPoints} 分
                   </div>
                 </div>
@@ -134,7 +138,7 @@ export function ShopPage() {
         </>
       )}
 
-      <div className="text-sm text-white/70 mb-2">商店</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>商店</div>
       <div className="space-y-3">
         {items.map(item => {
           const cost = item.id === 'preset-guard' ? guardPrice : item.costPoints;
@@ -147,7 +151,7 @@ export function ShopPage() {
               <div className="text-4xl">{item.emoji}</div>
               <div className="flex-1">
                 <div className="font-medium">{item.name}</div>
-                <div className="text-xs text-white/50">
+                <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>
                   本周还剩 {stockLeft}/{item.stockPerWeek} · {cost} 积分
                 </div>
               </div>
@@ -164,7 +168,7 @@ export function ShopPage() {
       </div>
 
       {items.length === 0 && (
-        <div className="text-center text-white/40 mt-12">
+        <div className="text-center mt-12" style={{ color: 'var(--ink-faint)' }}>
           <div className="text-4xl">🌌</div>
           <div className="mt-2">家长还没设置奖励</div>
         </div>
@@ -172,10 +176,14 @@ export function ShopPage() {
 
       {usedRecent && usedRecent.length > 0 && (
         <>
-          <div className="text-sm text-white/40 mt-6 mb-2">📜 最近使用</div>
+          <div className="text-sm mt-6 mb-2" style={{ color: 'var(--ink-faint)' }}>📜 最近使用</div>
           <div className="space-y-1">
             {usedRecent.slice(0, 5).map(r => (
-              <div key={r.id} className="text-xs text-white/40 px-3 py-1.5 bg-white/5 rounded-lg flex justify-between">
+              <div
+                key={r.id}
+                className="text-xs px-3 py-1.5 rounded-lg flex justify-between"
+                style={{ color: 'var(--ink-faint)', background: 'var(--surface-mist)' }}
+              >
                 <span>{r.shopItemEmoji ?? '🎁'} {r.shopItemName}</span>
                 <span>{new Date(r.usedAt ?? r.fulfilledAt ?? r.redeemedAt).toLocaleDateString()}</span>
               </div>
@@ -199,11 +207,11 @@ export function ShopPage() {
             >
               <div className="text-6xl mb-2">{confirmItem.emoji}</div>
               <div className="text-lg font-bold mb-2">确定兑换吗？</div>
-              <div className="text-white/70 mb-4">
-                花 <b className="text-amber-300">{confirmItem.id === 'preset-guard' ? guardPrice : confirmItem.costPoints}</b> 积分换<br/>
+              <div className="mb-4" style={{ color: 'var(--ink-muted)' }}>
+                花 <b style={{ color: 'var(--state-warn)' }}>{confirmItem.id === 'preset-guard' ? guardPrice : confirmItem.costPoints}</b> 积分换<br/>
                 <b>{confirmItem.name}</b>
               </div>
-              <div className="text-xs text-white/40 mb-4">
+              <div className="text-xs mb-4" style={{ color: 'var(--ink-faint)' }}>
                 {confirmItem.id === 'preset-guard'
                   ? '守护卡会立即生效'
                   : '兑换后进入"我的库存"，使用时再点"使用"按钮'}

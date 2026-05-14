@@ -13,11 +13,14 @@ export function Toast() {
           exit={{ opacity: 0, y: -20 }}
           className="fixed top-6 left-1/2 -translate-x-1/2 z-50"
         >
-          <div className={`px-4 py-2 rounded-xl backdrop-blur-md border ${
-            toast.tone === 'success' ? 'bg-emerald-500/30 border-emerald-300/50' :
-            toast.tone === 'warn' ? 'bg-amber-500/30 border-amber-300/50' :
-            'bg-space-card/80 border-space-border'
-          }`}>
+          <div
+            className="px-4 py-2 rounded-xl backdrop-blur-md border"
+            style={
+              toast.tone === 'success' ? { background: 'var(--state-success-soft)', borderColor: 'var(--state-success)', color: 'var(--state-success-strong)' } :
+              toast.tone === 'warn'    ? { background: 'var(--state-warn-soft)',    borderColor: 'var(--state-warn)',    color: 'var(--state-warn-strong)' } :
+                                         { background: 'var(--surface-paper)',      borderColor: 'var(--surface-fog)',   color: 'var(--ink-strong)' }
+            }
+          >
             {toast.text}
           </div>
         </motion.div>

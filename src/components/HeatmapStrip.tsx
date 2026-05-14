@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../db';
-import { compute7DayHeatmap, HEAT_COLORS } from '../lib/heatmap';
+import { compute7DayHeatmap, HEAT_STYLES } from '../lib/heatmap';
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -18,14 +18,28 @@ export function HeatmapStrip() {
           const isToday = i === cells.length - 1;
           return (
             <div key={c.date} className="flex flex-col items-center gap-1 flex-1">
-              <div className={`w-full h-6 rounded ${HEAT_COLORS[c.status]} ${isToday ? 'ring-2 ring-white/60' : ''}`}
-                title={`${c.date} - ${c.completed}/${c.total}`} />
-              <div className={`text-[10px] ${isToday ? 'text-white font-bold' : 'text-white/50'}`}>{wd}</div>
+              <div
+                className={`w-full h-6 rounded ${isToday ? 'ring-2' : ''}`}
+                style={{
+                  ...HEAT_STYLES[c.status],
+                  ...(isToday ? { boxShadow: '0 0 0 2px var(--surface-fog)' } : {}),
+                }}
+                title={`${c.date} - ${c.completed}/${c.total}`}
+              />
+              <div
+                className="text-[10px]"
+                style={{
+                  color: isToday ? 'var(--ink-strong)' : 'var(--ink-faint)',
+                  fontWeight: isToday ? 700 : undefined,
+                }}
+              >
+                {wd}
+              </div>
             </div>
           );
         })}
       </div>
-      <div className="text-[10px] text-white/30 text-center mt-1">点击查看完整日历 →</div>
+      <div className="text-[10px] text-center mt-1" style={{ color: 'var(--ink-faint)' }}>点击查看完整日历 →</div>
     </button>
   );
 }

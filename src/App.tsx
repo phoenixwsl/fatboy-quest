@@ -86,7 +86,7 @@ export default function App() {
 
   if (!ready || settings === undefined) {
     return (
-      <div className="flex h-full items-center justify-center text-white/60">
+      <div className="flex h-full items-center justify-center" style={{ color: 'var(--ink-faint)' }}>
         <div className="animate-pulse">🚀 启动中...</div>
       </div>
     );

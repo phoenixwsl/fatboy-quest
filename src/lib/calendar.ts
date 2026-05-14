@@ -63,6 +63,16 @@ export function aggregateMonth(
   return out;
 }
 
+// R3.4.1: 返回 style 对象而非 tailwind class，跨主题跟随 token
+export const DAY_LEVEL_STYLE: Record<DayLevel, { background: string }> = {
+  0: { background: 'var(--surface-mist)' },
+  1: { background: 'color-mix(in srgb, var(--state-success) 25%, transparent)' },
+  2: { background: 'color-mix(in srgb, var(--state-success) 55%, transparent)' },
+  3: { background: 'color-mix(in srgb, var(--state-success) 85%, transparent)' },
+  4: { background: 'linear-gradient(135deg, var(--state-warn), var(--primary))' },
+};
+
+/** @deprecated use DAY_LEVEL_STYLE */
 export const DAY_LEVEL_COLOR: Record<DayLevel, string> = {
   0: 'bg-white/5',
   1: 'bg-emerald-500/25',

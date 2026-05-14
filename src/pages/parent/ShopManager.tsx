@@ -50,61 +50,72 @@ export function ShopManager() {
   }
 
   return (
-    <div className="min-h-full p-4 pb-24 text-white">
+    <div className="min-h-full p-4 pb-24">
       <div className="flex items-center gap-2 mb-4">
         <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
         <div className="text-xl font-bold">🎁 奖励商店管理</div>
       </div>
 
       <div className="space-card p-4 mb-3">
-        <div className="text-sm text-white/70 mb-2">添加奖励</div>
+        <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>添加奖励</div>
         <input value={name} onChange={e => setName(e.target.value)}
           placeholder="名称（例如：DQ 雪糕券）"
-          className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none mb-2" />
+          className="w-full px-3 py-2 rounded-xl outline-none mb-2"
+          style={{ background: 'var(--surface-mist)' }} />
         <div className="flex flex-wrap gap-1 mb-2">
           {EMOJIS.map(e => (
-            <button key={e} onClick={() => setEmoji(e)}
-              className={`text-2xl w-10 h-10 rounded-lg ${emoji === e ? 'bg-space-nebula' : 'bg-white/5'}`}>{e}</button>
+            <button
+              key={e}
+              onClick={() => setEmoji(e)}
+              className="text-2xl w-10 h-10 rounded-lg"
+              style={{ background: emoji === e ? 'var(--surface-fog)' : 'var(--surface-mist)' }}
+            >{e}</button>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-2">
           <label>
-            <div className="text-xs text-white/60 mb-1">所需积分</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>所需积分</div>
             <input type="number" value={cost} onChange={e => setCost(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none" />
+              className="w-full px-3 py-2 rounded-xl outline-none"
+              style={{ background: 'var(--surface-mist)' }} />
           </label>
           <label>
-            <div className="text-xs text-white/60 mb-1">每周库存</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>每周库存</div>
             <input type="number" value={stockPerWeek} onChange={e => setStockPerWeek(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-white/10 rounded-xl outline-none" />
+              className="w-full px-3 py-2 rounded-xl outline-none"
+              style={{ background: 'var(--surface-mist)' }} />
           </label>
         </div>
         <button onClick={addItem} className="space-btn w-full mt-3">+ 添加</button>
       </div>
 
-      <div className="text-sm text-white/70 mb-2">现有奖励 ({items?.length ?? 0})</div>
+      <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>现有奖励 ({items?.length ?? 0})</div>
       <div className="space-y-2">
         {items?.map(it => (
           <div key={it.id} className={`space-card p-3 flex items-center gap-3 ${!it.enabled ? 'opacity-50' : ''}`}>
             <div className="text-3xl">{it.emoji}</div>
             <div className="flex-1">
               <div className="font-medium">{it.name}</div>
-              <div className="flex items-center gap-2 text-xs text-white/50 mt-1">
+              <div className="flex items-center gap-2 text-xs mt-1" style={{ color: 'var(--ink-faint)' }}>
                 <span>价格</span>
                 <input type="number" value={it.costPoints}
                   onChange={e => editCost(it.id, Number(e.target.value))}
-                  className="w-20 px-2 py-1 bg-white/10 rounded outline-none"
+                  className="w-20 px-2 py-1 rounded outline-none"
+                  style={{ background: 'var(--surface-mist)' }}
                   disabled={it.id === 'preset-guard'} />
                 <span>· 每周 {it.stockPerWeek} 个</span>
               </div>
-              {it.id === 'preset-guard' && <div className="text-xs text-amber-300/70 mt-0.5">守护卡价格自动 = 日均×3</div>}
+              {it.id === 'preset-guard' && <div className="text-xs mt-0.5" style={{ color: 'var(--state-warn)' }}>守护卡价格自动 = 日均×3</div>}
             </div>
-            <button onClick={() => toggleItem(it.id, !it.enabled)}
-              className={`px-3 py-1.5 rounded-lg text-xs ${it.enabled ? 'bg-emerald-500/30' : 'bg-white/10'}`}>
+            <button
+              onClick={() => toggleItem(it.id, !it.enabled)}
+              className="px-3 py-1.5 rounded-lg text-xs"
+              style={{ background: it.enabled ? 'var(--state-success-soft)' : 'var(--surface-mist)' }}
+            >
               {it.enabled ? '已上架' : '已下架'}
             </button>
             {!it.id.startsWith('preset-') && (
-              <button onClick={() => delItem(it.id)} className="text-rose-400 px-2">🗑</button>
+              <button onClick={() => delItem(it.id)} className="px-2" style={{ color: 'var(--state-danger)' }}>🗑</button>
             )}
           </div>
         ))}

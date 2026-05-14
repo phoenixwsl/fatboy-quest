@@ -103,7 +103,7 @@ export function RitualMonitor() {
                   <Row label="⭐ 获得" value={`${active.payload.points} 积分`} />
                   <Row label="🔥 连击" value={`${active.payload.streak} 天`} />
                 </div>
-                <div className="text-sm text-white/60 mb-4">早点休息，明天继续闯关 💤</div>
+                <div className="text-sm mb-4" style={{ color: 'var(--ink-faint)' }}>早点休息，明天继续闯关 💤</div>
                 <button onClick={() => { sounds.play('unlock'); setActive(null); }} className="space-btn w-full">睡觉啦 💤</button>
               </>
             )}
@@ -111,7 +111,10 @@ export function RitualMonitor() {
               <>
                 <div className="text-5xl mb-2">📊</div>
                 <div className="text-xl font-bold mb-3">本周战报</div>
-                <pre className="text-sm whitespace-pre-wrap font-kid text-white/90 leading-relaxed text-left bg-white/5 p-3 rounded-xl">
+                <pre
+                  className="text-sm whitespace-pre-wrap font-kid leading-relaxed text-left p-3 rounded-xl"
+                  style={{ color: 'var(--ink-strong)', background: 'var(--surface-mist)' }}
+                >
                   {active.payload.text}
                 </pre>
                 <button onClick={() => { sounds.play('fanfare'); setActive(null); }} className="space-btn w-full mt-4">下周加油 🚀</button>
@@ -120,9 +123,9 @@ export function RitualMonitor() {
             {active.kind === 'streak' && (
               <>
                 <div className="text-5xl mb-2">⚠️</div>
-                <div className="text-xl font-bold mb-1 text-rose-300">连击告急！</div>
-                <div className="text-sm text-white/70 mb-4">
-                  当前连击 <b className="text-rose-300">{active.payload.streak} 天</b>，今天还没完成任何作业。<br/>
+                <div className="text-xl font-bold mb-1" style={{ color: 'var(--state-danger)' }}>连击告急！</div>
+                <div className="text-sm mb-4" style={{ color: 'var(--ink-muted)' }}>
+                  当前连击 <b style={{ color: 'var(--state-danger)' }}>{active.payload.streak} 天</b>，今天还没完成任何作业。<br/>
                   抓紧时间，别让 ta 断了 🔥
                 </div>
                 <button onClick={() => { sounds.play('error'); setActive(null); }} className="space-btn w-full">知道啦</button>
@@ -137,9 +140,9 @@ export function RitualMonitor() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-white/80">
+    <div className="flex items-center justify-between" style={{ color: 'var(--ink-muted)' }}>
       <span>{label}</span>
-      <span className="font-bold text-white">{value}</span>
+      <span className="font-bold" style={{ color: 'var(--ink-strong)' }}>{value}</span>
     </div>
   );
 }
