@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
 import {
   Trophy, Settings as SettingsIcon, Shield, Flame, Star,
-  Calendar as CalendarIcon, Swords, Plus, ChevronRight, Palette, X,
+  Calendar as CalendarIcon, Swords, Plus, ChevronRight, Palette, X, Home as HomeIcon,
 } from 'lucide-react';
 import { db } from '../db';
 import { PetAvatar } from '../components/PetAvatar';
@@ -186,6 +186,14 @@ export function HomePage() {
             style={{ background: 'var(--fatboy-50)', color: 'var(--fatboy-700)' }}
           >
             <Trophy size={20} />
+          </button>
+          <button
+            onClick={() => { sounds.play('tap'); nav('/home'); }}
+            aria-label="肥仔的书房"
+            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+            style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}
+          >
+            <HomeIcon size={20} />
           </button>
           {/* R3.3.1: 主题切换 — 孩子也能直接换 */}
           <button
