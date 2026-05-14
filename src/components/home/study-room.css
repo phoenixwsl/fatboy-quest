@@ -1,0 +1,781 @@
+/* ============================================================
+   书房视觉样式 — 像素级匹配 mockup
+   所有内部子元素使用绝对像素定位（在 1600×1000 stage 内）
+   像素值来源: docs/home-feature-delivery/03-render-reference.py
+   ============================================================ */
+
+.study-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #2A1F18;  /* dark letterbox behind stage */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+.study-stage {
+  position: relative;
+  overflow: hidden;
+  transform-origin: center center;
+  background: var(--study-wall-top);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.4);
+}
+
+.study-stage > * {
+  position: absolute;
+}
+
+/* =====================================================
+   Wall: gradient + texture
+   ===================================================== */
+.study-wall {
+  left: 0; top: 0;
+  width: 1600px;
+  height: 690px;
+  z-index: 1;
+}
+.study-wall-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--study-wall-top) 0%, var(--study-wall-bot) 100%);
+}
+.study-wall-texture {
+  position: absolute;
+  inset: 0;
+  /* SVG noise to simulate Python's 800 random dots */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.7  0 0 0 0 0.59  0 0 0 0 0.39  0 0 0 0.13 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+/* =====================================================
+   Window beam (cinematic upper-left)
+   ===================================================== */
+.study-window-beam {
+  left: -100px; top: 0;
+  width: 700px;
+  height: 800px;
+  background:
+    linear-gradient(160deg,
+      rgba(255, 245, 210, 0.35) 0%,
+      rgba(255, 240, 195, 0.20) 30%,
+      rgba(255, 235, 175, 0.10) 60%,
+      transparent 80%);
+  filter: blur(25px);
+  pointer-events: none;
+  z-index: 2;
+  transform: skew(-15deg);
+  transform-origin: top left;
+}
+
+/* =====================================================
+   Ambient overhead glow
+   ===================================================== */
+.study-ambient-glow {
+  left: 200px; top: -400px;
+  width: 1200px;
+  height: 800px;
+  background: radial-gradient(ellipse,
+    rgba(255, 215, 155, 0.5) 0%,
+    transparent 60%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* =====================================================
+   Ceiling trim + picture rail
+   ===================================================== */
+.study-ceiling-trim-1 {
+  left: 0;
+  width: 1600px;
+  height: 4px;
+  background: var(--study-ceiling-trim);
+  z-index: 4;
+}
+.study-ceiling-trim-2 {
+  left: 0;
+  width: 1600px;
+  height: 2px;
+  background: rgb(190, 165, 130);
+  z-index: 4;
+}
+.study-pic-rail-1 {
+  left: 0;
+  width: 1600px;
+  background: var(--study-pic-rail);
+  z-index: 4;
+}
+.study-pic-rail-2 {
+  left: 0;
+  width: 1600px;
+  background: var(--study-wood-light);
+  z-index: 4;
+}
+
+/* =====================================================
+   Floor + planks + seams
+   ===================================================== */
+.study-floor {
+  left: 0; top: 690px;
+  width: 1600px;
+  height: 310px;
+  background: linear-gradient(180deg, var(--study-floor-light) 0%, var(--study-floor-dark) 100%);
+  z-index: 5;
+}
+.study-floor-wall-line-1 {
+  left: 0;
+  width: 1600px;
+  height: 4px;
+  background: rgb(180, 145, 100);
+  z-index: 6;
+}
+.study-floor-wall-line-2 {
+  left: 0;
+  width: 1600px;
+  height: 2px;
+  background: rgb(155, 115, 75);
+  z-index: 6;
+}
+.study-floor-seams {
+  left: 0; top: 0;
+  width: 1600px;
+  height: 1000px;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* =====================================================
+   Paintings + cord
+   ===================================================== */
+.study-pic-cord {
+  left: 0; top: 0;
+  width: 1600px;
+  height: 1000px;
+  z-index: 9;
+  pointer-events: none;
+}
+.study-painting {
+  z-index: 10;
+}
+.study-painting-outer {
+  position: absolute;
+  inset: 0;
+  background: var(--study-wood-dark);
+  border-radius: 2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+.study-painting-mid {
+  position: absolute;
+  inset: 4px;
+  background: var(--study-wood-mid);
+}
+.study-painting-inner {
+  position: absolute;
+  inset: 7px;
+  background: var(--study-wood-light);
+}
+.study-painting-mat {
+  position: absolute;
+  background: var(--study-paper);
+  overflow: hidden;
+  /* inset set inline */
+}
+.painting-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: sepia(0.05) brightness(1.02);
+  display: block;
+}
+
+/* =====================================================
+   Cabinets (shared)
+   ===================================================== */
+.study-cabinet-floor-shadow {
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45) 0%, transparent 70%);
+  filter: blur(8px);
+  z-index: 11;
+  pointer-events: none;
+}
+.study-cab {
+  z-index: 12;
+}
+.study-cab > * {
+  position: absolute;
+}
+
+.cab-spotlight {
+  position: absolute;
+  left: 0; top: -10%;
+  width: 100%;
+  height: 60%;
+  background: radial-gradient(ellipse at center top, rgba(255, 220, 150, 0.6) 0%, transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 1;
+}
+.cab-grid {
+  position: absolute;
+  inset: 8% 6%;
+  display: grid;
+  gap: 4px;
+  z-index: 2;
+}
+.cab-grid-3x3 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+}
+.cab-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+}
+.cab-slot-empty {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.cab-slot-q {
+  font-size: 20px;
+  font-weight: 700;
+  opacity: 0.25;
+  color: #C0B098;
+}
+.cab-glass-reflect {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  filter: blur(1px);
+}
+.cab-plate-text {
+  color: var(--cab-classic-dark);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.cab-plate-text-dk {
+  color: var(--study-ink);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* =====================================================
+   Classic Trophy Cabinet
+   ===================================================== */
+.cab-classic-pediment {
+  position: absolute;
+  left: 0; top: 0;
+  background: var(--cab-classic-dark);
+  border-radius: 4px;
+}
+.cab-classic-pediment-inner {
+  position: absolute;
+  background: var(--cab-classic-frame);
+  border-radius: 3px;
+}
+.cab-classic-arch {
+  position: absolute;
+  pointer-events: none;
+}
+.cab-classic-medallion {
+  position: absolute;
+  width: 20px; height: 20px;
+  background: var(--acc-gold-dark);
+  border: 1px solid var(--cab-classic-dark);
+  border-radius: 50%;
+}
+.cab-classic-medallion-inner {
+  position: absolute;
+  width: 12px; height: 12px;
+  background: var(--acc-gold-light);
+  border-radius: 50%;
+}
+.cab-classic-body {
+  position: absolute;
+  background: var(--cab-classic-dark);
+  border-radius: 4px;
+}
+.cab-classic-body-frame {
+  position: absolute;
+  background: var(--cab-classic-frame);
+  border-radius: 3px;
+}
+.cab-classic-body-inner {
+  position: absolute;
+  background: var(--cab-classic-inner);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cab-shelf {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 5px;
+  background: var(--study-wood-mid);
+  z-index: 3;
+}
+.cab-shelf::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 1px;
+  background: var(--study-wood-light);
+}
+.cab-classic-glass-divider {
+  position: absolute;
+  top: 4px; bottom: 40px;
+  left: 50%;
+  width: 2px;
+  background: var(--cab-classic-dark);
+  z-index: 4;
+}
+.cab-classic-handle {
+  position: absolute;
+  width: 6px;
+  height: 26px;
+  background: var(--acc-gold-dark);
+  border-radius: 2px;
+  bottom: 50px;
+  z-index: 4;
+}
+.cab-classic-handle-l { right: calc(50% + 10px); }
+.cab-classic-handle-r { left: calc(50% + 10px); }
+.cab-glass-reflect-1 {
+  left: 12px; top: 4px;
+  width: 48px; height: 86px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
+  transform: skew(15deg);
+}
+.cab-glass-reflect-2 {
+  right: 30px; top: 100px;
+  width: 30px; height: 80px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  transform: skew(15deg);
+}
+.cab-classic-plate {
+  position: absolute;
+  height: 22px;
+  background: linear-gradient(180deg, var(--acc-gold) 0%, var(--acc-gold-dark) 100%);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 0 var(--acc-gold-dark);
+  z-index: 6;
+}
+.cab-classic-base {
+  position: absolute;
+  height: 16px;
+  background: var(--cab-classic-dark);
+  border-radius: 2px;
+}
+.cab-classic-base-inner {
+  position: absolute;
+  height: 10px;
+  background: var(--cab-classic-frame);
+  border-radius: 2px;
+}
+.cab-classic-foot {
+  position: absolute;
+  width: 12px;
+  height: 8px;
+  background: var(--cab-classic-dark);
+}
+
+/* =====================================================
+   Modern Lego Cabinet
+   ===================================================== */
+.cab-modern-outer {
+  position: absolute;
+  background: var(--cab-modern-frame-dk);
+  border-radius: 12px;
+}
+.cab-modern-inner-frame {
+  position: absolute;
+  background: var(--cab-modern-frame);
+  border-radius: 10px;
+}
+.cab-modern-cavity {
+  position: absolute;
+  background: var(--cab-modern-inner);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cab-modern-led-bar {
+  position: absolute;
+  left: 4px; top: 0;
+  right: 4px;
+  height: 8px;
+  background: var(--cab-modern-led);
+  border-radius: 3px;
+  box-shadow: 0 0 8px var(--cab-modern-led);
+}
+.cab-modern-led-glow {
+  position: absolute;
+  left: 0; top: 8px;
+  width: 100%; height: 80px;
+  background: radial-gradient(ellipse at top, rgba(255, 220, 150, 0.45) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+.cab-modern-grid {
+  position: absolute;
+  left: 8px; right: 8px;
+  top: 22px;
+  bottom: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 4px;
+  z-index: 2;
+}
+.cab-modern-slot {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cab-modern-glass-reflect {
+  left: 18px; top: 28px;
+  width: 90px; height: 200px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03));
+  transform: skew(12deg);
+}
+.cab-modern-plate {
+  position: absolute;
+  height: 22px;
+  background: var(--cab-modern-frame);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6;
+}
+.cab-modern-base {
+  position: absolute;
+  height: 18px;
+  background: var(--cab-modern-frame-dk);
+  border-radius: 4px;
+}
+.cab-modern-base-inner {
+  position: absolute;
+  height: 12px;
+  background: var(--cab-modern-frame);
+  border-radius: 3px;
+}
+.cab-modern-foot {
+  position: absolute;
+  width: 4px;
+  height: 8px;
+  background: var(--cab-modern-frame-dk);
+}
+
+/* =====================================================
+   Playful Toy Cabinet (arched top, purple inner)
+   ===================================================== */
+.cab-playful-arch {
+  position: absolute;
+}
+.cab-playful-arch-outer {
+  position: absolute;
+  inset: 0;
+  background: var(--cab-playful-frame-dk);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+.cab-playful-arch-inner {
+  position: absolute;
+  left: 4px; right: 4px; top: 4px; bottom: 0;
+  background: var(--cab-playful-frame);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+.cab-playful-body {
+  position: absolute;
+  background: var(--cab-playful-frame-dk);
+  border-radius: 4px;
+}
+.cab-playful-body-frame {
+  position: absolute;
+  background: var(--cab-playful-frame);
+  border-radius: 3px;
+}
+.cab-playful-body-inner {
+  position: absolute;
+  background: var(--cab-playful-inner);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cab-playful-shelf {
+  position: absolute;
+  left: 4px; right: 4px;
+  height: 8px;
+  background: var(--study-wood-light);
+  border-top: 2px solid var(--study-wood-highlight);
+  border-bottom: 1px solid var(--study-wood-mid);
+  z-index: 3;
+}
+.cab-playful-plate {
+  position: absolute;
+  height: 22px;
+  background: linear-gradient(180deg, var(--study-wood-highlight) 0%, var(--study-wood-light) 100%);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6;
+}
+.cab-playful-base {
+  position: absolute;
+  height: 18px;
+  background: var(--cab-playful-frame-dk);
+  border-radius: 3px;
+}
+.cab-playful-base-inner {
+  position: absolute;
+  height: 12px;
+  background: var(--cab-playful-frame);
+  border-radius: 2px;
+}
+.cab-playful-foot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--cab-playful-frame-dk);
+  border-radius: 50%;
+}
+
+/* =====================================================
+   Plants
+   ===================================================== */
+.study-plant {
+  z-index: 15;
+  pointer-events: none;
+}
+
+/* =====================================================
+   Chair
+   ===================================================== */
+.study-chair-floor-shadow {
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45) 0%, transparent 70%);
+  filter: blur(6px);
+  z-index: 18;
+  pointer-events: none;
+}
+.study-chair-back {
+  z-index: 19;
+  background: var(--study-chair-leather);
+  border-radius: 30px;
+  box-shadow: var(--shadow-chair);
+}
+.study-chair-inner {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 12px;
+  bottom: 8px;
+  background: var(--study-chair-highlight);
+  border-radius: 24px;
+}
+.study-chair-headrest {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  top: 18px;
+  height: 38px;
+  background: rgb(125, 90, 60);
+  border-radius: 18px;
+  z-index: 1;
+}
+.study-chair-stitch {
+  position: absolute;
+  width: 2px;
+  background: var(--study-chair-stitch);
+  z-index: 2;
+  border-radius: 1px;
+}
+.study-chair-emblem {
+  position: absolute;
+  left: calc(50% - 8px);
+  top: 30px;
+  width: 16px;
+  height: 16px;
+  background: var(--acc-gold);
+  border: 2px solid var(--acc-gold-dark);
+  border-radius: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.study-chair-emblem-inner {
+  width: 8px;
+  height: 8px;
+  background: var(--acc-gold-light);
+  border-radius: 50%;
+}
+
+/* =====================================================
+   Fatboy
+   ===================================================== */
+.study-fatboy-wrapper {
+  z-index: 20;
+  pointer-events: none;
+}
+.study-fatboy-wrapper > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* =====================================================
+   Desk
+   ===================================================== */
+.study-desk-shadow {
+  background: rgb(0, 0, 0);
+  opacity: 0.4;
+  filter: blur(4px);
+  z-index: 21;
+  pointer-events: none;
+}
+.study-desk {
+  z-index: 22;
+}
+.study-desk-top-lt {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  height: 14px;
+  background: var(--study-desk-top-light);
+}
+.study-desk-top {
+  position: absolute;
+  left: 0; top: 12px;
+  width: 100%;
+  height: 12px;
+  background: var(--study-desk-top);
+}
+.study-desk-top-edge {
+  position: absolute;
+  left: 0; top: 22px;
+  width: 100%;
+  height: 8px;
+  background: var(--study-desk-edge);
+}
+.study-desk-front {
+  position: absolute;
+  left: 0; top: 30px;
+  width: 100%;
+  bottom: 0;
+  background: var(--study-desk-front);
+}
+.study-desk-grain {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  height: 80px;
+  pointer-events: none;
+}
+
+/* =====================================================
+   Desk items
+   ===================================================== */
+.study-desk-item-svg {
+  z-index: 23;
+  pointer-events: none;
+}
+.study-lamp-glow {
+  background: radial-gradient(ellipse, rgba(255, 220, 130, 0.55) 0%, transparent 70%);
+  filter: blur(20px);
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* =====================================================
+   Top nav
+   ===================================================== */
+.study-top-nav {
+  left: 0;
+  top: 0;
+  width: 1600px;
+  height: 60px;
+  background: rgba(255, 252, 245, 0.86);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  box-shadow: 0 1px 0 rgba(140, 100, 70, 0.1);
+}
+.study-nav-exit {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--study-ink);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+.study-nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--study-ink);
+  letter-spacing: 1px;
+}
+.study-nav-gear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  opacity: 0.7;
+}
+.study-nav-gear:hover { opacity: 1; }
+
+/* =====================================================
+   Bottom bar
+   ===================================================== */
+.study-bottom-bar {
+  left: 0;
+  top: 940px;
+  width: 1600px;
+  height: 60px;
+  background: rgba(255, 252, 245, 0.86);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  box-shadow: 0 -1px 0 rgba(200, 180, 150, 1);
+}
+.study-points {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--study-ink);
+  font-size: 18px;
+  font-weight: 600;
+}
+.study-shop-btn {
+  background: var(--acc-gold);
+  color: var(--study-ink);
+  border: none;
+  border-radius: 14px;
+  padding: 0 24px;
+  height: 40px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 0 var(--acc-gold-dark);
+  transition: transform 0.1s;
+}
+.study-shop-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--acc-gold-dark);
+}

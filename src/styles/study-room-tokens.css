@@ -1,0 +1,119 @@
+/* ============================================================
+   书房专属 Design Tokens (V4 Final) — 完全独立于主产品时段/主题
+   "室内永远温暖" — 全天暖橙调，让孩子打开 app 任何时候都有安心感
+   像素值来源: docs/home-feature-delivery/03-render-reference.py
+   ============================================================ */
+
+.study-room-scope {
+  /* ===== Wall (60% — warm white dominant) ===== */
+  --study-wall-top:        #FAF6EF;
+  --study-wall-bot:        #F4EEE2;
+
+  /* ===== Floor (wooden) ===== */
+  --study-floor-light:     #D7B991;
+  --study-floor-mid:       #BE9B73;
+  --study-floor-dark:      #9B7850;
+  --study-floor-grain:     #AA875F;
+  --study-floor-deep:      #826441;
+  --study-floor-line:      #B49164;
+
+  /* ===== Wood tones (30%) ===== */
+  --study-wood-dark:       #583C24;
+  --study-wood-mid:        #8C6441;
+  --study-wood-light:      #BE9669;
+  --study-wood-highlight:  #E1BE91;
+  --study-pic-rail:        #BEA582;
+  --study-ceiling-trim:    #DCC8A5;
+
+  /* ===== Cabinet · Classic (left, trophy) ===== */
+  --cab-classic-frame:     #734B2D;
+  --cab-classic-dark:      #4B301C;
+  --cab-classic-inner:     #3A2619;
+
+  /* ===== Cabinet · Modern (center, lego) ===== */
+  --cab-modern-frame:      #D7D7DC;
+  --cab-modern-frame-dk:   #AFAFB9;
+  --cab-modern-inner:      #262830;
+  --cab-modern-inner-lt:   #343741;
+  --cab-modern-led:        #FFF0C8;
+
+  /* ===== Cabinet · Playful (right, toy) ===== */
+  --cab-playful-frame:     #DCB496;
+  --cab-playful-frame-dk:  #AF8764;
+  --cab-playful-inner:     #5A3C50;
+
+  /* ===== Desk (V4: DEEP walnut) ===== */
+  --study-desk-top:        #8B5A2B;
+  --study-desk-top-light:  #A07050;
+  --study-desk-edge:       #3E2614;
+  --study-desk-front:      #5C3920;
+  --study-desk-grain:      #A07050;
+
+  /* ===== Chair (premium leather) ===== */
+  --study-chair-leather:   #3E2A1C;
+  --study-chair-highlight: #695032;
+  --study-chair-stitch:    #5A3C23;
+  --study-chair-emblem:    #F0C350;
+
+  /* ===== Accent (10%) ===== */
+  --acc-gold:              #F0C350;
+  --acc-gold-light:        #FFE182;
+  --acc-gold-dark:         #AF8228;
+  --acc-silver:            #D2D7E1;
+  --acc-silver-light:      #F0F2F8;
+  --acc-silver-dark:       #8C919B;
+  --acc-bronze:            #C88246;
+  --acc-bronze-light:      #E1A569;
+  --acc-bronze-dark:       #8C5523;
+  --acc-locked:            #4E463E;
+  --acc-fatboy:            #F4C752;
+  --acc-red:               #D25A50;
+
+  /* ===== Plants ===== */
+  --plant-pot-terracotta:  #B45F41;
+  --plant-pot-dark:        #8C4128;
+  --plant-leaf-light:      #82C382;
+  --plant-leaf:            #5FA55F;
+  --plant-leaf-dark:       #418241;
+  --plant-vine:            #6EAF64;
+
+  /* ===== Lighting ===== */
+  --study-warm-glow:       rgba(255, 215, 155, 0.4);
+  --study-window-beam:     rgba(255, 235, 175, 0.3);
+  --study-spot-warm:       rgba(255, 220, 150, 0.5);
+  --study-lamp-glow:       rgba(255, 220, 130, 0.55);
+
+  /* ===== Shadows ===== */
+  --shadow-cabinet:        0 12px 24px rgba(40, 25, 12, 0.25);
+  --shadow-cabinet-floor:  0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-desk:           0 -2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-chair:          0 6px 12px rgba(0, 0, 0, 0.3);
+
+  /* ===== Text ===== */
+  --study-ink:             #34281C;
+  --study-ink-muted:       #87735A;
+  --study-paper:           #FFFCF5;
+
+  /* ===== Geometry ===== */
+  --study-radius-sm:       4px;
+  --study-radius-md:       12px;
+  --study-radius-lg:       24px;
+  --study-radius-xl:       36px;
+
+  /* ===== Easing ===== */
+  --ease-spring:           cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-soft:             cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-quart:        cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+/* Plant sway animation */
+@keyframes study-plant-sway {
+  0%, 100% { transform: rotate(-1deg); }
+  50%      { transform: rotate(1.5deg); }
+}
+
+/* Tabular numerals helper */
+.study-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}

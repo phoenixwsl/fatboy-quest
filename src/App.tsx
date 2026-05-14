@@ -29,6 +29,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { AchievementsWatcher } from './components/AchievementsWatcher';
 import { EvalReminderWatcher } from './components/EvalReminderWatcher';
+import { StudyRoomPage } from './pages/StudyRoomPage';
 
 // R3.0 §1.2: 按小时数自动切换时段
 function getTimePeriod(hour: number): TimePeriod {
@@ -123,6 +124,7 @@ export default function App() {
                 <Route path="/shop" element={<ShopPage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/achievements" element={<AchievementsPage />} />
+                <Route path="/home" element={<StudyRoomPage />} />
                 <Route path="/parent" element={<ParentGate />} />
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />
                 <Route path="/parent/tasks" element={<TaskManager />} />
