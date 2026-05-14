@@ -19,6 +19,7 @@ import { PaintingLeftSVG } from './paintings/PaintingLeft';
 import { PaintingRightSVG } from './paintings/PaintingRight';
 import { PothosSVG } from './plants/PothosSVG';
 import { MonsteraSVG } from './plants/MonsteraSVG';
+import { TrophyOverlay } from './TrophyOverlay';
 
 import centerHeroImg from '../../assets/home/paintings/center_hero.jpg';
 import '../../styles/study-room-tokens.css';
@@ -55,9 +56,9 @@ const P3_W = 210;
 const P1_X = CAB_L_X + (CAB_L_W - P1_W) / 2;  // 162.5
 const P2_X = CAB_M_X + (CAB_M_W - P2_W) / 2;  // 670
 const P3_X = CAB_R_X + (CAB_R_W - P3_W) / 2;  // 1227.5
-// M1.1: plants moved from behind-desk to flanking the desk on the floor
-const PLANT_L_CX = 200;
-const PLANT_R_CX = 1400;
+// M1.2: plants larger + hugging desk ends for a natural look
+const PLANT_L_CX = 270;              // was 200 → DESK_X1 - 50
+const PLANT_R_CX = 1330;             // was 1400 → DESK_X2 + 50
 const PLANT_BASE_Y = 820;            // sits on floor next to desk
 
 // =====================================================
@@ -88,6 +89,7 @@ export function StudyRoom() {
   const pet = useLiveQuery(() => db.pet.get('singleton'));
   const character: FatboyCharacterId = pet ? migrateSkinId(pet.skinId) : 'default';
   const scale = useStageScale();
+  const [trophyOpen, setTrophyOpen] = useState(false);
 
   return (
     <div className="study-page study-room-scope">
@@ -141,15 +143,15 @@ export function StudyRoom() {
         <CabinetFloorShadow x={CAB_R_X} w={CAB_R_W} />
 
         {/* ====== Layer 12-14: 3 cabinets ====== */}
-        <ClassicTrophyCabinet x={CAB_L_X} y={CAB_TOP_Y} w={CAB_L_W} h={CAB_H} />
+        <ClassicTrophyCabinet x={CAB_L_X} y={CAB_TOP_Y} w={CAB_L_W} h={CAB_H} onTrophyClick={() => setTrophyOpen(true)} />
         <ModernLegoCabinet     x={CAB_M_X} y={CAB_TOP_Y} w={CAB_M_W} h={CAB_H} />
         <PlayfulToyCabinet     x={CAB_R_X} y={CAB_TOP_Y} w={CAB_R_W} h={CAB_H} />
 
         {/* ====== Layer 15: 2 plants ====== */}
-        <Plant cx={PLANT_L_CX} baseY={PLANT_BASE_Y} width={150} height={220}>
+        <Plant cx={PLANT_L_CX} baseY={PLANT_BASE_Y} width={210} height={310}>
           <PothosSVG />
         </Plant>
-        <Plant cx={PLANT_R_CX} baseY={PLANT_BASE_Y} width={160} height={260}>
+        <Plant cx={PLANT_R_CX} baseY={PLANT_BASE_Y} width={224} height={364}>
           <MonsteraSVG />
         </Plant>
 
@@ -183,6 +185,9 @@ export function StudyRoom() {
         {/* ====== Layer 100: Bottom status bar ====== */}
         <BottomBar />
       </div>
+
+      {/* Trophy overlay (outside stage, uses fixed positioning) */}
+      <TrophyOverlay open={trophyOpen} onClose={() => setTrophyOpen(false)} />
     </div>
   );
 }
@@ -330,7 +335,7 @@ function CabinetFloorShadow({ x, w }: { x: number; w: number }) {
 // ============================================================
 
 // ----- 左柜 · 经典实木 + 金色奖杯铜雕门 -----
-function ClassicTrophyCabinet({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
+function ClassicTrophyCabinet({ x, y, w, h, onTrophyClick }: { x: number; y: number; w: number; h: number; onTrophyClick?: () => void }) {
   const PED_H = 20;
   const TOP_BOARD = 12;  // 顶板厚度
   const BASE_H = 26;     // 底座厚度
@@ -353,8 +358,10 @@ function ClassicTrophyCabinet({ x, y, w, h }: { x: number; y: number; w: number;
           <div className="cab-classic-door">
             {/* Raised panel border */}
             <div className="cab-classic-door-panel">
-              {/* Center: large trophy emblem */}
-              <ClassicDoorEmblem />
+              {/* Center: large trophy emblem — clickable to open trophy overlay */}
+              <div className="trophy-emblem-clickable" onClick={onTrophyClick} role="button" aria-label="查看奖杯">
+                <ClassicDoorEmblem />
+              </div>
             </div>
             {/* Door knob */}
             <div className="cab-classic-knob" />
