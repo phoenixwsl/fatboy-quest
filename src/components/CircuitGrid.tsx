@@ -24,8 +24,8 @@ export function CircuitGrid() {
         className="absolute inset-0"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(0,212,255,0.06) 1px, transparent 1px), ' +
-            'linear-gradient(90deg, rgba(0,212,255,0.06) 1px, transparent 1px)',
+            'linear-gradient(rgba(45,212,191,0.06) 1px, transparent 1px), ' +
+            'linear-gradient(90deg, rgba(45,212,191,0.06) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
         }}
       />
@@ -39,9 +39,9 @@ export function CircuitGrid() {
             top: l.top,
             width: l.w + 'px',
             background:
-              'linear-gradient(90deg, transparent, rgba(0,212,255,' + l.opacity + '), transparent)',
+              'linear-gradient(90deg, transparent, rgba(45,212,191,' + l.opacity + '), transparent)',
             animation: `circuit-flow 6s linear ${l.delay}s infinite`,
-            boxShadow: '0 0 4px rgba(0,212,255,0.5)',
+            boxShadow: '0 0 4px rgba(45,212,191,0.5)',
           }}
         />
       ))}

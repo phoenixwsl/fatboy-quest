@@ -475,25 +475,38 @@ function ResetAllButton() {
   );
 }
 
-// R3.1: 主题选择 — 也 export 给孩子端 HomePage 复用
+// R3.4: 主题选择 — 也 export 给孩子端 HomePage 复用
+// 预览色严格对齐 src/index.css 里每个主题的真实 token，避免预览与实际不符
 const THEMES = [
   {
     id: 'cozy' as const,
     name: '温馨',
-    desc: '黄色调',
-    preview: { bg: 'linear-gradient(135deg, #FFF6D0, #FFE082)', dot: '#F4C752' },
+    desc: '暖橙绘本',
+    preview: {
+      bg: 'linear-gradient(135deg, #FFF8EC, #FFEED4)',
+      dot: '#F5A04A',                            // primary 暖橙
+      dot2: '#7FC8A9',                           // accent 薄荷
+    },
   },
   {
     id: 'starry' as const,
     name: '星空',
-    desc: '蓝色调',
-    preview: { bg: 'linear-gradient(135deg, #1B2547, #0E1226)', dot: '#5B4FE9' },
+    desc: '紫蓝星夜',
+    preview: {
+      bg: 'linear-gradient(135deg, #1B2547, #0E1226)',
+      dot: '#6F5BE9',                            // primary 紫
+      dot2: '#FFD66B',                           // accent 金（唯一暖锚）
+    },
   },
   {
     id: 'mecha' as const,
     name: '机械',
-    desc: '深炭金属',
-    preview: { bg: 'linear-gradient(135deg, #1F2532, #0E121E)', dot: '#00D4FF' },
+    desc: '青霓机甲',
+    preview: {
+      bg: 'linear-gradient(135deg, #1A1F2E, #0E121E)',
+      dot: '#2DD4BF',                            // primary 青绿
+      dot2: '#FB7185',                           // accent 玫红
+    },
   },
 ];
 
@@ -529,9 +542,15 @@ export function ThemePicker() {
               className="h-12 mb-2 relative"
               style={{ background: t.preview.bg, borderRadius: 'var(--radius-sm)' }}
             >
+              {/* 主色 dot */}
               <span
                 className="absolute right-2 top-2 w-3 h-3 rounded-full"
                 style={{ background: t.preview.dot, boxShadow: `0 0 8px ${t.preview.dot}` }}
+              />
+              {/* 辅色 dot（小一点，左下） — 让用户感知"双色组合" */}
+              <span
+                className="absolute left-2 bottom-2 w-2 h-2 rounded-full"
+                style={{ background: t.preview.dot2, boxShadow: `0 0 6px ${t.preview.dot2}` }}
               />
             </div>
             <div className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{t.name}</div>

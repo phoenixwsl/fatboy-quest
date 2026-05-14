@@ -3,183 +3,274 @@
 @tailwind utilities;
 
 /* ============================================================
-   R3.0 Design Tokens（§1.1 / 1.3）
+   R3.4 Visual Design System — 按 .claude/skills/visual-design 指导重写
+   ============================================================
+   关键改动：
+   1) 引入语义层 token：--primary / --primary-soft / --primary-strong
+      / --accent / --surface-paper / --ink-strong 等。新代码统一用。
+   2) 旧 token（--fatboy-*, --sky-*, --paper, --mist, --fog, --ink）保
+      留作兼容层，每主题"分别校准"映射值；杜绝跨主题"sky-100 在 starry
+      下变成半透明青"的灾难（这是之前 R3.0~R3.3 真正的根因）。
+   3) 三主题按"10 法则"区分：
+        - 主色 hue 30 / 270 / 180  → 两两间隔 ≥ 90°
+        - 温度三分：cozy 暖橙 / starry 冷紫 + 暖金锚 / mecha 冷青 + 暖玫红
+        - 容器明度差 ≥ 25 L* （97 / 22 / 20）
+        - 圆角档位：cozy 20 / starry 14 / mecha 8  （形状语言区分）
+        - 阴影形态：cozy 下沉 / starry glow / mecha inset stroke
+        - 装饰元素：cozy 撕边 / starry 星点+发光 / mecha 等距网格
+        - 字重 tracking：cozy 700 / starry 600+0.5 / mecha 500 大写+1.0
+   4) 状态色 (success / warn / danger) 跨主题语义恒定，仅微调饱和度。
+   5) Gurney 色光统一：每主题里 ink-muted 都带 5% 主色 hue 偏移；
+      阴影色温反相（cozy 暖底冷阴影，starry 深底暖 glow）。
    ============================================================ */
+
+/* ===========================================================
+   COZY (默认) — 暖光绘本，暖橙 30° + 薄荷 170°
+   情绪：田园、贴纸感、像 Animal Crossing
+   =========================================================== */
 :root {
-  /* ===== 时段背景 ===== */
-  --bg-day-from:    #E8F2FB;
-  --bg-day-to:      #C8DEEF;
-  --bg-dusk-from:   #F8DCB4;
-  --bg-dusk-to:     #E0A586;
-  --bg-night-from:  #2B3A52;
-  --bg-night-to:    #182236;
+  /* ===== A. 语义层（新代码统一用） ===== */
+  --primary:           #F5A04A;
+  --primary-soft:      #FFF1DD;
+  --primary-strong:    #B05A14;
+  --accent:            #7FC8A9;
+  --accent-soft:       #E1F5EC;
+  --accent-strong:     #2A6E55;
 
-  /* ===== 角色色 ===== */
-  --fatboy-50:      #FFF6D0;
-  --fatboy-300:     #FFE082;
-  --fatboy-500:     #F4C752;
-  --fatboy-700:     #C77F18;
-  --sky-100:        #DAEAF7;
-  --sky-300:        #A3C7E7;
-  --sky-500:        #4A9EE7;
-  --sky-700:        #2C72B0;
+  --surface-paper:     #FFFFFA;
+  --surface-mist:      #FBF1DE;
+  --surface-fog:       #E8D8B8;
 
-  /* ===== 强调色 ===== */
-  --success:        #6BC36B;
-  --danger:         #E87575;
-  --magic:          #9C8CD9;
+  --ink-strong:        #3E2A1F;
+  --ink-muted:         #8A6B55;
+  --ink-faint:         #BFA88E;
 
-  /* ===== 中性色（白天） ===== */
-  --paper:          #FFFFFF;
-  --mist:           #F4F7FB;
-  --fog:            #DCE3ED;
-  --ink:            #2C3E50;
-  --ink-muted:      #6B7B8C;
-  --ink-faint:      #A8B3C0;
+  /* 状态色（语义恒定，跨主题仅微调饱和度） */
+  --state-success:     #58CC02;
+  --state-warn:        #FFC800;
+  --state-danger:      #E25555;
 
-  /* ===== 中性色（夜晚） ===== */
-  --paper-night:    #28354A;
-  --mist-night:     #1F2A3D;
-  --ink-night:      #E8EEF7;
-  --ink-night-muted: #9BA9BC;
+  /* ===== B. 背景渐变（被时段覆盖） ===== */
+  --bg-from:           #FFF8EC;
+  --bg-to:             #FFEED4;
 
-  /* ===== 彩虹（仅倒计时进度条） ===== */
-  --rainbow-1:      #FAB1A0;
-  --rainbow-2:      #FDCB6E;
-  --rainbow-3:      #FFEAA7;
-  --rainbow-4:      #A0E6A0;
+  /* ===== C. 圆角（cozy 最圆，贴纸/绘本感） ===== */
+  --radius-xs:         8px;
+  --radius-sm:         14px;
+  --radius-md:         20px;
+  --radius-lg:         28px;
+  --radius-xl:         36px;
 
-  /* ===== 阴影 ===== */
-  --shadow-sm:      0 2px 4px rgba(74,158,231,0.06), 0 4px 12px rgba(74,158,231,0.08);
-  --shadow-md:      0 4px 8px rgba(74,158,231,0.08), 0 12px 32px rgba(74,158,231,0.10);
-  --shadow-lg:      0 8px 16px rgba(74,158,231,0.10), 0 24px 64px rgba(74,158,231,0.14);
-  --glow-fatboy:    0 0 32px rgba(244,199,82,0.4);
-  --glow-sky:       0 0 24px rgba(74,158,231,0.3);
+  /* ===== D. 阴影（Gurney 色温反相：暖底 + 冷调阴影） ===== */
+  --shadow-sm:         0 2px 4px rgba(180,120,60,.10);
+  --shadow-md:         0 4px 12px rgba(180,120,60,.14), 0 16px 32px rgba(60,80,120,.05);
+  --shadow-lg:         0 8px 24px rgba(180,120,60,.18);
+  --shadow-cta:        0 4px 0 #B05A14;          /* 下沉式底色 — Duolingo 灵魂 */
+  --glow-primary:      0 0 32px rgba(245,160,74,.4);
+  --glow-accent:       0 0 24px rgba(127,200,169,.3);
 
-  /* ===== 圆角 ===== */
-  --radius-xs:      8px;
-  --radius-sm:      14px;
-  --radius-md:      18px;
-  --radius-lg:      24px;
-  --radius-xl:      32px;
+  /* ===== E. 装饰彩虹（cozy 偏粉橙黄绿） ===== */
+  --rainbow-1:         #FAB1A0;
+  --rainbow-2:         #FDCB6E;
+  --rainbow-3:         #FFEAA7;
+  --rainbow-4:         #A0E6A0;
 
-  /* ===== 间距（8pt） ===== */
-  --space-1: 4px; --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  /* ===== F. 兼容层 — 旧 token → 新语义（不删旧 token，组件零改动） ===== */
+  --fatboy-50:         var(--primary-soft);
+  --fatboy-300:        #FFD9A0;
+  --fatboy-500:        var(--primary);
+  --fatboy-700:        var(--primary-strong);
+  --sky-100:           var(--accent-soft);
+  --sky-300:           #B8E0CD;
+  --sky-500:           var(--accent);
+  --sky-700:           var(--accent-strong);
+  --paper:             var(--surface-paper);
+  --mist:              var(--surface-mist);
+  --fog:               var(--surface-fog);
+  --ink:               var(--ink-strong);
+  --success:           var(--state-success);
+  --danger:            var(--state-danger);
+  --magic:             #9C8CD9;
+  --glow-fatboy:       var(--glow-primary);
+  --glow-sky:          var(--glow-accent);
+
+  /* ===== G. 字体（恒定，不随主题） ===== */
+  --font-zh-title:     'PingFang SC', 'Nunito', 'Hiragino Sans GB', sans-serif;
+  --font-zh-body:      var(--font-zh-title);
+  --font-num:          'Fredoka', 'Inter', sans-serif;
+  --font-en:           'Inter', sans-serif;
+  --font-mono:         'JetBrains Mono', 'Menlo', monospace;
+
+  /* ===== H. 间距（8pt 网格） ===== */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
 
-  /* ===== 动画缓动 ===== */
-  --spring-bouncy:  cubic-bezier(0.34, 1.56, 0.64, 1);
-  --spring-soft:    cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* ===== I. 动效（恒定） ===== */
+  --spring-bouncy:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-soft:       cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-quart:    cubic-bezier(0.165, 0.84, 0.44, 1);
+  --duration-micro:    150ms;
+  --duration-std:      280ms;
+  --duration-hero:     480ms;
 
-  /* ===== 字体 ===== */
-  --font-zh-title: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --font-zh-body:  var(--font-zh-title);
-  --font-num:      'Fredoka', 'Inter', sans-serif;
-  --font-en:       'Inter', sans-serif;
+  /* ===== J. 主题专属字体节奏（cozy = 圆胖标题） ===== */
+  --theme-title-weight: 700;
+  --theme-title-tracking: 0;
+  --theme-label-tracking: 0;
+  --theme-label-transform: none;
 }
 
-/* ============================================================
-   R3.1 主题系统 — 3 套 token 覆盖
-   组件代码不动，token 值随 body[data-theme] 切换
-   ============================================================ */
-
-/* ===== 🌻 温馨黄（cozy，默认）===== */
-/* 默认 :root 已是 cozy 配色，这里只接 bg 时段渐变 */
+/* cozy 时段背景（白天/黄昏/夜晚） */
 body[data-theme="cozy"][data-time-period="day"],
-body:not([data-theme])[data-time-period="day"]    { --bg-from: var(--bg-day-from);   --bg-to: var(--bg-day-to); }
+body:not([data-theme])[data-time-period="day"]    { --bg-from: #E8F2FB; --bg-to: #C8DEEF; }
 body[data-theme="cozy"][data-time-period="dusk"],
-body:not([data-theme])[data-time-period="dusk"]   { --bg-from: var(--bg-dusk-from);  --bg-to: var(--bg-dusk-to); }
+body:not([data-theme])[data-time-period="dusk"]   { --bg-from: #F8DCB4; --bg-to: #E0A586; }
 body[data-theme="cozy"][data-time-period="night"],
-body:not([data-theme])[data-time-period="night"]  { --bg-from: var(--bg-night-from); --bg-to: var(--bg-night-to); }
+body:not([data-theme])[data-time-period="night"]  { --bg-from: #2B3A52; --bg-to: #182236; }
 
-/* ===== 🌌 星空蓝（starry）===== */
+/* ===========================================================
+   STARRY — 紫蓝 270° + 唯一暖锚金 80°（Sky CotL 法）
+   情绪：神秘、深邃、像睡前的小宇宙
+   =========================================================== */
 body[data-theme="starry"] {
-  /* 主色 → 深紫 + 金色 accent */
-  --fatboy-50:      #2A2347;
-  --fatboy-300:     #4A3DB8;
-  --fatboy-500:     #5B4FE9;
-  --fatboy-700:     #FFD93D;          /* 金色对比 */
-  --sky-100:        rgba(0,212,255,0.18);
-  --sky-300:        rgba(0,212,255,0.4);
-  --sky-500:        #00D4FF;
-  --sky-700:        #00B0E0;
+  --primary:           #6F5BE9;
+  --primary-soft:      #2D2654;
+  --primary-strong:    #B8A9F5;
+  --accent:            #FFD66B;    /* 金黄 — 整屏唯一暖色锚点 */
+  --accent-soft:       #5E4F2A;
+  --accent-strong:     #FFEDB0;
 
-  /* 卡片色（dark glass） */
-  --paper:          #1F2A40;
-  --mist:           #2C3A52;
-  --fog:            #3A4A62;
-  --ink:            #F0F4FF;
-  --ink-muted:      #A8B8D0;
-  --ink-faint:      #7888A0;
+  --surface-paper:     #1A1F3A;
+  --surface-mist:      #232A4D;
+  --surface-fog:       #353D5E;
 
-  --success:        #5BE890;
-  --danger:         #FF6BD6;
-  --magic:          #B8AAFA;
+  --ink-strong:        #F5F8FF;    /* 冷白（Albers 同时对比补偿） */
+  --ink-muted:         #B8C0DD;
+  --ink-faint:         #6E7799;
 
-  --rainbow-1:      #FF6BD6;
-  --rainbow-2:      #FFD93D;
-  --rainbow-3:      #00D4FF;
-  --rainbow-4:      #5BE890;
+  --state-success:     #6BE3A0;
+  --state-warn:        #FFD66B;
+  --state-danger:      #FF7A8A;
 
-  /* 深底用淡发光阴影 */
-  --shadow-sm:      0 2px 4px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06);
-  --shadow-md:      0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
-  --shadow-lg:      0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
-  --glow-fatboy:    0 0 32px rgba(91,79,233,0.5);
-  --glow-sky:       0 0 24px rgba(0,212,255,0.4);
+  --bg-from:           #1B2547;
+  --bg-to:             #0E1226;
 
-  /* bg 不依赖时段 — 始终深夜空 */
-  --bg-from:        #0E1226;
-  --bg-to:          #1B2547;
+  /* 圆角中等（卡片感，比 cozy 锐 比 mecha 软） */
+  --radius-xs: 6px;  --radius-sm: 10px;
+  --radius-md: 14px; --radius-lg: 18px; --radius-xl: 24px;
+
+  /* 阴影 = 深阴 + glow（暖色 glow 与冷底形成 Gurney 色温反相） */
+  --shadow-sm:         0 2px 8px rgba(0,0,0,.4), 0 0 0 1px rgba(184,168,250,.10);
+  --shadow-md:         0 4px 16px rgba(0,0,0,.5), 0 0 16px rgba(111,91,233,.20);
+  --shadow-lg:         0 8px 32px rgba(0,0,0,.6), 0 0 24px rgba(111,91,233,.30);
+  --shadow-cta:        0 0 20px rgba(255,214,107,.45);
+  --glow-primary:      0 0 32px rgba(111,91,233,.5);
+  --glow-accent:       0 0 24px rgba(255,214,107,.4);
+
+  --rainbow-1:         #FF6BD6;
+  --rainbow-2:         #FFD93D;
+  --rainbow-3:         #6F5BE9;
+  --rainbow-4:         #6BE3A0;
+
+  /* 兼容层重映射 — 关键：sky-100 不再是 rgba 半透明！ */
+  --fatboy-50:         #2A2347;
+  --fatboy-300:        var(--primary-soft);
+  --fatboy-500:        var(--primary);
+  --fatboy-700:        var(--accent);          /* 金作 fatboy-700，按钮文字 */
+  --sky-100:           #2D3756;                /* 实色深紫 — 标签底色读得出来 */
+  --sky-300:           #5E4FA0;
+  --sky-500:           var(--primary);
+  --sky-700:           var(--accent-strong);
+  --paper:             var(--surface-paper);
+  --mist:              var(--surface-mist);
+  --fog:               var(--surface-fog);
+  --ink:               var(--ink-strong);
+  --success:           var(--state-success);
+  --danger:            var(--state-danger);
+  --magic:             var(--primary-strong);
+  --glow-fatboy:       var(--glow-primary);
+  --glow-sky:          var(--glow-accent);
+
+  /* 主题字体节奏 — starry 字重轻 tracking 略宽（神秘感） */
+  --theme-title-weight: 600;
+  --theme-title-tracking: 0.012em;
+  --theme-label-tracking: 0.04em;
+  --theme-label-transform: none;
 }
 
-/* ===== ⚙️ 机械灰（mecha — 深炭金属 + 霓虹）===== */
+/* ===========================================================
+   MECHA — 青绿 180° + 玫红 10°（霓虹对比）
+   情绪：硬朗、克制、像高级耳机包装盒
+   =========================================================== */
 body[data-theme="mecha"] {
-  /* 主色 → 钢灰 + 霓虹蓝 accent */
-  --fatboy-50:      #3A3F4A;
-  --fatboy-300:     #4D5566;
-  --fatboy-500:     #5B6478;
-  --fatboy-700:     #00D4FF;          /* 霓虹蓝主强调 */
-  --sky-100:        rgba(0,212,255,0.15);
-  --sky-300:        rgba(0,212,255,0.35);
-  --sky-500:        #00D4FF;
-  --sky-700:        #0099B8;
+  --primary:           #2DD4BF;
+  --primary-soft:      #1A3E3A;
+  --primary-strong:    #7FE6DA;
+  --accent:            #FB7185;     /* 玫红 — 暖色对比打破纯冷 */
+  --accent-soft:       #4A1F2A;
+  --accent-strong:     #FDA4B0;
 
-  /* 卡片色（deep carbon） */
-  --paper:          #1F2532;
-  --mist:           #252C3D;
-  --fog:            #3A4254;
-  --ink:            #E8EEF7;
-  --ink-muted:      #9BA9BC;
-  --ink-faint:      #6B7B8C;
+  --surface-paper:     #16252F;
+  --surface-mist:      #1F303B;
+  --surface-fog:       #3D4F5B;
 
-  --success:        #00FF9C;          /* 霓虹绿 */
-  --danger:         #FF3D5D;
-  --magic:          #BB88FF;
+  --ink-strong:        #E8FFF8;     /* 青白（与 starry 冷白拉开温度区分） */
+  --ink-muted:         #93B5AC;
+  --ink-faint:         #5E807A;
 
-  --rainbow-1:      #FF3D5D;
-  --rainbow-2:      #FF9D3D;
-  --rainbow-3:      #FFD93D;
-  --rainbow-4:      #00FF9C;
+  --state-success:     #00FF9C;     /* 霓虹绿 */
+  --state-warn:        #FBBF24;
+  --state-danger:      #FB7185;
 
-  --shadow-sm:      0 2px 4px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,212,255,0.08);
-  --shadow-md:      0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.12);
-  --shadow-lg:      0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.18);
-  --glow-fatboy:    0 0 24px rgba(0,212,255,0.5);
-  --glow-sky:       0 0 24px rgba(0,212,255,0.45);
+  --bg-from:           #1A1F2E;
+  --bg-to:             #0E121E;
 
-  /* 机械灰圆角变小，强调棱角 */
-  --radius-xs:      6px;
-  --radius-sm:      10px;
-  --radius-md:      14px;
-  --radius-lg:      18px;
-  --radius-xl:      24px;
+  /* 圆角最小 — 棱角感 */
+  --radius-xs: 4px;  --radius-sm: 6px;
+  --radius-md: 8px;  --radius-lg: 12px; --radius-xl: 16px;
 
-  --bg-from:        #1A1F2E;
-  --bg-to:          #0E121E;
+  /* 阴影 = inset stroke + drop（HUD 风格） */
+  --shadow-sm:         inset 0 0 0 1px rgba(45,212,191,.12), 0 2px 4px rgba(0,0,0,.4);
+  --shadow-md:         inset 0 0 0 1px rgba(45,212,191,.18), 0 4px 16px rgba(0,0,0,.5);
+  --shadow-lg:         inset 0 0 0 1px rgba(45,212,191,.25), 0 8px 32px rgba(0,0,0,.6);
+  --shadow-cta:        inset 0 0 12px rgba(45,212,191,.4), 0 0 0 1px #2DD4BF;
+  --glow-primary:      0 0 24px rgba(45,212,191,.5);
+  --glow-accent:       0 0 24px rgba(251,113,133,.45);
+
+  --rainbow-1:         #FB7185;
+  --rainbow-2:         #FBBF24;
+  --rainbow-3:         #00FF9C;
+  --rainbow-4:         #2DD4BF;
+
+  /* 兼容层重映射 */
+  --fatboy-50:         #1F2A35;
+  --fatboy-300:        var(--primary-soft);
+  --fatboy-500:        var(--primary);
+  --fatboy-700:        var(--primary-strong);
+  --sky-100:           #1F303B;
+  --sky-300:           #2A4A5C;
+  --sky-500:           var(--primary);
+  --sky-700:           var(--primary-strong);
+  --paper:             var(--surface-paper);
+  --mist:              var(--surface-mist);
+  --fog:               var(--surface-fog);
+  --ink:               var(--ink-strong);
+  --success:           var(--state-success);
+  --danger:            var(--state-danger);
+  --magic:             #BB88FF;
+  --glow-fatboy:       var(--glow-primary);
+  --glow-sky:          var(--glow-accent);
+
+  /* 主题字体节奏 — mecha 字重最轻 + 标签全大写 + tracking 大 */
+  --theme-title-weight: 500;
+  --theme-title-tracking: 0.02em;
+  --theme-label-tracking: 0.1em;
+  --theme-label-transform: uppercase;
 }
 
+/* ===========================================================
+   基础层 + 主题装饰元素
+   =========================================================== */
 @layer base {
   html, body, #root {
     height: 100%;
@@ -187,53 +278,59 @@ body[data-theme="mecha"] {
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background: linear-gradient(180deg, var(--bg-from, var(--bg-day-from)), var(--bg-to, var(--bg-day-to)));
+    background: linear-gradient(180deg, var(--bg-from), var(--bg-to));
     transition: background 60s ease-in-out;
-    color: var(--ink);
+    color: var(--ink-strong);
+    font-family: var(--font-zh-body);
   }
+
+  /* STARRY 专属：径向 glow 增强深邃感（与 NightStars 组件互补） */
+  body[data-theme="starry"] {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 30%, rgba(111,91,233,.18), transparent 70%),
+      linear-gradient(180deg, var(--bg-from), var(--bg-to));
+  }
+
+  /* MECHA 网格背景由 CircuitGrid 组件渲染（已含 40px 静态网格 + 14 条流动数据线），
+     此处不重叠加 CSS 网格，避免双重栅格视觉糊 */
 }
 
 /* ============================================================
-   Tailwind components — 旧的 .space-* 暂时保留兼容；
-   按规格 §1.6，主 CTA 紫青渐变是禁用，但全产品有 ~80 处用了 space-btn，
-   P0 阶段只**软淘汰**：把这几个 class 的 background 改成黄色 2.5D 风格的
-   "弱化版本"，避免立即视觉打破，但去掉违规紫青渐变。
-   后续 P1-P4 逐页迁移到新的 .primary-btn / .secondary-btn。
+   Components — 用语义 token，跨主题自动适应
    ============================================================ */
 @layer components {
   .space-card {
-    /* R3.3.1: 用 token，跟随主题切换；之前硬编码 bg-white/95 在 starry/mecha 下整页白卡片看不清 */
-    background: var(--paper);
-    color: var(--ink);
-    border: 1px solid var(--fog);
+    background: var(--surface-paper);
+    color: var(--ink-strong);
+    border: 1px solid var(--surface-fog);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     backdrop-filter: blur(8px);
   }
   .space-btn {
-    /* R3.0: 紫青渐变 → fatboy 黄色（与新主 CTA 视觉接近，逐页替换前的过渡态） */
-    @apply px-4 py-2 rounded-xl bg-[var(--fatboy-500)] text-[var(--ink)]
+    @apply px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--ink-strong)]
            font-semibold shadow-md active:scale-95 transition-transform
            disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: var(--radius-sm);
   }
   .space-btn-ghost {
-    /* R3.3.1: bg-white → token，避免深色主题下白底白字 */
     padding: 8px 16px;
     border-radius: var(--radius-sm);
-    background: var(--paper);
-    color: var(--sky-700);
-    border: 2px solid var(--sky-300);
-    transition: transform 0.1s;
+    background: var(--surface-paper);
+    color: var(--accent-strong);
+    border: 2px solid var(--accent);
+    transition: transform 0.1s, background 0.15s;
   }
   .space-btn-ghost:active { transform: scale(0.95); }
+  .space-btn-ghost:hover  { background: var(--surface-mist); }
+
   .glow-text {
-    /* R3.0: 紫色阴影 → 暖黄阴影 */
-    text-shadow: 0 0 12px rgba(244, 199, 82, 0.6);
+    text-shadow: 0 0 12px var(--glow-primary);
   }
 }
 
 /* ============================================================
-   R3.0 新按钮系统（§2）— 蛋仔 2.5D 立体
+   主 CTA — 蛋仔 2.5D 立体（按主题取不同形态）
    ============================================================ */
 .primary-btn {
   position: relative;
@@ -243,48 +340,75 @@ body[data-theme="mecha"] {
   cursor: pointer;
   padding: 0;
   font-family: var(--font-zh-title);
-  font-weight: 700;
+  font-weight: var(--theme-title-weight, 700);
   font-size: 17px;
-  color: var(--ink);
+  letter-spacing: var(--theme-title-tracking, 0);
+  color: var(--ink-strong);
   transition: transform 0.15s var(--spring-bouncy);
 }
 .primary-btn-bottom {
   position: absolute;
   inset: 4px 0 0 0;
-  background: var(--fatboy-700);
+  background: var(--primary-strong);
   border-radius: var(--radius-sm);
 }
 .primary-btn-top {
   position: relative;
   padding: 16px 32px;
-  background: var(--fatboy-500);
+  background: var(--primary);
   border-radius: var(--radius-sm);
-  box-shadow: var(--glow-fatboy);
+  box-shadow: var(--glow-primary);
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  color: #fff;
 }
 .primary-btn:active { transform: translateY(3px); }
 .primary-btn:active .primary-btn-bottom { inset: 1px 0 0 0; }
 
+/* MECHA 主 CTA 改造：去掉下沉、加 inset stroke、文字大写 */
+body[data-theme="mecha"] .primary-btn-bottom { display: none; }
+body[data-theme="mecha"] .primary-btn-top {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  box-shadow: var(--shadow-cta);
+  text-transform: uppercase;
+  letter-spacing: var(--theme-label-tracking, 0.1em);
+  font-weight: 500;
+}
+body[data-theme="mecha"] .primary-btn:active { transform: translateY(0); }
+body[data-theme="mecha"] .primary-btn-top:hover {
+  background: var(--primary-soft);
+}
+
+/* STARRY 主 CTA 改造：去掉下沉，纯 glow */
+body[data-theme="starry"] .primary-btn-bottom { display: none; }
+body[data-theme="starry"] .primary-btn-top {
+  background: var(--primary);
+  border: 1px solid var(--primary-strong);
+  box-shadow: var(--shadow-cta);
+}
+body[data-theme="starry"] .primary-btn:active { transform: translateY(0); }
+
 .secondary-btn {
   padding: 14px 28px;
-  background: var(--paper);
-  color: var(--sky-700);
-  border: 2px solid var(--sky-300);
+  background: var(--surface-paper);
+  color: var(--accent-strong);
+  border: 2px solid var(--accent);
   border-radius: var(--radius-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s var(--spring-soft);
 }
 .secondary-btn:hover {
-  border-color: var(--sky-500);
-  background: var(--sky-100);
+  border-color: var(--primary);
+  background: var(--surface-mist);
 }
 
 .danger-btn {
   padding: 14px 28px;
-  background: var(--danger);
+  background: var(--state-danger);
   color: white;
   border: none;
   border-radius: var(--radius-sm);
@@ -294,23 +418,25 @@ body[data-theme="mecha"] {
 
 .tag-btn {
   padding: 8px 16px;
-  background: var(--mist);
-  color: var(--ink);
+  background: var(--surface-mist);
+  color: var(--ink-strong);
   border-radius: var(--radius-xs);
   font-size: 14px;
   font-weight: 500;
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.15s var(--spring-soft);
+  letter-spacing: var(--theme-label-tracking, 0);
+  text-transform: var(--theme-label-transform, none);
 }
 .tag-btn.active,
 .tag-btn[aria-pressed="true"] {
-  background: var(--fatboy-50);
-  border-color: var(--fatboy-500);
-  color: var(--fatboy-700);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
 }
 
-/* 多邻国风数字 */
+/* 数字字体 — Fredoka tabular nums */
 .text-num {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
@@ -318,11 +444,8 @@ body[data-theme="mecha"] {
 }
 
 /* ============================================================
-   R3.0 背景动态元素（§1.4）— 白天云朵 / 夜晚星星
-   .stars-layer / .star 兼容旧 SpaceBackground 命名（NightStars 后续会引用同类）
+   背景动态层 — 兼容 NightStars / Clouds
    ============================================================ */
-
-/* === 旧的 stars-layer 保留（兼容 NightStars） === */
 .stars-layer {
   position: fixed;
   inset: 0;
@@ -343,13 +466,11 @@ body[data-theme="mecha"] {
   height: 3px;
   box-shadow: 0 0 6px rgba(255,255,255,0.8);
 }
-
 @keyframes twinkle {
   0%, 100% { opacity: 0.2; transform: scale(1); }
   50%      { opacity: 1;   transform: scale(1.3); }
 }
 
-/* === 新的 Clouds（白天 / 黄昏可见） === */
 .cloud {
   position: absolute;
   width: 200px;
@@ -361,20 +482,19 @@ body[data-theme="mecha"] {
 .cloud-1 { top: 15%; animation-duration: 45s; }
 .cloud-2 { top: 35%; animation-duration: 60s; animation-delay: -15s; opacity: 0.7; }
 .cloud-3 { top: 60%; animation-duration: 55s; animation-delay: -30s; opacity: 0.5; }
-
 @keyframes float-horizontal {
   from { transform: translateX(-220px); }
   to   { transform: translateX(calc(100vw + 220px)); }
 }
 
-/* 周末模式：R3.0 改为暖橙渐变（之前是紫色，违规） */
+/* 周末模式 — cozy 暖橙渐变 */
 body.weekend-bg-mode,
 .weekend-bg {
   background: linear-gradient(180deg, #FFE4B5, #FFC988) !important;
 }
 
 /* ============================================================
-   Fatboy v4 角色动画 keyframes（保留不动）
+   Fatboy 角色动画 keyframes（保留不动）
    ============================================================ */
 @keyframes fb-breathe      { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
 @keyframes fb-breathe-slow { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
