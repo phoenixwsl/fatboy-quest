@@ -251,6 +251,25 @@ export class FatboyDB extends Dexie {
 
 export const db = new FatboyDB();
 
+// R4.2.0: 心愿池流入 hook —— 任何 PointsEntry insert 后，正向 delta 异步
+// 流入 wishingPool（如果开了）。用 setTimeout(0) 调度到当前事务提交后执行，
+// 避开"wishingPool 不在 transaction 范围"问题。
+//
+// 失败静默：如果用户没开心愿池或心愿池表读取失败，不影响主积分流。
+db.points.hook('creating', (_pk, obj: any) => {
+  const delta = obj?.delta;
+  if (typeof delta === 'number' && delta > 0) {
+    setTimeout(async () => {
+      try {
+        const { streamPoints } = await import('../lib/wishingPool');
+        await streamPoints(db, delta);
+      } catch {
+        /* silent */
+      }
+    }, 0);
+  }
+});
+
 export async function initializeDB() {
   const existing = await db.settings.get('singleton');
   if (existing) {

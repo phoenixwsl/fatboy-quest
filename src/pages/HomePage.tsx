@@ -30,6 +30,7 @@ import { DifficultyStars } from '../components/DifficultyStars';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
 import { ThemePicker } from './parent/Settings';
+import { WishingPoolBar } from '../components/WishingPoolBar';
 
 // R3.0 §3.4: 按时段问候
 function greeting(hour: number, name: string): string {
@@ -54,6 +55,12 @@ export function HomePage() {
   const todaySchedules = useLiveQuery(() => db.schedules.where({ date: today }).toArray(), [today]);
   const pointsEntries = useLiveQuery(() => db.points.toArray());
   const taskDefs = useLiveQuery(() => db.taskDefinitions.toArray());
+  // R4.2.0: 心愿池常驻显示（如有未达成）
+  const wishingPool = useLiveQuery(() => db.wishingPool.get('singleton'));
+  const wishedItem = useLiveQuery(
+    async () => wishingPool ? await db.shop.get(wishingPool.shopItemId) : undefined,
+    [wishingPool?.shopItemId],
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [skinPickerOpen, setSkinPickerOpen] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -286,6 +293,13 @@ export function HomePage() {
 
       {/* R2.5.D: 断击时显示豁免券 banner */}
       <PardonBanner />
+
+      {/* R4.2.0: 心愿池常驻 — 有未达成的心愿就在首页显示进度条 */}
+      {wishingPool && !wishingPool.fulfilledAt && (
+        <div className="mt-5">
+          <WishingPoolBar pool={wishingPool} item={wishedItem ?? undefined} />
+        </div>
+      )}
 
       {/* R2.1.1: 检测到正在进行的闯关，强引导回去 */}
       {scheduledOrInProgress.length > 0 && (
