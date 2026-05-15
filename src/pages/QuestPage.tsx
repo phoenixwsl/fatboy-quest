@@ -10,6 +10,7 @@ import { useAppStore } from '../store/useAppStore';
 import { sounds, syncFromSettings } from '../lib/sounds';
 import { pushToRecipients, messages } from '../lib/bark';
 import { applyDayComplete } from '../lib/streak';
+import { checkStreakMilestones } from '../lib/badges';
 import { totalPoints } from '../lib/points';
 import { canUndoCompletion } from '../lib/templates';
 import { detectHealActions, isHealNeeded } from '../lib/heal';
@@ -607,6 +608,8 @@ export function QuestPage() {
           if (streakState) {
             const r = applyDayComplete(streakState, today);
             await db.streak.put(r.state);
+            // R5.2.0: 连击里程碑（streak-7/14/30/100）
+            checkStreakMilestones(db, r.state.currentStreak).catch(() => {});
             for (const m of r.milestonesHit) {
               await db.points.add({
                 id: newId('pt'), ts: Date.now(), delta: m.points,

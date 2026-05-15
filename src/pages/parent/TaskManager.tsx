@@ -15,7 +15,7 @@ import { DifficultyStars } from '../../components/DifficultyStars';
 import type { SubjectType, Task, TaskDefinition, TaskType, StarLevel } from '../../types';
 import { DIFFICULTY_COLORS } from '../../lib/difficulty';
 
-type FilterKind = 'all' | 'normal' | 'daily-required' | 'weekly-min' | 'weekly-once';
+type FilterKind = 'all' | 'once' | 'daily' | 'weekly';
 
 const SUBJECTS: { id: SubjectType; label: string }[] = [
   { id: 'math', label: '数学' }, { id: 'chinese', label: '语文' },
@@ -23,11 +23,11 @@ const SUBJECTS: { id: SubjectType; label: string }[] = [
   { id: 'writing', label: '练字' }, { id: 'other', label: '其他' },
 ];
 
+// R5.3.0: 3 类型 (once / daily / weekly)
 const TYPE_OPTIONS: { id: TaskType; label: string; desc: string }[] = [
-  { id: 'normal', label: '一次性任务', desc: '指定某一天做（默认）' },
-  { id: 'daily-required', label: '每日必做', desc: '每天自动出现，孩子不能删' },
-  { id: 'weekly-min', label: '每周 N 次', desc: '一周至少做 N 次' },
-  { id: 'weekly-once', label: '每周一次', desc: '一周任意一天做一次' },
+  { id: 'once',   label: '单次任务', desc: '指定某一天做（默认）' },
+  { id: 'daily',  label: '每天必做', desc: '每天自动出现，孩子不能删' },
+  { id: 'weekly', label: '每周任务', desc: '每周做几次，下面填次数' },
 ];
 
 export function TaskManager() {
@@ -42,7 +42,7 @@ export function TaskManager() {
   const [showForm, setShowForm] = useState(false);
 
   // form state
-  const [taskType, setTaskType] = useState<TaskType>('normal');
+  const [taskType, setTaskType] = useState<TaskType>('once');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [subject, setSubject] = useState<SubjectType>('math');
@@ -51,7 +51,7 @@ export function TaskManager() {
   const [date, setDate] = useState(todayString());
   const [isRequired, setIsRequired] = useState(false);
   const [weeklyMinTimes, setWeeklyMinTimes] = useState(3);
-  const [difficulty, setDifficulty] = useState<StarLevel>('bronze');  // R3.2 → R4.0.0 铜/银/金
+  const [difficulty, setDifficulty] = useState<StarLevel>('none');  // R5.3.0: 默认 0 星
 
   const templates = (() => {
     if (!allTasks) return [];
@@ -81,7 +81,7 @@ export function TaskManager() {
 
   async function submitNew() {
     if (!title.trim()) { toast('标题不能为空', 'warn'); return; }
-    if (taskType === 'normal') {
+    if (taskType === 'once') {
       const t: Task = {
         id: newId('task'),
         title: title.trim(),
@@ -94,12 +94,13 @@ export function TaskManager() {
         createdAt: Date.now(),
         createdBy: 'parent',
         isRequired: isRequired || undefined,
-        taskType: 'normal',
-        difficulty,                       // R3.2
+        taskType: 'once',
+        difficulty,
       };
       await db.tasks.add(t);
-      toast(`✓ 已添加一次性任务${isRequired ? '（必做）' : ''}`, 'success');
+      toast(`✓ 已添加单次任务${isRequired ? '（必做）' : ''}`, 'success');
     } else {
+      // R5.3.0: daily / weekly 循环
       const d: TaskDefinition = {
         id: newId('def'),
         title: title.trim(),
@@ -107,12 +108,12 @@ export function TaskManager() {
         subject,
         basePoints: Math.max(1, points),
         estimatedMinutes: Math.max(5, minutes),
-        type: taskType as any,
+        type: taskType as 'daily' | 'weekly',
         active: true,
         createdAt: Date.now(),
-        isRequired: taskType === 'daily-required' ? true : undefined,
-        weeklyMinTimes: taskType === 'weekly-min' ? Math.max(1, weeklyMinTimes) : undefined,
-        difficulty,                       // R3.2
+        isRequired: taskType === 'daily' ? true : undefined,
+        weeklyTimes: taskType === 'weekly' ? Math.max(1, weeklyMinTimes) : undefined,
+        difficulty,
       };
       await db.taskDefinitions.add(d);
       toast(`✓ 已添加循环任务：${TASK_TYPE_LABEL[taskType]}`, 'success');
@@ -150,13 +151,18 @@ export function TaskManager() {
     await db.tasks.update(t.id, { isRequired: !t.isRequired });
   }
 
-  // 列表展示
+  // R5.3.0: filter + 列表分组（兼容老 taskType / type 字符串）
   const showAll = filter === 'all';
-  const onceTasks = (allTasks ?? []).filter(t => (t.taskType ?? 'normal') === 'normal');
-  const filteredOnce = (showAll || filter === 'normal') ? onceTasks : [];
-  const dailyDefs = (allDefs ?? []).filter(d => d.type === 'daily-required');
-  const weeklyMinDefs = (allDefs ?? []).filter(d => d.type === 'weekly-min');
-  const weeklyOnceDefs = (allDefs ?? []).filter(d => d.type === 'weekly-once');
+  const onceTasks = (allTasks ?? []).filter(t => {
+    const tt = t.taskType ?? 'once';
+    return tt === 'once' || tt === 'normal';
+  });
+  const filteredOnce = (showAll || filter === 'once') ? onceTasks : [];
+  const dailyDefs = (allDefs ?? []).filter(d => d.type === 'daily' || d.type === 'daily-required');
+  const weeklyDefs = (allDefs ?? []).filter(d => d.type === 'weekly' || d.type === 'weekly-min' || d.type === 'weekly-once');
+  // 老 weeklyMinDefs / weeklyOnceDefs 占位（兼容下面 JSX）
+  const weeklyMinDefs = weeklyDefs;
+  const weeklyOnceDefs: TaskDefinition[] = [];
 
   return (
     <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
@@ -183,9 +189,9 @@ export function TaskManager() {
         )}
       </div>
 
-      {/* Filter */}
+      {/* R5.3.0: Filter — 4 个 (all + 3 类型) */}
       <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
-        {(['all', 'normal', 'daily-required', 'weekly-min', 'weekly-once'] as FilterKind[]).map(k => (
+        {(['all', 'once', 'daily', 'weekly'] as FilterKind[]).map(k => (
           <button
             key={k}
             onClick={() => setFilter(k)}
@@ -277,7 +283,7 @@ export function TaskManager() {
               </label>
             </div>
 
-            {taskType === 'normal' && (
+            {taskType === 'once' && (
               <label className="block mt-3">
                 <div className="text-[11px] mb-1" style={{ color: 'var(--ink-faint)' }}>📅 日期</div>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -286,7 +292,7 @@ export function TaskManager() {
                 <div className="text-[10px] mt-1" style={{ color: 'var(--ink-faint)' }}>{formatChineseDate(date)}</div>
               </label>
             )}
-            {taskType === 'weekly-min' && (
+            {taskType === 'weekly' && (
               <label className="block mt-3">
                 <div className="text-[11px] mb-1" style={{ color: 'var(--ink-faint)' }}>每周最少做几次</div>
                 <input type="number" value={weeklyMinTimes} onChange={e => setWeeklyMinTimes(Number(e.target.value))}
@@ -303,11 +309,11 @@ export function TaskManager() {
             <div className="mb-3">
               <div className="text-[11px] mb-1.5" style={{ color: 'var(--ink-faint)' }}>难度（决定额外积分奖励）</div>
               <div className="flex gap-2">
-                {(['bronze', 'silver', 'gold'] as StarLevel[]).map(d => {
+                {(['none', 'bronze', 'silver', 'gold'] as StarLevel[]).map(d => {
                   const active = difficulty === d;
-                  const bonus = d === 'bronze' ? '默认' : d === 'silver' ? '+5 ⭐' : '+10 ⭐';
-                  const stars = d === 'bronze' ? '★' : d === 'silver' ? '★★' : '★★★';
-                  const label = d === 'bronze' ? '铜' : d === 'silver' ? '银' : '金';
+                  const bonus = d === 'none' ? '+0' : d === 'bronze' ? '+3 ⭐' : d === 'silver' ? '+5 ⭐' : '+10 ⭐';
+                  const stars = d === 'none' ? '☆' : d === 'bronze' ? '★' : d === 'silver' ? '★★' : '★★★';
+                  const label = d === 'none' ? '0 星' : d === 'bronze' ? '铜' : d === 'silver' ? '银' : '金';
                   const colors = DIFFICULTY_COLORS[d];
                   return (
                     <button
@@ -330,7 +336,7 @@ export function TaskManager() {
               </div>
             </div>
 
-            {taskType === 'normal' && (
+            {taskType === 'once' && (
               <button onClick={() => setIsRequired(!isRequired)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 style={isRequired
@@ -351,7 +357,7 @@ export function TaskManager() {
       )}
 
       {/* 一次性任务列表 */}
-      {(showAll || filter === 'normal') && filteredOnce.length > 0 && (
+      {(showAll || filter === 'once') && filteredOnce.length > 0 && (
         <Section title="📝 一次性任务">
           {filteredOnce.slice(-50).reverse().map(t => (
             <div key={t.id} className="space-card p-3 mb-2 flex items-center gap-3">
@@ -378,21 +384,21 @@ export function TaskManager() {
       )}
 
       {/* 循环：每日必做 */}
-      {(showAll || filter === 'daily-required') && dailyDefs.length > 0 && (
+      {(showAll || filter === 'daily') && dailyDefs.length > 0 && (
         <Section title="🔴 每日必做">
           {dailyDefs.map(d => <DefRow key={d.id} d={d} allTasks={allTasks ?? []} onToggle={toggleActive} onDel={delDef} />)}
         </Section>
       )}
 
       {/* 循环：每周 N 次 */}
-      {(showAll || filter === 'weekly-min') && weeklyMinDefs.length > 0 && (
+      {(showAll || filter === 'weekly') && weeklyMinDefs.length > 0 && (
         <Section title="🟣 每周 N 次">
           {weeklyMinDefs.map(d => <DefRow key={d.id} d={d} allTasks={allTasks ?? []} onToggle={toggleActive} onDel={delDef} />)}
         </Section>
       )}
 
       {/* 循环：每周一次 */}
-      {(showAll || filter === 'weekly-once') && weeklyOnceDefs.length > 0 && (
+      {(showAll || false) && weeklyOnceDefs.length > 0 && (
         <Section title="🔵 每周一次">
           {weeklyOnceDefs.map(d => <DefRow key={d.id} d={d} allTasks={allTasks ?? []} onToggle={toggleActive} onDel={delDef} />)}
         </Section>

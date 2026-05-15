@@ -195,6 +195,8 @@ export interface Pet {
   exp: number;
   evolutionStage: 1 | 2 | 3 | 4;
   equippedAccessories: string[];
+  // R5.2.0: 解锁的称号集合（来自里程碑 / 见证累计），不可减少
+  unlockedTitles?: string[];
 }
 
 export interface Badge {

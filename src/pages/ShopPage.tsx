@@ -28,6 +28,7 @@ import { buildUnlockContext } from '../lib/petStats';
 import { emptyContext, evaluateCondition, describeCondition, type UnlockContext } from '../lib/unlockCondition';
 import { SHOP_CATEGORIES } from '../lib/categories';
 import { useMasteryToast } from '../components/MasteryToast';
+import { checkFirstRedemption } from '../lib/badges';
 
 export function ShopPage() {
   const nav = useNavigate();
@@ -113,6 +114,8 @@ export function ShopPage() {
     toast(`兑换成功 ✓ ${item.name}`, 'success');
     // R4.3.0: 兑换仪式 — mastery framing toast
     showMasteryToast(item).catch(() => {});
+    // R5.2.0: 第一次兑换里程碑
+    checkFirstRedemption(db).catch(() => {});
     const recipients = await db.recipients.toArray();
     const childName = settings?.childName ?? '肥仔';
     pushToRecipients(recipients.filter(r => r.subShopPurchase !== false), 'taskDone' as any, {

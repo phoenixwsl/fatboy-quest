@@ -10,6 +10,9 @@ import { earlyBonus } from './earlyBonus';
 import { calcCombo, comboBonusPoints } from './combo';
 import { difficultyBonus } from './difficulty';
 import { newId } from './ids';
+// R5.2.0: 卡牌 + 里程碑 hook
+import { checkAndIssueFocus, checkAndIssuePerfectDay, checkAndIssueWeekendWarrior } from './cards';
+import { checkFirstPerfect, checkFirstGoldTask, checkFirstLongTask } from './badges';
 
 export interface EvalInput {
   taskId: string;
@@ -122,6 +125,23 @@ export async function evaluateTaskOnce(
       }
     }
   });
+
+  // ============================================================
+  // R5.2.0: 评分完成后触发卡牌 / 里程碑（独立于主事务，失败静默）
+  // ============================================================
+  try {
+    const finalTask = await db.tasks.get(task.id);
+    if (finalTask) {
+      // 卡牌
+      await checkAndIssueFocus(db, finalTask);
+      await checkAndIssuePerfectDay(db);
+      await checkAndIssueWeekendWarrior(db);
+      // 里程碑（first-* 系列）
+      await checkFirstPerfect(db, { completion: input.completion, quality: input.quality, attitude: input.attitude });
+      await checkFirstGoldTask(db, finalTask);
+      await checkFirstLongTask(db, finalTask);
+    }
+  } catch { /* silent — 不影响主流 */ }
 
   return {
     evaluationId: ev.id,

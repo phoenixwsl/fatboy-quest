@@ -33,6 +33,7 @@ import { StudyRoomPage } from './pages/StudyRoomPage';
 import { LevelUpWatcher } from './components/LevelUpWatcher';
 import { evaluateAllRules, expireSweep } from './lib/skillCards';
 import { StickerWall } from './pages/StickerWall';
+import { CardCabinet } from './pages/CardCabinet';
 
 // R3.0 §1.2: 按小时数自动切换时段
 function getTimePeriod(hour: number): TimePeriod {
@@ -131,6 +132,7 @@ export default function App() {
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/achievements" element={<AchievementsPage />} />
                 <Route path="/stickers" element={<StickerWall />} />
+                <Route path="/collection" element={<CardCabinet />} />
                 <Route path="/home" element={<StudyRoomPage />} />
                 <Route path="/parent" element={<ParentGate />} />
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />

@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { groupByMonth } from '../lib/witnessMoment';
+import { WITNESS_THRESHOLDS } from '../lib/witnessRewards';
 
 export function StickerWall() {
   const nav = useNavigate();
@@ -24,6 +25,14 @@ export function StickerWall() {
   }
 
   const groups = groupByMonth(moments);
+  // R5.3.0: 月统计 + 下个解锁阈值
+  const total = moments.length;
+  const now = new Date();
+  const thisMonthCount = moments.filter(m => {
+    const d = new Date(m.ts);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  const nextThreshold = WITNESS_THRESHOLDS.find(t => t.count > total);
 
   return (
     <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
@@ -31,6 +40,24 @@ export function StickerWall() {
         <button onClick={() => nav('/')} className="space-btn-ghost">← 首页</button>
         <div className="text-xl font-bold">💛 我的贴纸墙</div>
       </div>
+
+      {/* R5.3.0: 月统计 + 下一称号阈值 */}
+      {moments.length > 0 && (
+        <div
+          className="mb-4 p-3 rounded-md flex items-center gap-3"
+          style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
+        >
+          <div className="flex-1">
+            <div className="text-xs">本月 <b className="text-num">{thisMonthCount}</b> 个 · 累计 <b className="text-num">{total}</b> 个</div>
+            {nextThreshold && (
+              <div className="text-[11px] mt-0.5" style={{ color: 'var(--ink-muted)' }}>
+                再 {nextThreshold.count - total} 个解锁称号「{nextThreshold.title}」
+              </div>
+            )}
+          </div>
+          <span className="text-2xl">🌟</span>
+        </div>
+      )}
 
       {moments.length === 0 ? (
         <EmptyState />

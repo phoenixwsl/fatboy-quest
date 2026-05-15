@@ -14,6 +14,7 @@ import { db } from '../db';
 import {
   WITNESS_EMOJIS, createWitnessMoment, buildOtherParentNotification,
 } from '../lib/witnessMoment';
+import { checkWitnessRewards } from '../lib/witnessRewards';
 import { pushToRecipients } from '../lib/bark';
 import { useAppStore } from '../store/useAppStore';
 import type { BarkRecipient } from '../types';
@@ -67,6 +68,15 @@ function WitnessModal({ onClose }: { onClose: () => void }) {
       }).catch(() => {});
     }
     toast(`✓ 已记录温柔时刻 ${emoji}`, 'success');
+    // R5.2.0: 检查累计阈值 → 解锁称号
+    try {
+      const r = await checkWitnessRewards(db);
+      if (r.newlyUnlocked.length > 0) {
+        for (const title of r.newlyUnlocked) {
+          toast(`🎉 解锁称号「${title}」`, 'success');
+        }
+      }
+    } catch { /* silent */ }
     onClose();
   }
 

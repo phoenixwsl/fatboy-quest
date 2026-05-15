@@ -44,15 +44,15 @@ describe('makeCard', () => {
 });
 
 // ----------------------------------------------------------
-describe('evaluateAllRules — replace card weekly', () => {
-  it('issues 1 replace card on first run for current week', async () => {
+describe('evaluateAllRules — skip card monthly (R5.2.0: replace 删了，skip 保留)', () => {
+  it('issues 1 skip card on first run for current month', async () => {
     const r = await evaluateAllRules(db);
-    const replace = r.issued.filter(c => c.type === 'replace');
-    expect(replace.length).toBe(1);
-    expect(replace[0].source).toContain('replace-week-');
+    const skip = r.issued.filter(c => c.type === 'skip');
+    expect(skip.length).toBe(1);
+    expect(skip[0].source).toContain('skip-month-');
   });
 
-  it('is idempotent — second run on same week issues nothing', async () => {
+  it('is idempotent — second run same month issues nothing', async () => {
     await evaluateAllRules(db);
     const before = await db.skillCards.count();
     const r2 = await evaluateAllRules(db);
@@ -61,39 +61,45 @@ describe('evaluateAllRules — replace card weekly', () => {
     expect(after).toBe(before);
   });
 
-  it('issues a fresh replace card after a week boundary', async () => {
-    const w1 = new Date('2026-05-12T10:00:00');   // 周二 in week 20
-    const w2 = new Date('2026-05-19T10:00:00');   // 周二 in week 21
-    await evaluateAllRules(db, w1);
+  it('issues a fresh skip card after a month boundary', async () => {
+    const m1 = new Date('2026-05-12T10:00:00');
+    const m2 = new Date('2026-06-12T10:00:00');
+    await evaluateAllRules(db, m1);
     const before = await db.skillCards.count();
-    await evaluateAllRules(db, w2);
+    await evaluateAllRules(db, m2);
     const after = await db.skillCards.count();
-    // 应该多了 replace + skip (新月份 if 跨月) — 至少 +1
     expect(after).toBeGreaterThan(before);
   });
 });
 
 // ----------------------------------------------------------
-describe('evaluateAllRules — pause card per 200 lifetime', () => {
-  it('issues 0 pause cards when lifetime < 200', async () => {
-    await db.points.add({ id: 'p1', ts: 1, delta: 100, reason: 'task' });
+describe('evaluateAllRules — guard card per 7-day streak (R5.2.0: pause 删了，guard 替代)', () => {
+  async function setStreak(longest: number) {
+    await db.streak.put({
+      id: 'singleton', currentStreak: longest, longestStreak: longest,
+      lastFullDate: null, guardCards: 0, lastWeeklyGiftWeek: null,
+    });
+  }
+
+  it('issues 0 guard cards when longestStreak < 7', async () => {
+    await setStreak(3);
     const r = await evaluateAllRules(db);
-    expect(r.issued.filter(c => c.type === 'pause').length).toBe(0);
+    expect(r.issued.filter(c => c.type === 'guard').length).toBe(0);
   });
 
-  it('issues N pause cards when lifetime crosses N×200', async () => {
-    await db.points.add({ id: 'p1', ts: 1, delta: 850, reason: 'task' });
+  it('issues N guard cards when longestStreak crosses N×7', async () => {
+    await setStreak(21);
     const r = await evaluateAllRules(db);
-    const pause = r.issued.filter(c => c.type === 'pause');
-    expect(pause.length).toBe(4);    // floor(850/200) = 4
+    const guard = r.issued.filter(c => c.type === 'guard');
+    expect(guard.length).toBe(3);    // floor(21/7) = 3
   });
 
-  it('is idempotent for pause cards', async () => {
-    await db.points.add({ id: 'p1', ts: 1, delta: 500, reason: 'task' });
+  it('is idempotent for guard cards', async () => {
+    await setStreak(14);
     await evaluateAllRules(db);
-    const before = await db.skillCards.where('type').equals('pause').count();
+    const before = await db.skillCards.where('type').equals('guard').count();
     await evaluateAllRules(db);
-    const after = await db.skillCards.where('type').equals('pause').count();
+    const after = await db.skillCards.where('type').equals('guard').count();
     expect(after).toBe(before);
   });
 });

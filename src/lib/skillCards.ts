@@ -1,18 +1,12 @@
 // ============================================================
-// R4.3.0: 技能券引擎
+// R5.2.0: 技能券引擎（精简到 4 种）
 //
 // 设计原则：
-//   1. 技能券一律"行为解锁"，不可买（kid-rewards skill anti-pattern B2）
-//   2. 引擎幂等：source 字段是确定性 key，重复运行不重复发卡
-//   3. R4.3.0 引擎只处理 5 种**新**类型（extend / replace / pause / skip /
-//      mystery）。guard / pardon 仍由现有 streak.ts / pardon.ts 维护，
-//      shelf UI 把两个来源拼起来显示——bridge 留到将来再做。
-//   4. help 永远可用（不入表，UI 直接显示按钮）
+//   1. 技能券一律"行为解锁"，不可买（anti-pattern B2）
+//   2. 引擎幂等：source 字段是确定性 key
+//   3. 4 种：guard / skip / mystery / extend
+//   4. 删了：pardon（豁免券机制全删）/ replace / pause / help
 //   5. 30 天过期（earnedAt + 30d），expireSweep 在启动时跑
-//
-// 触发：
-//   - App 启动后跑 evaluateAllRules
-//   - 也可在 ShopManager 提供"扫一下技能券"按钮（暂未实现）
 // ============================================================
 
 import type { FatboyDB } from '../db';
@@ -33,15 +27,17 @@ export interface CardSpec {
   desc: string;
 }
 
+// R5.2.0: 4 种券。pardon/replace/pause/help 全删
 export const CARD_SPECS: Record<SkillCardType, CardSpec> = {
-  guard:   { emoji: '🛡️', label: '守护卡',  desc: '抵 1 次连击中断' },
-  pardon:  { emoji: '🌤️', label: '豁免券',  desc: '缺勤一天不算断击' },
-  extend:  { emoji: '⏱️', label: '延时券',  desc: '任务超时缓冲 5 分钟' },
-  replace: { emoji: '🔄', label: '替换券',  desc: '今日换掉非必做任务' },
-  pause:   { emoji: '⏸️', label: '暂停券',  desc: '暂停超 3 分钟不强退' },
-  help:    { emoji: '🆘', label: '求助券',  desc: '一键求助家长（无限）' },
-  skip:    { emoji: '⏭️', label: '跳过券',  desc: '跳过 1 个非必做任务' },
-  mystery: { emoji: '🎁', label: '神秘券',  desc: '抽 1 次盲盒' },
+  guard:   { emoji: '🛡️', label: '守护卡', desc: '抵 1 次连击中断' },
+  extend:  { emoji: '⏱️', label: '延时券', desc: '任务超时缓冲 5 分钟' },
+  skip:    { emoji: '⏭️', label: '跳过券', desc: '跳过 1 个非必做任务' },
+  mystery: { emoji: '🎁', label: '神秘券', desc: '抽 1 次盲盒' },
+  // === 以下已删，保留 spec 仅为兼容老类型字段读取（不再发新卡）===
+  pardon:  { emoji: '🌤️', label: '豁免券（已停用）', desc: '机制已下线' },
+  replace: { emoji: '🔄', label: '替换券（已停用）', desc: '机制已下线' },
+  pause:   { emoji: '⏸️', label: '暂停券（已停用）', desc: '机制已下线' },
+  help:    { emoji: '🆘', label: '求助券（已停用）', desc: '机制已下线' },
 };
 
 // ------------------------------------------------------------
@@ -70,6 +66,18 @@ interface Rule {
 }
 
 export const SKILL_CARD_RULES: Rule[] = [
+  // R5.2.0: 4 种券规则
+  // guard: 每完成 7 日连击发 1 张（基于 longestStreak / 7）
+  {
+    type: 'guard',
+    computeIdeals: (ctx) => {
+      const n = Math.floor(ctx.longestStreak / 7);
+      return Array.from({ length: n }, (_, i) => ({
+        type: 'guard' as const,
+        source: `guard-streak-${(i + 1) * 7}d`,
+      }));
+    },
+  },
   // extend: 本周 gold ≥ 3 → 1 张本周专属
   {
     type: 'extend',
@@ -79,26 +87,7 @@ export const SKILL_CARD_RULES: Rule[] = [
       return [{ type: 'extend', source: `extend-week-${w}` }];
     },
   },
-  // replace: 每周自动 +1（周一开始当周可用）
-  {
-    type: 'replace',
-    computeIdeals: (ctx) => {
-      const w = isoWeekString(ctx.now);
-      return [{ type: 'replace', source: `replace-week-${w}` }];
-    },
-  },
-  // pause: 终身积分每涨 200 → +1
-  {
-    type: 'pause',
-    computeIdeals: (ctx) => {
-      const n = Math.floor(ctx.lifetimePoints / 200);
-      return Array.from({ length: n }, (_, i) => ({
-        type: 'pause' as const,
-        source: `pause-lifetime-${(i + 1) * 200}`,
-      }));
-    },
-  },
-  // skip: 每月 +1（每月第一次评估时发）
+  // skip: 每月自动 +1
   {
     type: 'skip',
     computeIdeals: (ctx) => {
@@ -116,6 +105,7 @@ export const SKILL_CARD_RULES: Rule[] = [
       return [{ type: 'mystery', source: `mystery-quarter-${y}Q${q}` }];
     },
   },
+  // R5.2.0 删：replace / pause / pardon / help 不再发新卡
 ];
 
 // ------------------------------------------------------------

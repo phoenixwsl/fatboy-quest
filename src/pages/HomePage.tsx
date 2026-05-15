@@ -32,6 +32,7 @@ import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
 import { ThemePicker } from './parent/Settings';
 import { SkillCardShelf } from '../components/SkillCardShelf';
+import { LevelsModal } from '../components/LevelsModal';
 import { getLifetimePoints } from '../lib/petStats';
 import { getLevelFromLifetime, getNextLevel } from '../lib/levels';
 
@@ -69,6 +70,9 @@ export function HomePage() {
   const [skinPickerOpen, setSkinPickerOpen] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [doneCollapsed, setDoneCollapsed] = useState(true);
+  const [levelsModalOpen, setLevelsModalOpen] = useState(false);
+  // R5.3.0: 卡牌数量（仅当 > 0 显示入口）
+  const cardsCount = useLiveQuery(() => db.cards.count()) ?? 0;
   const weekendMode = !!(settings?.weekendModeEnabled !== false && isWeekend(new Date()));
 
   // R2.0.2: 自愈死锁 - 检测并修复状态不一致
@@ -298,7 +302,7 @@ export function HomePage() {
       {/* R2.5.D: 断击时显示豁免券 banner */}
       <PardonBanner />
 
-      {/* R4.3.0: 双货币 + 等级 + 称号 — 终身积分永远只增不减 */}
+      {/* R4.3.0 + R5.3.0: 双货币 + 等级（可点开 LevelsModal） */}
       <div
         className="mt-5 p-3 rounded-[var(--radius-md)] flex items-center gap-3"
         style={{
@@ -316,33 +320,52 @@ export function HomePage() {
             <div className="text-lg font-bold text-num" style={{ color: 'var(--accent-strong)' }}>🏆 {lifetimePoints}</div>
           </div>
         </div>
-        <div className="text-right">
+        <button
+          onClick={() => { sounds.play('tap'); setLevelsModalOpen(true); }}
+          className="text-right active:scale-95 transition-transform p-1.5 rounded-md"
+          style={{ background: 'var(--surface-mist)' }}
+          aria-label="查看段位详情"
+        >
           <div className="text-[10px]" style={{ color: 'var(--ink-faint)' }}>Lv. {currentLevel.level}</div>
           <div className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>{currentLevel.title}</div>
-          {nextLevel && (
+          {nextLevel ? (
             <div className="text-[10px] text-num" style={{ color: 'var(--ink-faint)' }}>
-              还差 {nextLevel.threshold - lifetimePoints}
+              还差 {nextLevel.threshold - lifetimePoints} ›
             </div>
+          ) : (
+            <div className="text-[10px]" style={{ color: 'var(--state-warn-strong)' }}>已满级 ›</div>
           )}
-        </div>
+        </button>
       </div>
 
       {/* R4.3.0: 我的卡片 */}
       <SkillCardShelf />
 
-      {/* R4.4.0: 贴纸墙入口（有贴纸时才显示） */}
-      {stickerCount > 0 && (
-        <button
-          onClick={() => { sounds.play('tap'); nav('/stickers'); }}
-          className="w-full mt-3 p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
-          style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
-        >
-          <span className="text-xl">💛</span>
-          <span className="text-sm flex-1 text-left">我的贴纸墙</span>
-          <span className="text-xs text-num">{stickerCount}</span>
-          <span className="text-xs">›</span>
-        </button>
-      )}
+      {/* R4.4.0: 贴纸墙入口 + R5.3.0: 卡牌展示柜入口 */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {stickerCount > 0 && (
+          <button
+            onClick={() => { sounds.play('tap'); nav('/stickers'); }}
+            className="p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
+            style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
+          >
+            <span className="text-xl">💛</span>
+            <span className="text-sm flex-1 text-left">贴纸墙</span>
+            <span className="text-xs text-num">{stickerCount}</span>
+          </button>
+        )}
+        {cardsCount > 0 && (
+          <button
+            onClick={() => { sounds.play('tap'); nav('/collection'); }}
+            className="p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
+            style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}
+          >
+            <span className="text-xl">🃏</span>
+            <span className="text-sm flex-1 text-left">卡牌柜</span>
+            <span className="text-xs text-num">{cardsCount}</span>
+          </button>
+        )}
+      </div>
 
       {/* R5.1.0: 心愿池机制已删 */}
 
@@ -367,27 +390,35 @@ export function HomePage() {
         </motion.button>
       )}
 
-      {/* 今日任务区 — 主战场，提升到第二屏 */}
+      {/* 今日任务区 — 主战场 */}
       <div className="mt-7">
         <div className="flex items-center justify-between gap-2 mb-3">
+          {/* R5.3.0: "今日小怪" → "今日任务" */}
           <h2 className="text-xl font-bold" style={{ color: 'var(--ink)' }}>
-            今日小怪
+            今日任务
             <span className="ml-2 text-base font-medium" style={{ color: 'var(--ink-muted)' }}>
               ({(pendingTasks.length + scheduledOrInProgress.length + doneTasks.length) || 0})
             </span>
           </h2>
-          <div className="flex gap-2">
-            {childCanAdd && (
-              <button
-                onClick={() => { sounds.play('tap'); setAddOpen(true); }}
-                className="tag-btn flex items-center gap-1"
-              >
-                <Plus size={14} /> 新任务
-              </button>
-            )}
-            {/* R5.0.0: 商店按钮移到顶部图标行 */}
-          </div>
         </div>
+
+        {/* R5.3.0: 新任务 hero 大按钮（主要按钮，醒目） */}
+        {childCanAdd && (
+          <button
+            onClick={() => { sounds.play('tap'); setAddOpen(true); }}
+            className="w-full mb-3 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 text-base font-bold"
+            style={{
+              background: 'var(--primary)',
+              color: '#fff',
+              padding: '14px 20px',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-md)',
+            }}
+          >
+            <Plus size={22} strokeWidth={3} />
+            <span>新任务</span>
+          </button>
+        )}
 
         {todayTasks && todayTasks.length === 0 && (
           <div
@@ -512,6 +543,7 @@ export function HomePage() {
 
       <ChildAddTaskModal open={addOpen} onClose={() => setAddOpen(false)} settings={settings} />
       <SkinPicker open={skinPickerOpen} onClose={() => setSkinPickerOpen(false)} />
+      <LevelsModal open={levelsModalOpen} lifetimePoints={lifetimePoints} onClose={() => setLevelsModalOpen(false)} />
       {themePickerOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"

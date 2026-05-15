@@ -13,6 +13,7 @@ import { db } from '../db';
 import { getLifetimePoints } from '../lib/petStats';
 import { getLevelFromLifetime, type Level } from '../lib/levels';
 import { LevelUpModal } from './LevelUpModal';
+import { checkLevelMilestone } from '../lib/badges';
 
 const LS_KEY = 'fatboy:lastShownLevel';
 
@@ -42,6 +43,8 @@ export function LevelUpWatcher() {
       const last = getLastShown();
       if (cur.level > last) {
         setPendingLevel(cur);
+        // R5.2.0: 等级里程碑 badge（幂等，已发不重发）
+        checkLevelMilestone(db, cur.level).catch(() => {});
       }
     });
     return () => { alive = false; };

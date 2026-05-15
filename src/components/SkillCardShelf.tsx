@@ -1,13 +1,14 @@
 // ============================================================
-// R4.3.0: 我的卡片架（首页 streak 模块附近显示）
+// R5.2.0: 我的卡片架（精简到 4 种券）
 //
 // 显示：
-//   - 守护卡（来自 streak.guardCards 历史 + 新增 SkillCard guard）
-//   - 豁免券（来自 streak.pardonCardsThisWeek 本周）
-//   - 5 种新券（SkillCard 表 byType 计数）
-//   - 求助券（无限）
+//   - 守护卡：连续 7 日达标自动 +1
+//   - 延时券：本周完成 3 个金任务 +1
+//   - 跳过券：每月自动 +1
+//   - 神秘券：本季度有评分任务 +1
 //
-// 点击：弹出明细 + 解锁条件说明（教孩子怎么再赚一张）
+// 删了：豁免券 / 替换券 / 暂停券 / 求助券（机制全删）
+// 点击：弹出明细 + 解锁条件
 // ============================================================
 
 import { useState } from 'react';
@@ -16,13 +17,9 @@ import { db } from '../db';
 import { CARD_SPECS, groupByType } from '../lib/skillCards';
 import type { SkillCardType } from '../types';
 
-const HOW_TO_EARN: Record<SkillCardType, string> = {
+const HOW_TO_EARN: Record<string, string> = {
   guard:   '连续 7 天达标自动赠 1 张',
-  pardon:  '每周一自动 +2 张',
-  extend:  '一周内完成 3 个金任务 → +1 张',
-  replace: '每周一自动 +1 张',
-  pause:   '终身积分每涨 200 → +1 张',
-  help:    '永远可用，点首页"求助"按钮即可',
+  extend:  '一周内完成 3 个 3 星任务 → +1 张',
   skip:    '每月自动 +1 张',
   mystery: '本季度有评分任务 → +1 张',
 };
@@ -30,18 +27,16 @@ const HOW_TO_EARN: Record<SkillCardType, string> = {
 export function SkillCardShelf() {
   const [open, setOpen] = useState(false);
   const cards = useLiveQuery(() => db.skillCards.toArray());
-  const streak = useLiveQuery(() => db.streak.get('singleton'));
   const inv = groupByType(cards ?? []);
 
-  // 总计：legacy guard / pardon + 新增 + help 永远 1
-  const guardLegacy = streak?.guardCards ?? 0;
-  const pardonLegacy = streak?.pardonCardsThisWeek ?? 0;
-  const guardTotal = guardLegacy + inv.byType.guard.length;
-  const pardonTotal = pardonLegacy + inv.byType.pardon.length;
-  const totalUsable = guardTotal + pardonTotal +
-    inv.byType.extend.length + inv.byType.replace.length +
-    inv.byType.pause.length + inv.byType.skip.length +
-    inv.byType.mystery.length;
+  // R5.2.0: 只算 4 种活跃券
+  const guardTotal   = inv.byType.guard.length;
+  const extendTotal  = inv.byType.extend.length;
+  const skipTotal    = inv.byType.skip.length;
+  const mysteryTotal = inv.byType.mystery.length;
+  const totalUsable  = guardTotal + extendTotal + skipTotal + mysteryTotal;
+  // legacy 保留为 0（豁免券机制已删；老代码引用兜底）
+  const pardonTotal = 0;
 
   // R5.0.0: 即使 0 卡（仅求助券），也显示醒目入口 — 让孩子知道有这个机制
   if (totalUsable === 0) {
@@ -61,7 +56,7 @@ export function SkillCardShelf() {
           </div>
           <span className="text-xs">›</span>
         </button>
-        {open && <ShelfDetailModal cards={cards ?? []} guardTotal={guardTotal} pardonTotal={pardonTotal} inv={inv} onClose={() => setOpen(false)} />}
+        {open && <ShelfDetailModal cards={cards ?? []} guardTotal={guardTotal} inv={inv} onClose={() => setOpen(false)} />}
       </>
     );
   }
@@ -72,32 +67,27 @@ export function SkillCardShelf() {
         onClick={() => setOpen(true)}
         className="w-full text-left mt-3 space-card p-3 flex items-center gap-2 active:scale-[0.99] transition-transform"
       >
-        <span className="text-xs" style={{ color: 'var(--ink-muted)' }}>🃏 我的卡片</span>
+        <span className="text-xs" style={{ color: 'var(--ink-muted)' }}>🃏 我的券</span>
         <div className="flex-1 flex items-center gap-1.5 overflow-x-auto">
-          <CardChip emoji="🛡️" count={guardTotal} />
-          <CardChip emoji="🌤️" count={pardonTotal} />
-          {inv.byType.extend.length > 0 && <CardChip emoji="⏱️" count={inv.byType.extend.length} />}
-          {inv.byType.replace.length > 0 && <CardChip emoji="🔄" count={inv.byType.replace.length} />}
-          {inv.byType.pause.length > 0 && <CardChip emoji="⏸️" count={inv.byType.pause.length} />}
-          {inv.byType.skip.length > 0 && <CardChip emoji="⏭️" count={inv.byType.skip.length} />}
-          {inv.byType.mystery.length > 0 && <CardChip emoji="🎁" count={inv.byType.mystery.length} />}
-          <CardChip emoji="🆘" count={Infinity} />
+          {guardTotal   > 0 && <CardChip emoji="🛡️" count={guardTotal} />}
+          {extendTotal  > 0 && <CardChip emoji="⏱️" count={extendTotal} />}
+          {skipTotal    > 0 && <CardChip emoji="⏭️" count={skipTotal} />}
+          {mysteryTotal > 0 && <CardChip emoji="🎁" count={mysteryTotal} />}
         </div>
         <span className="text-xs" style={{ color: 'var(--ink-faint)' }}>›</span>
       </button>
 
-      {open && <ShelfDetailModal cards={cards ?? []} guardTotal={guardTotal} pardonTotal={pardonTotal} inv={inv} onClose={() => setOpen(false)} />}
+      {open && <ShelfDetailModal cards={cards ?? []} guardTotal={guardTotal} inv={inv} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
 // ============================================================
 function ShelfDetailModal({
-  guardTotal, pardonTotal, inv, onClose,
+  guardTotal, inv, onClose,
 }: {
   cards: import('../types').SkillCard[];
   guardTotal: number;
-  pardonTotal: number;
   inv: ReturnType<typeof groupByType>;
   onClose: () => void;
 }) {
@@ -112,19 +102,15 @@ function ShelfDetailModal({
         style={{ borderRadius: 'var(--radius-lg)' }}
       >
         <div className="flex items-center mb-3">
-          <div className="text-lg font-bold flex-1">🃏 我的卡片</div>
+          <div className="text-lg font-bold flex-1">🃏 我的券</div>
           <button onClick={onClose} className="text-xl" style={{ color: 'var(--ink-faint)' }}>×</button>
         </div>
         <CardRow type="guard"   count={guardTotal}     howTo={HOW_TO_EARN.guard} />
-        <CardRow type="pardon"  count={pardonTotal}    howTo={HOW_TO_EARN.pardon + '（断击当天可用）'} />
         <CardRow type="extend"  count={inv.byType.extend.length}  howTo={HOW_TO_EARN.extend} />
-        <CardRow type="replace" count={inv.byType.replace.length} howTo={HOW_TO_EARN.replace} />
-        <CardRow type="pause"   count={inv.byType.pause.length}   howTo={HOW_TO_EARN.pause} />
         <CardRow type="skip"    count={inv.byType.skip.length}    howTo={HOW_TO_EARN.skip} />
         <CardRow type="mystery" count={inv.byType.mystery.length} howTo={HOW_TO_EARN.mystery} />
-        <CardRow type="help"    count={Infinity}                  howTo={HOW_TO_EARN.help} />
         <div className="text-[10px] mt-3 text-center" style={{ color: 'var(--ink-faint)' }}>
-          卡片 30 天后过期，珍惜使用 🌟
+          券 30 天后过期，珍惜使用 🌟
         </div>
       </div>
     </div>
