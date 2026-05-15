@@ -20,6 +20,7 @@ import {
   ALL_CATEGORIES, SHOP_CATEGORIES, type ShopCategory,
 } from '../../lib/categories';
 import { planRotation, applyRotation } from '../../lib/rotation';
+import { WitnessButton } from '../../components/WitnessButton';
 import type { ShopItem } from '../../types';
 
 const EMOJIS = ['🍦', '🥤', '🍕', '🍩', '🍪', '🎮', '📺', '🎁', '⚽', '🧸', '📚', '🌱', '🪴', '🧱', '🎨', '✨', '🏆', '💡'];
@@ -135,9 +136,10 @@ export function ShopManager() {
 
   return (
     <div className="min-h-full p-4 pb-24">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button onClick={() => nav('/parent/dashboard')} className="space-btn-ghost">←</button>
         <div className="text-xl font-bold flex-1">🎁 奖励商店管理</div>
+        <WitnessButton compact />
         <button onClick={rotateNow} className="space-btn-ghost text-sm">🔄 轮转一下</button>
       </div>
 

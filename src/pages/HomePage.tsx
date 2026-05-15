@@ -68,6 +68,8 @@ export function HomePage() {
   const lifetimePoints = useLiveQuery(async () => await getLifetimePoints(db), []) ?? 0;
   const currentLevel = getLevelFromLifetime(lifetimePoints);
   const nextLevel = getNextLevel(lifetimePoints);
+  // R4.4.0: 贴纸墙数量（仅当 > 0 时显示入口）
+  const stickerCount = useLiveQuery(() => db.witnessMoments.count()) ?? 0;
   const [addOpen, setAddOpen] = useState(false);
   const [skinPickerOpen, setSkinPickerOpen] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -332,6 +334,20 @@ export function HomePage() {
 
       {/* R4.3.0: 我的卡片 */}
       <SkillCardShelf />
+
+      {/* R4.4.0: 贴纸墙入口（有贴纸时才显示） */}
+      {stickerCount > 0 && (
+        <button
+          onClick={() => { sounds.play('tap'); nav('/stickers'); }}
+          className="w-full mt-3 p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
+          style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
+        >
+          <span className="text-xl">💛</span>
+          <span className="text-sm flex-1 text-left">我的贴纸墙</span>
+          <span className="text-xs text-num">{stickerCount}</span>
+          <span className="text-xs">›</span>
+        </button>
+      )}
 
       {/* R4.2.0: 心愿池常驻 — 有未达成的心愿就在首页显示进度条 */}
       {wishingPool && !wishingPool.fulfilledAt && (

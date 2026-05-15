@@ -16,6 +16,8 @@ import {
 import {
   streakTrend, weeklyPointsTrend, lowestEfficiencySubject,
 } from '../../lib/dashboardInsights';
+import { EconomyHealthCard } from '../../components/charts/EconomyHealthCard';
+import { WitnessButton } from '../../components/WitnessButton';
 
 export function ParentDashboard() {
   const nav = useNavigate();
@@ -62,7 +64,7 @@ export function ParentDashboard() {
 
   return (
     <div className="min-h-full p-4 pb-24" style={{ color: 'var(--ink)' }}>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button
           onClick={() => nav('/')}
           className="secondary-btn flex items-center gap-1"
@@ -70,7 +72,8 @@ export function ParentDashboard() {
         >
           <ArrowLeft size={16} /> 退出家长模式
         </button>
-        <div className="text-xl font-bold" style={{ color: 'var(--ink)' }}>家长面板</div>
+        <div className="text-xl font-bold flex-1" style={{ color: 'var(--ink)' }}>家长面板</div>
+        <WitnessButton compact />
       </div>
 
       {/* 顶部 3 联统计 */}
@@ -102,6 +105,9 @@ export function ParentDashboard() {
 
       {/* R2.4.4: 3 个核心洞察卡片 */}
       <InsightCards />
+
+      {/* R4.4.0: 经济健康度监控 */}
+      <EconomyHealthCard />
 
       <div className="flex gap-2 mb-3">
         {analysis ? (
