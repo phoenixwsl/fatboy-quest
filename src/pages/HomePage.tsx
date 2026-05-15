@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Trophy, Settings as SettingsIcon, Shield, Flame, Star,
   Calendar as CalendarIcon, Swords, Plus, ChevronRight, Palette, X, Home as HomeIcon,
+  Gift,
 } from 'lucide-react';
 import { db } from '../db';
 import { PetAvatar } from '../components/PetAvatar';
@@ -118,10 +119,11 @@ export function HomePage() {
   // 长按右上角进入家长模式
   const pressTimer = useRef<number | null>(null);
   const [pressProgress, setPressProgress] = useState(0);
+  // R5.0.0: 长按 3s → 短按 1s + 视觉点亮（PIN 仍在 ParentGate）
   const startPress = () => {
     let p = 0;
     pressTimer.current = window.setInterval(() => {
-      p += 100 / 30; // 3 秒
+      p += 100 / 10; // 1 秒
       setPressProgress(p);
       if (p >= 100) {
         endPress();
@@ -194,46 +196,45 @@ export function HomePage() {
         <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>
           {formatChineseDate(today)}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { sounds.play('tap'); nav('/achievements'); }}
-            aria-label="成就馆"
-            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-            style={{ background: 'var(--fatboy-50)', color: 'var(--fatboy-700)' }}
-          >
-            <Trophy size={20} />
-          </button>
-          <button
-            onClick={() => { sounds.play('tap'); nav('/home'); }}
-            aria-label="肥仔的书房"
-            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-            style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}
-          >
-            <HomeIcon size={20} />
-          </button>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          <IconBtn
+            label="成就馆" onClick={() => { sounds.play('tap'); nav('/achievements'); }}
+            bg="var(--fatboy-50)" fg="var(--fatboy-700)"
+          ><Trophy size={20} /></IconBtn>
+          <IconBtn
+            label="肥仔的书房" onClick={() => { sounds.play('tap'); nav('/home'); }}
+            bg="var(--primary-soft)" fg="var(--primary-strong)"
+          ><HomeIcon size={20} /></IconBtn>
+          {/* R5.0.0: 商店上方图标行 */}
+          <IconBtn
+            label="奖励商店" onClick={() => { sounds.play('tap'); nav('/shop'); }}
+            bg="var(--state-warn-soft)" fg="var(--state-warn-strong)"
+          ><Gift size={20} /></IconBtn>
           {/* R3.3.1: 主题切换 — 孩子也能直接换 */}
-          <button
-            onClick={() => { sounds.play('tap'); setThemePickerOpen(true); }}
-            aria-label="换主题"
-            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-            style={{ background: 'var(--sky-100)', color: 'var(--sky-700)' }}
-          >
-            <Palette size={20} />
-          </button>
+          <IconBtn
+            label="换主题" onClick={() => { sounds.play('tap'); setThemePickerOpen(true); }}
+            bg="var(--sky-100)" fg="var(--sky-700)"
+          ><Palette size={20} /></IconBtn>
+          {/* R5.0.0: 设置 — 短按 1s + 视觉点亮（PIN 仍在 ParentGate） */}
           <div
             onPointerDown={startPress}
             onPointerUp={endPress}
             onPointerLeave={endPress}
             onPointerCancel={endPress}
-            aria-label="长按 3 秒进入家长模式"
-            className="relative w-11 h-11 rounded-full flex items-center justify-center select-none"
-            style={{ background: 'var(--mist)', color: 'var(--ink-muted)' }}
+            aria-label="长按 1 秒进入家长设置"
+            className="relative w-11 h-11 rounded-full flex items-center justify-center select-none transition-all cursor-pointer"
+            style={{
+              background: pressProgress > 0 ? 'var(--accent-soft)' : 'var(--mist)',
+              color: pressProgress > 0 ? 'var(--accent-strong)' : 'var(--ink-muted)',
+              boxShadow: pressProgress > 0 ? `0 0 ${8 + pressProgress / 8}px var(--accent)` : 'none',
+              transform: pressProgress > 0 ? `scale(${1 + pressProgress / 1000})` : 'scale(1)',
+            }}
           >
             <SettingsIcon size={20} />
             {pressProgress > 0 && (
               <svg className="absolute inset-0 -rotate-90" viewBox="0 0 44 44">
-                <circle cx="22" cy="22" r="20" fill="none" stroke="var(--sky-500)"
-                  strokeWidth="3" strokeDasharray={126} strokeDashoffset={126 - (126 * pressProgress / 100)}
+                <circle cx="22" cy="22" r="20" fill="none" stroke="var(--accent)"
+                  strokeWidth="2.5" strokeDasharray={126} strokeDashoffset={126 - (126 * pressProgress / 100)}
                   strokeLinecap="round" />
               </svg>
             )}
@@ -395,12 +396,7 @@ export function HomePage() {
                 <Plus size={14} /> 新任务
               </button>
             )}
-            <button
-              onClick={() => { sounds.play('tap'); nav('/shop'); }}
-              className="tag-btn"
-            >
-              商店
-            </button>
+            {/* R5.0.0: 商店按钮移到顶部图标行 */}
           </div>
         </div>
 
@@ -569,6 +565,22 @@ export function HomePage() {
         肥仔大闯关 · {APP_VERSION}
       </div>
     </div>
+  );
+}
+
+// R5.0.0: 顶部图标按钮（统一封装）
+function IconBtn({
+  label, onClick, bg, fg, children,
+}: { label: string; onClick: () => void; bg: string; fg: string; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+      style={{ background: bg, color: fg }}
+    >
+      {children}
+    </button>
   );
 }
 

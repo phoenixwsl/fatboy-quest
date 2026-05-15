@@ -43,18 +43,26 @@ export function SkillCardShelf() {
     inv.byType.pause.length + inv.byType.skip.length +
     inv.byType.mystery.length;
 
+  // R5.0.0: 即使 0 卡（仅求助券），也显示醒目入口 — 让孩子知道有这个机制
   if (totalUsable === 0) {
-    // 没有任何卡（含求助券）的话也显示一个收纳口（让孩子知道这里有东西）
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full text-left mt-3 p-3 rounded-[var(--radius-md)] flex items-center gap-2"
-        style={{ background: 'var(--surface-mist)', color: 'var(--ink-muted)' }}
-      >
-        <span className="text-xl">🃏</span>
-        <span className="text-sm flex-1">我的卡片（还没有，做任务赚一张）</span>
-        <span className="text-xs">›</span>
-      </button>
+      <>
+        <button
+          onClick={() => setOpen(true)}
+          className="w-full text-left mt-3 space-card p-3 flex items-center gap-2 active:scale-[0.99] transition-transform"
+          style={{ borderStyle: 'dashed' }}
+        >
+          <span className="text-2xl">🃏</span>
+          <div className="flex-1">
+            <div className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>我的卡片</div>
+            <div className="text-[11px]" style={{ color: 'var(--ink-faint)' }}>
+              做任务能赚卡，点开看怎么解锁
+            </div>
+          </div>
+          <span className="text-xs">›</span>
+        </button>
+        {open && <ShelfDetailModal cards={cards ?? []} guardTotal={guardTotal} pardonTotal={pardonTotal} inv={inv} onClose={() => setOpen(false)} />}
+      </>
     );
   }
 
@@ -78,35 +86,48 @@ export function SkillCardShelf() {
         <span className="text-xs" style={{ color: 'var(--ink-faint)' }}>›</span>
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end justify-center p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="space-card w-full max-w-md p-5 max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-            style={{ borderRadius: 'var(--radius-lg)' }}
-          >
-            <div className="flex items-center mb-3">
-              <div className="text-lg font-bold flex-1">🃏 我的卡片</div>
-              <button onClick={() => setOpen(false)} className="text-xl" style={{ color: 'var(--ink-faint)' }}>×</button>
-            </div>
-            <CardRow type="guard"   count={guardTotal}     howTo={HOW_TO_EARN.guard} />
-            <CardRow type="pardon"  count={pardonTotal}    howTo={HOW_TO_EARN.pardon + '（断击当天可用）'} />
-            <CardRow type="extend"  count={inv.byType.extend.length}  howTo={HOW_TO_EARN.extend} />
-            <CardRow type="replace" count={inv.byType.replace.length} howTo={HOW_TO_EARN.replace} />
-            <CardRow type="pause"   count={inv.byType.pause.length}   howTo={HOW_TO_EARN.pause} />
-            <CardRow type="skip"    count={inv.byType.skip.length}    howTo={HOW_TO_EARN.skip} />
-            <CardRow type="mystery" count={inv.byType.mystery.length} howTo={HOW_TO_EARN.mystery} />
-            <CardRow type="help"    count={Infinity}                  howTo={HOW_TO_EARN.help} />
-            <div className="text-[10px] mt-3 text-center" style={{ color: 'var(--ink-faint)' }}>
-              卡片 30 天后过期，珍惜使用 🌟
-            </div>
-          </div>
-        </div>
-      )}
+      {open && <ShelfDetailModal cards={cards ?? []} guardTotal={guardTotal} pardonTotal={pardonTotal} inv={inv} onClose={() => setOpen(false)} />}
     </>
+  );
+}
+
+// ============================================================
+function ShelfDetailModal({
+  guardTotal, pardonTotal, inv, onClose,
+}: {
+  cards: import('../types').SkillCard[];
+  guardTotal: number;
+  pardonTotal: number;
+  inv: ReturnType<typeof groupByType>;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-end justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="space-card w-full max-w-md p-5 max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        style={{ borderRadius: 'var(--radius-lg)' }}
+      >
+        <div className="flex items-center mb-3">
+          <div className="text-lg font-bold flex-1">🃏 我的卡片</div>
+          <button onClick={onClose} className="text-xl" style={{ color: 'var(--ink-faint)' }}>×</button>
+        </div>
+        <CardRow type="guard"   count={guardTotal}     howTo={HOW_TO_EARN.guard} />
+        <CardRow type="pardon"  count={pardonTotal}    howTo={HOW_TO_EARN.pardon + '（断击当天可用）'} />
+        <CardRow type="extend"  count={inv.byType.extend.length}  howTo={HOW_TO_EARN.extend} />
+        <CardRow type="replace" count={inv.byType.replace.length} howTo={HOW_TO_EARN.replace} />
+        <CardRow type="pause"   count={inv.byType.pause.length}   howTo={HOW_TO_EARN.pause} />
+        <CardRow type="skip"    count={inv.byType.skip.length}    howTo={HOW_TO_EARN.skip} />
+        <CardRow type="mystery" count={inv.byType.mystery.length} howTo={HOW_TO_EARN.mystery} />
+        <CardRow type="help"    count={Infinity}                  howTo={HOW_TO_EARN.help} />
+        <div className="text-[10px] mt-3 text-center" style={{ color: 'var(--ink-faint)' }}>
+          卡片 30 天后过期，珍惜使用 🌟
+        </div>
+      </div>
+    </div>
   );
 }
 

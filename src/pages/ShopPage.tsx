@@ -23,7 +23,8 @@ import { isoWeekString } from '../lib/time';
 import { sounds } from '../lib/sounds';
 import { pushToRecipients } from '../lib/bark';
 import type { ShopItem, Redemption } from '../types';
-import { CategoryTabs, type CategoryFilter } from '../components/CategoryTabs';
+import { CategoryTabs } from '../components/CategoryTabs';
+import { DEFAULT_CATEGORY, type ShopCategory } from '../lib/categories';
 import { LockedArea } from '../components/LockedArea';
 import { WishingPoolBar } from '../components/WishingPoolBar';
 import { ProgressBar } from '../components/ProgressBar';
@@ -32,6 +33,7 @@ import { emptyContext, evaluateCondition, describeCondition, type UnlockContext 
 import { openPool, cancelPool, fulfillPool, isUnlocked, CANCEL_REFUND_RATIO } from '../lib/wishingPool';
 import { SHOP_CATEGORIES } from '../lib/categories';
 import { useMasteryToast } from '../components/MasteryToast';
+// CategoryFilter type removed in R5 — use ShopCategory directly
 
 export function ShopPage() {
   const nav = useNavigate();
@@ -48,7 +50,7 @@ export function ShopPage() {
   const total = pointsEntries ? totalPoints(pointsEntries) : 0;
   const [confirmItem, setConfirmItem] = useState<ShopItem | null>(null);
   const [wishItem, setWishItem] = useState<ShopItem | null>(null);
-  const [category, setCategory] = useState<CategoryFilter>('all');
+  const [category, setCategory] = useState<ShopCategory>(DEFAULT_CATEGORY);
   const [chip, setChip] = useState<string | null>(null);
   const { showMasteryToast, MasteryToastUI } = useMasteryToast();
 
@@ -75,7 +77,7 @@ export function ShopPage() {
   );
 
   const filteredItems = visibleItems.filter(s => {
-    if (category !== 'all' && s.category !== category) return false;
+    if (s.category !== category) return false;
     if (chip && !(s.tags ?? []).includes(chip)) return false;
     return true;
   });

@@ -4,7 +4,7 @@
 // 并在 db/index.ts 里写迁移逻辑。
 // ============================================================
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 // v2: 新增 Task.createdBy, Settings.soundEnabled
 // v3: 新增 actualStartedAt / pause / extend / undo 字段，templateHidden 表
 // v4: 引入 TaskDefinition 循环任务定义、Task.taskType 颜色区分、Redemption.usedAt 库存、
@@ -18,6 +18,11 @@ export const SCHEMA_VERSION = 7;
 //   - 预置 DQ/蜜雪 stockPerWeek 改 1
 //   - 预置 preset-guard 从 shop 移除（守护卡转 SkillCard）
 //   - 新表：skillCards / wishingPool / witnessMoments（声明，R4.3+ 使用）
+//
+// v8 (R5.0.0): 反馈优化
+//   - ShopCategory 简化为 'toy' | 'food'（'plant' / 'decor' → 'toy' migration）
+//   - 内置 13 件预置示例覆盖所有机制（积分通路 / 许愿池 / 条件解锁 / 锁定区）
+//   - 幂等 seed：只补缺失的 preset-* id，不重新覆盖已删除的
 //
 // 关于 Pet.lifetimePoints / level / 任务计数器：暂不存储，按需 derive。
 // 详见 src/lib/petStats.ts。这是为了避免 R4.0.0 接触所有 db.points.add 调用方，

@@ -1,34 +1,26 @@
 // ============================================================
-// R4.1.0: 商店分类 tab + chip 二级筛选
+// R5.0.0: 商店分类 tab + chip 二级筛选（2 tab 极简版）
 //
-// 4 tab：全部 / 小花园 / 桌面角 / 玩具堆 / 补给站
+// 2 tab：🧸 玩具堆 / 🍦 补给站，默认玩具堆
 // 当前 tab 下显示该类的 chip 横滑列表（单选 + "全部" chip 复位）
 // ============================================================
 
 import { ALL_CATEGORIES, SHOP_CATEGORIES, type ShopCategory } from '../lib/categories';
 
-export type CategoryFilter = 'all' | ShopCategory;
-
 interface Props {
-  category: CategoryFilter;
+  category: ShopCategory;
   chip: string | null;
-  onCategoryChange: (c: CategoryFilter) => void;
+  onCategoryChange: (c: ShopCategory) => void;
   onChipChange: (chip: string | null) => void;
 }
 
 export function CategoryTabs({ category, chip, onCategoryChange, onChipChange }: Props) {
-  const chipsForCurrent: readonly string[] | null =
-    category === 'all' ? null : SHOP_CATEGORIES[category].chips;
+  const chipsForCurrent = SHOP_CATEGORIES[category].chips;
 
   return (
     <div className="mb-3">
-      {/* 一级 tab */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        <CatTab
-          label="🛍️ 全部"
-          active={category === 'all'}
-          onClick={() => { onCategoryChange('all'); onChipChange(null); }}
-        />
+      {/* 一级 tab — 2 类 */}
+      <div className="flex gap-2">
         {ALL_CATEGORIES.map(c => (
           <CatTab
             key={c}
@@ -40,7 +32,7 @@ export function CategoryTabs({ category, chip, onCategoryChange, onChipChange }:
       </div>
 
       {/* 二级 chip */}
-      {chipsForCurrent && (
+      {chipsForCurrent.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto pt-2 pb-1">
           <ChipBtn label="全部" active={chip === null} onClick={() => onChipChange(null)} />
           {chipsForCurrent.map(c => (
@@ -57,8 +49,8 @@ function CatTab({ label, active, onClick }: { label: string; active: boolean; on
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`tag-btn shrink-0 ${active ? 'active' : ''}`}
-      style={{ minWidth: 'fit-content', padding: '8px 14px', fontSize: 14 }}
+      className={`tag-btn flex-1 ${active ? 'active' : ''}`}
+      style={{ padding: '10px 14px', fontSize: 15 }}
     >
       {label}
     </button>

@@ -197,130 +197,151 @@ export function TaskManager() {
         ))}
       </div>
 
-      {/* 新建表单 */}
+      {/* R5.0.0: 新建表单 — 分3卡式（类型 / 基本信息 / 难度与必做） */}
       {showForm && (
-        <div className="space-card p-4 mb-3">
-          <div className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>类型</div>
-          <select value={taskType} onChange={e => setTaskType(e.target.value as TaskType)}
-            className="w-full px-3 py-2 rounded-xl outline-none mb-2 appearance-none cursor-pointer"
-            style={{ background: 'var(--surface-mist)' }}>
-            {TYPE_OPTIONS.map(o => <option key={o.id} value={o.id} className="bg-space-card">{o.label}</option>)}
-          </select>
-          <div className="text-xs mb-3" style={{ color: 'var(--ink-faint)' }}>
-            {TYPE_OPTIONS.find(o => o.id === taskType)?.desc}
+        <div className="space-y-3 mb-3">
+          {/* 卡 1：任务类型 */}
+          <div className="space-card p-4" style={{ borderLeft: '3px solid var(--primary)' }}>
+            <div className="text-sm mb-2 font-semibold" style={{ color: 'var(--ink-strong)' }}>① 任务类型</div>
+            <div className="grid grid-cols-2 gap-2">
+              {TYPE_OPTIONS.map(o => (
+                <button key={o.id} onClick={() => setTaskType(o.id)}
+                  aria-pressed={taskType === o.id}
+                  className={`tag-btn text-left ${taskType === o.id ? 'active' : ''}`}
+                  style={{ padding: '10px 12px' }}>
+                  <div className="font-medium">{o.label}</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: taskType === o.id ? 'var(--primary-strong)' : 'var(--ink-faint)' }}>
+                    {o.desc}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
-          {templates.length > 0 && (
+          {/* 卡 2：基本信息 */}
+          <div className="space-card p-4" style={{ borderLeft: '3px solid var(--accent)' }}>
+            <div className="text-sm mb-3 font-semibold" style={{ color: 'var(--ink-strong)' }}>② 基本信息</div>
+
+            {templates.length > 0 && (
+              <div className="mb-3 p-2.5 rounded-md" style={{ background: 'var(--surface-mist)' }}>
+                <div className="text-[10px] mb-1.5" style={{ color: 'var(--ink-faint)' }}>📋 从历史模板填充（长按移除）</div>
+                <div className="flex flex-wrap gap-1">
+                  {templates.slice(0, 8).map(tpl => (
+                    <button key={tpl.title} onClick={() => applyTemplate(tpl)}
+                      onContextMenu={(e) => { e.preventDefault(); hideTemplate(tpl); }}
+                      className="px-2 py-1 rounded text-xs"
+                      style={{ background: 'var(--surface-paper)', border: '1px solid var(--surface-fog)' }}>
+                      {tpl.title} <span style={{ color: 'var(--ink-faint)' }}>×{tpl.useCount}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <input value={title} onChange={e => setTitle(e.target.value)}
+              placeholder="📝 标题（如：数学口算 P12）"
+              className="w-full px-3 py-2.5 rounded-xl outline-none mb-2 text-base"
+              style={{ background: 'var(--surface-mist)' }} />
+            <input value={description} onChange={e => setDescription(e.target.value)}
+              placeholder="📌 描述（可选）"
+              className="w-full px-3 py-2 rounded-xl outline-none mb-3 text-sm"
+              style={{ background: 'var(--surface-mist)' }} />
+
+            <div className="text-[11px] mb-1.5" style={{ color: 'var(--ink-faint)' }}>科目</div>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {SUBJECTS.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setSubject(s.id)}
+                  aria-pressed={subject === s.id}
+                  className={`tag-btn ${subject === s.id ? 'active' : ''}`}
+                  style={{ padding: '6px 12px', fontSize: 13 }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <label>
+                <div className="text-[11px] mb-1" style={{ color: 'var(--ink-faint)' }}>⭐ 基础积分</div>
+                <input type="number" value={points} onChange={e => setPoints(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl outline-none text-num"
+                  style={{ background: 'var(--surface-mist)' }} />
+              </label>
+              <label>
+                <div className="text-[11px] mb-1" style={{ color: 'var(--ink-faint)' }}>⏱ 预估分钟</div>
+                <input type="number" value={minutes} onChange={e => setMinutes(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl outline-none text-num"
+                  style={{ background: 'var(--surface-mist)' }} />
+              </label>
+            </div>
+
+            {taskType === 'normal' && (
+              <label className="block mt-3">
+                <div className="text-[11px] mb-1" style={{ color: 'var(--ink-faint)' }}>📅 日期</div>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl outline-none text-sm"
+                  style={{ background: 'var(--surface-mist)' }} />
+                <div className="text-[10px] mt-1" style={{ color: 'var(--ink-faint)' }}>{formatChineseDate(date)}</div>
+              </label>
+            )}
+            {taskType === 'weekly-min' && (
+              <label className="block mt-3">
+                <div className="text-[11px] mb-1" style={{ color: 'var(--ink-faint)' }}>每周最少做几次</div>
+                <input type="number" value={weeklyMinTimes} onChange={e => setWeeklyMinTimes(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl outline-none text-num"
+                  style={{ background: 'var(--surface-mist)' }} />
+              </label>
+            )}
+          </div>
+
+          {/* 卡 3：难度 + 必做 */}
+          <div className="space-card p-4" style={{ borderLeft: '3px solid var(--state-warn)' }}>
+            <div className="text-sm mb-3 font-semibold" style={{ color: 'var(--ink-strong)' }}>③ 难度与必做</div>
+
             <div className="mb-3">
-              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>📋 历史模板</div>
-              <div className="flex flex-wrap gap-1">
-                {templates.slice(0, 8).map(tpl => (
-                  <button key={tpl.title} onClick={() => applyTemplate(tpl)}
-                    onContextMenu={(e) => { e.preventDefault(); hideTemplate(tpl); }}
-                    className="px-2 py-1 rounded-lg text-xs"
-                    style={{ background: 'var(--surface-mist)' }}>
-                    {tpl.title} ×{tpl.useCount}
-                  </button>
-                ))}
+              <div className="text-[11px] mb-1.5" style={{ color: 'var(--ink-faint)' }}>难度（决定额外积分奖励）</div>
+              <div className="flex gap-2">
+                {(['bronze', 'silver', 'gold'] as StarLevel[]).map(d => {
+                  const active = difficulty === d;
+                  const bonus = d === 'bronze' ? '默认' : d === 'silver' ? '+5 ⭐' : '+10 ⭐';
+                  const stars = d === 'bronze' ? '★' : d === 'silver' ? '★★' : '★★★';
+                  const label = d === 'bronze' ? '铜' : d === 'silver' ? '银' : '金';
+                  const colors = DIFFICULTY_COLORS[d];
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      aria-pressed={active}
+                      className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all`}
+                      style={active
+                        ? { background: colors.soft, color: colors.strong, border: `2px solid ${colors.fill}`, boxShadow: `0 0 12px ${colors.fill}33` }
+                        : { background: 'var(--surface-mist)', color: 'var(--ink-muted)', border: '2px solid transparent' }}
+                    >
+                      <div style={{ color: colors.fill, fontSize: 16 }}>{stars}</div>
+                      <div className="mt-0.5">{label}</div>
+                      <div className="text-[10px] mt-0.5" style={{ color: active ? colors.strong : 'var(--ink-faint)' }}>
+                        {bonus}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
 
-          <input value={title} onChange={e => setTitle(e.target.value)}
-            placeholder="标题（如：数学口算 P12）"
-            className="w-full px-3 py-2 rounded-xl outline-none mb-2"
-            style={{ background: 'var(--surface-mist)' }} />
-          <input value={description} onChange={e => setDescription(e.target.value)}
-            placeholder="描述（可选）"
-            className="w-full px-3 py-2 rounded-xl outline-none mb-2"
-            style={{ background: 'var(--surface-mist)' }} />
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {SUBJECTS.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setSubject(s.id)}
-                aria-pressed={subject === s.id}
-                className={`tag-btn ${subject === s.id ? 'active' : ''}`}
-                style={{ padding: '6px 12px', fontSize: 12 }}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            <label>
-              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>基础积分</div>
-              <input type="number" value={points} onChange={e => setPoints(Number(e.target.value))}
-                className="w-full px-2 py-1.5 rounded outline-none text-sm"
-                style={{ background: 'var(--surface-mist)' }} />
-            </label>
-            <label>
-              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>预估分钟</div>
-              <input type="number" value={minutes} onChange={e => setMinutes(Number(e.target.value))}
-                className="w-full px-2 py-1.5 rounded outline-none text-sm"
-                style={{ background: 'var(--surface-mist)' }} />
-            </label>
-          </div>
-
-          {taskType === 'normal' && (
-            <>
-              <label>
-                <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>日期</div>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded outline-none text-sm mb-1"
-                  style={{ background: 'var(--surface-mist)' }} />
-                <div className="text-xs mb-2" style={{ color: 'var(--ink-faint)' }}>{formatChineseDate(date)}</div>
-              </label>
+            {taskType === 'normal' && (
               <button onClick={() => setIsRequired(!isRequired)}
-                className="w-full mt-1 px-3 py-2 rounded-xl text-sm"
+                className="w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
                 style={isRequired
-                  ? { background: 'var(--state-danger-soft)', borderColor: 'var(--state-danger)', borderWidth: 1, borderStyle: 'solid' }
-                  : { background: 'var(--surface-mist)' }}>
-                {isRequired ? '🔴 必做' : '○ 选填'}
+                  ? { background: 'var(--state-danger-soft)', color: 'var(--state-danger-strong)', border: '2px solid var(--state-danger)' }
+                  : { background: 'var(--surface-mist)', color: 'var(--ink-muted)', border: '2px solid transparent' }}>
+                {isRequired ? '🔴 标记为必做（孩子不能删）' : '○ 选填任务（孩子可删）'}
               </button>
-            </>
-          )}
-          {taskType === 'weekly-min' && (
-            <label>
-              <div className="text-xs mb-1" style={{ color: 'var(--ink-faint)' }}>每周最少做几次</div>
-              <input type="number" value={weeklyMinTimes} onChange={e => setWeeklyMinTimes(Number(e.target.value))}
-                className="w-full px-2 py-1.5 rounded outline-none text-sm"
-                style={{ background: 'var(--surface-mist)' }} />
-            </label>
-          )}
-
-          {/* R3.2 → R4.0.0: 难度选择 — 铜/银/金，仅家长可见 */}
-          <div className="mt-3">
-            <div className="text-xs mb-1.5" style={{ color: 'var(--ink-muted)' }}>
-              难度（仅家长可设）
-            </div>
-            <div className="flex gap-2">
-              {(['bronze', 'silver', 'gold'] as StarLevel[]).map(d => {
-                const active = difficulty === d;
-                const bonus = d === 'bronze' ? '默认' : d === 'silver' ? '+5 ⭐' : '+10 ⭐';
-                const stars = d === 'bronze' ? '★' : d === 'silver' ? '★★' : '★★★';
-                const label = d === 'bronze' ? '铜' : d === 'silver' ? '银' : '金';
-                const colors = DIFFICULTY_COLORS[d];
-                return (
-                  <button
-                    key={d}
-                    onClick={() => setDifficulty(d)}
-                    aria-pressed={active}
-                    className={`tag-btn flex-1 ${active ? 'active' : ''}`}
-                    style={active ? { background: colors.soft, borderColor: colors.fill, color: colors.strong } : undefined}
-                  >
-                    <span style={{ color: colors.fill }}>{stars}</span>
-                    <span className="ml-1">{label}</span>
-                    <span className="ml-1 text-[10px]" style={{ color: active ? colors.strong : 'var(--ink-faint)' }}>
-                      {bonus}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            )}
           </div>
 
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center pt-1">
             <button onClick={submitNew} className="primary-btn">
               <span className="primary-btn-bottom" aria-hidden />
               <span className="primary-btn-top">+ 添加</span>

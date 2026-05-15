@@ -246,7 +246,102 @@ export class FatboyDB extends Dexie {
         await tx.table('shop').delete('preset-guard');
       }
     });
+
+    // v8 (R5.0.0): 反馈优化
+    //   - ShopCategory: 'plant' / 'decor' → 'toy'
+    //   - 内置 13 件预置示例（幂等：只补缺失 id，不覆盖已删除的）
+    this.version(8).stores({
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled, category, rotationStatus',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+      errorLogs: 'id, ts, kind',
+      skillCards: 'id, type, earnedAt, expiresAt, usedAt',
+      wishingPool: 'id',
+      witnessMoments: 'id, ts, fromRecipientId',
+    }).upgrade(async (tx) => {
+      // 1) plant / decor → toy
+      const items = await tx.table('shop').toArray();
+      for (const it of items) {
+        if (it.category === 'plant' || it.category === 'decor') {
+          await tx.table('shop').update(it.id, { category: 'toy' });
+        }
+      }
+      // 2) 幂等 seed 13 件预置（只补缺失，不覆盖删除）
+      const existing = new Set(items.map((i: ShopItem) => i.id));
+      const presets = buildPresetItems(Date.now());
+      for (const p of presets) {
+        if (!existing.has(p.id)) {
+          await tx.table('shop').add(p);
+        }
+      }
+    });
   }
+}
+
+// ============================================================
+// R5.0.0: 13 件预置示例
+// 覆盖：3 时间档 + 2 分类 + 4 种位置（普通 / 许愿池 / 条件解锁 / 锁定区）
+// + 5 种 unlock kind 中的 4 种（streak 留给家长自己创建）
+//
+// 幂等：基于 id 判断，只 add 缺失的；用户删除后不会重新加。
+// ============================================================
+export function buildPresetItems(now: number): ShopItem[] {
+  const base = (id: string, name: string, emoji: string, category: 'toy' | 'food', tier: 'instant' | 'mid' | 'long', costPoints: number, stockPerWeek: number, tags: string[] = []): ShopItem => ({
+    id, name, emoji,
+    costPoints, stockPerWeek,
+    redeemedThisWeek: 0, weekKey: null, enabled: true,
+    category, tier, rotationStatus: 'displayed',
+    lastDisplayedAt: now,
+    tags,
+  });
+  return [
+    // === 积分通路 - 即时档 ===
+    base('preset-dq',     'DQ 雪糕券',       '🍦', 'food', 'mid',     300, 1, ['零食']),
+    base('preset-mixue',  '蜜雪冰城券',      '🥤', 'food', 'instant', 150, 1, ['饮品']),
+    base('preset-choco',  '一颗巧克力',      '🍫', 'food', 'instant',  30, 5, ['零食']),
+    base('preset-screen', '30 分钟自由屏幕', '🎮', 'food', 'instant', 100, 2, ['特权']),
+    base('preset-menu',   '今晚菜单我选',    '🍱', 'food', 'instant',  50, 3, ['特权']),
+
+    // === 积分通路 - 中期档 ===
+    base('preset-plush',  '小毛绒抓一个',    '🧸', 'toy', 'mid', 250, 1, ['毛绒']),
+    base('preset-stress', '解压玩具盲盒',    '🎨', 'toy', 'mid', 280, 1, ['解压']),
+
+    // === 积分通路 - 大件 wishable ===
+    { ...base('preset-lego-mid', '中型乐高套装', '🧱', 'toy', 'long', 600, 0, ['乐高']),
+      isWishable: true, stockPerSeason: 1 },
+    { ...base('preset-lego-big', '大乐高套装', '🚀', 'toy', 'long', 4500, 0, ['乐高']),
+      isWishable: true, stockPerSeason: 1 },
+
+    // === 条件解锁通路（unlockCondition）===
+    { ...base('preset-trophy-5k', '5000 分纪念奖杯', '🏆', 'toy', 'long', 0, 0, ['收藏品']),
+      costPoints: 0,
+      unlockCondition: { kind: 'lifetimePoints', threshold: 5000 } },
+
+    { ...base('preset-focus', '「专注者」徽章', '🎯', 'toy', 'long', 0, 0, ['收藏品']),
+      costPoints: 0,
+      unlockCondition: { kind: 'longTask', count: 10, window: 'lifetime' } },
+
+    { ...base('preset-perfect', '「完美匠」奖品', '💎', 'toy', 'long', 0, 0, ['收藏品']),
+      costPoints: 0,
+      unlockCondition: { kind: 'perfectTask', count: 5, window: 'lifetime' } },
+
+    // === 锁定区"???" ===
+    { ...base('preset-mystery', '神秘奖励', '🎁', 'toy', 'long', 0, 0, []),
+      costPoints: 0,
+      isLocked: true,
+      unlockLifetimeThreshold: 3000 },
+  ];
 }
 
 export const db = new FatboyDB();
@@ -339,20 +434,8 @@ export async function initializeDB() {
     lastWeeklyGiftWeek: null,
   });
 
-  // R4.0.0 (v7): preset-guard 不再上架（守护卡迁到 SkillCard 系统、行为解锁）
-  // DQ / 蜜雪 stockPerWeek=1（用户拍板），加 category/tier/rotationStatus 默认
-  await db.shop.bulkPut([
-    {
-      id: 'preset-dq', name: 'DQ 雪糕券', emoji: '🍦',
-      costPoints: 300, stockPerWeek: 1, redeemedThisWeek: 0, weekKey: null, enabled: true,
-      category: 'food', tier: 'mid', rotationStatus: 'displayed', tags: ['零食'],
-    },
-    {
-      id: 'preset-mixue', name: '蜜雪冰城券', emoji: '🥤',
-      costPoints: 150, stockPerWeek: 1, redeemedThisWeek: 0, weekKey: null, enabled: true,
-      category: 'food', tier: 'instant', rotationStatus: 'displayed', tags: ['饮品'],
-    },
-  ]);
+  // R5.0.0: 13 件预置示例（覆盖所有机制）—— 详见 buildPresetItems
+  await db.shop.bulkPut(buildPresetItems(Date.now()));
 
   // R3.0.1: 内置爸爸 / 妈妈 Bark 接收人
   await ensureDefaultRecipients();
