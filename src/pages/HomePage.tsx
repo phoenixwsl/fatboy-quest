@@ -31,6 +31,9 @@ import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
 import { ThemePicker } from './parent/Settings';
 import { WishingPoolBar } from '../components/WishingPoolBar';
+import { SkillCardShelf } from '../components/SkillCardShelf';
+import { getLifetimePoints } from '../lib/petStats';
+import { getLevelFromLifetime, getNextLevel } from '../lib/levels';
 
 // R3.0 §3.4: 按时段问候
 function greeting(hour: number, name: string): string {
@@ -61,6 +64,10 @@ export function HomePage() {
     async () => wishingPool ? await db.shop.get(wishingPool.shopItemId) : undefined,
     [wishingPool?.shopItemId],
   );
+  // R4.3.0: 终身积分 derived（监听 points 表变化）
+  const lifetimePoints = useLiveQuery(async () => await getLifetimePoints(db), []) ?? 0;
+  const currentLevel = getLevelFromLifetime(lifetimePoints);
+  const nextLevel = getNextLevel(lifetimePoints);
   const [addOpen, setAddOpen] = useState(false);
   const [skinPickerOpen, setSkinPickerOpen] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -293,6 +300,38 @@ export function HomePage() {
 
       {/* R2.5.D: 断击时显示豁免券 banner */}
       <PardonBanner />
+
+      {/* R4.3.0: 双货币 + 等级 + 称号 — 终身积分永远只增不减 */}
+      <div
+        className="mt-5 p-3 rounded-[var(--radius-md)] flex items-center gap-3"
+        style={{
+          background: 'var(--surface-paper)',
+          border: '1px solid var(--surface-fog)',
+        }}
+      >
+        <div className="flex-1 grid grid-cols-2 gap-2">
+          <div>
+            <div className="text-[10px]" style={{ color: 'var(--ink-faint)' }}>可换</div>
+            <div className="text-lg font-bold text-num" style={{ color: 'var(--primary-strong)' }}>⭐ {total}</div>
+          </div>
+          <div>
+            <div className="text-[10px]" style={{ color: 'var(--ink-faint)' }}>总成就</div>
+            <div className="text-lg font-bold text-num" style={{ color: 'var(--accent-strong)' }}>🏆 {lifetimePoints}</div>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px]" style={{ color: 'var(--ink-faint)' }}>Lv. {currentLevel.level}</div>
+          <div className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>{currentLevel.title}</div>
+          {nextLevel && (
+            <div className="text-[10px] text-num" style={{ color: 'var(--ink-faint)' }}>
+              还差 {nextLevel.threshold - lifetimePoints}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* R4.3.0: 我的卡片 */}
+      <SkillCardShelf />
 
       {/* R4.2.0: 心愿池常驻 — 有未达成的心愿就在首页显示进度条 */}
       {wishingPool && !wishingPool.fulfilledAt && (

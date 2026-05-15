@@ -31,6 +31,7 @@ import { buildUnlockContext } from '../lib/petStats';
 import { emptyContext, evaluateCondition, describeCondition, type UnlockContext } from '../lib/unlockCondition';
 import { openPool, cancelPool, fulfillPool, isUnlocked, CANCEL_REFUND_RATIO } from '../lib/wishingPool';
 import { SHOP_CATEGORIES } from '../lib/categories';
+import { useMasteryToast } from '../components/MasteryToast';
 
 export function ShopPage() {
   const nav = useNavigate();
@@ -49,6 +50,7 @@ export function ShopPage() {
   const [wishItem, setWishItem] = useState<ShopItem | null>(null);
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [chip, setChip] = useState<string | null>(null);
+  const { showMasteryToast, MasteryToastUI } = useMasteryToast();
 
   // 解锁上下文（条件商品的进度判定）— 异步构建，每次 points/tasks 变化重算
   const [ctx, setCtx] = useState<UnlockContext>(emptyContext());
@@ -119,6 +121,8 @@ export function ShopPage() {
     });
     sounds.play('unlock');
     toast(`兑换成功 ✓ ${item.name}`, 'success');
+    // R4.3.0: 兑换仪式 — mastery framing toast
+    showMasteryToast(item).catch(() => {});
     const recipients = await db.recipients.toArray();
     const childName = settings?.childName ?? '肥仔';
     pushToRecipients(recipients.filter(r => r.subShopPurchase !== false), 'taskDone' as any, {
@@ -167,10 +171,13 @@ export function ShopPage() {
   }
 
   async function fulfillWish() {
+    if (!wishingPool) return;
+    const wishedItemNow = await db.shop.get(wishingPool.shopItemId);
     const r = await fulfillPool(db, Date.now(), newId);
     if (r.ok) {
       sounds.play('fanfare');
       toast('🎉 心愿达成！已进入"我的库存"', 'success');
+      if (wishedItemNow) showMasteryToast(wishedItemNow).catch(() => {});
     } else if (r.reason === 'not_complete') {
       toast('还没攒够呢', 'warn');
     } else {
@@ -325,6 +332,9 @@ export function ShopPage() {
           <ConfirmWishModal item={wishItem} onClose={() => setWishItem(null)} onConfirm={() => startWish(wishItem)} />
         )}
       </AnimatePresence>
+
+      {/* R4.3.0: 兑换仪式 mastery toast */}
+      {MasteryToastUI}
     </div>
   );
 }

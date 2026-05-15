@@ -30,6 +30,8 @@ import { AchievementsPage } from './pages/AchievementsPage';
 import { AchievementsWatcher } from './components/AchievementsWatcher';
 import { EvalReminderWatcher } from './components/EvalReminderWatcher';
 import { StudyRoomPage } from './pages/StudyRoomPage';
+import { LevelUpWatcher } from './components/LevelUpWatcher';
+import { evaluateAllRules, expireSweep } from './lib/skillCards';
 
 // R3.0 §1.2: 按小时数自动切换时段
 function getTimePeriod(hour: number): TimePeriod {
@@ -81,6 +83,9 @@ export default function App() {
           await db.schedules.bulkDelete(plan.scheduleIdsToDelete);
         }
       } catch {}
+      // R4.3.0: 技能券引擎 - 清过期 + 扫规则发新卡
+      try { await expireSweep(db); } catch {}
+      try { await evaluateAllRules(db); } catch {}
       setReady(true);
     })();
   }, []);
@@ -147,6 +152,7 @@ export default function App() {
       {settings.setupComplete && <RitualMonitor />}
       {settings.setupComplete && <AchievementsWatcher />}
       {settings.setupComplete && <EvalReminderWatcher />}
+      {settings.setupComplete && <LevelUpWatcher />}
     </div>
   );
 }
