@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
 import {
-  Trophy, Settings as SettingsIcon, Shield, Flame, Star,
+  Trophy, Settings as SettingsIcon, Flame, Star,
   Calendar as CalendarIcon, Swords, Plus, ChevronRight, Palette, X, Home as HomeIcon,
   Gift,
 } from 'lucide-react';
@@ -11,7 +11,8 @@ import { db } from '../db';
 import { PetAvatar } from '../components/PetAvatar';
 import { ChildAddTaskModal } from '../components/ChildAddTaskModal';
 import { todayString, formatChineseDate } from '../lib/time';
-import { totalPoints, getRank, getNextRank } from '../lib/points';
+import { totalPoints } from '../lib/points';
+// R5.4.0: getRank/getNextRank 删（RANKS 段位卡下线）
 import { canUndoCompletion } from '../lib/templates';
 import { sounds, syncFromSettings } from '../lib/sounds';
 import { useAppStore } from '../store/useAppStore';
@@ -109,8 +110,7 @@ export function HomePage() {
   }, [settings?.soundEnabled, settings?.soundPack]);
 
   const total = pointsEntries ? totalPoints(pointsEntries) : 0;
-  const rank = getRank(total);
-  const next = getNextRank(total);
+  // R5.4.0: rank / next 已删（旧 RANKS 系统下线，使用 LEVELS 替代）
 
   // 长按右上角进入家长模式
   const pressTimer = useRef<number | null>(null);
@@ -270,16 +270,21 @@ export function HomePage() {
         >
           {greeting(hour, childName)}
         </h1>
-        {/* 3 个浮动徽章（§3.5）— 锚在卡片底沿 */}
+        {/* R5.4.0: 浮动徽章 — 删盾牌 + 点击显示说明 */}
         <div className="absolute left-0 right-0 bottom-[-22px] flex justify-center gap-3">
-          <FloatBadge color="var(--fatboy-500)" textColor="var(--ink)" icon={<Star size={16} fill="currentColor" />}>
+          <FloatBadge
+            color="var(--fatboy-500)" textColor="var(--ink)"
+            icon={<Star size={16} fill="currentColor" />}
+            tooltip="可花积分"
+          >
             {total}
           </FloatBadge>
-          <FloatBadge color="var(--danger)" textColor="#fff" icon={<Flame size={16} />}>
+          <FloatBadge
+            color="var(--danger)" textColor="#fff"
+            icon={<Flame size={16} />}
+            tooltip={`连续 ${streak?.currentStreak ?? 0} 天达标`}
+          >
             {streak?.currentStreak ?? 0}
-          </FloatBadge>
-          <FloatBadge color="var(--sky-500)" textColor="#fff" icon={<Shield size={16} />}>
-            {streak?.guardCards ?? 0}
           </FloatBadge>
         </div>
       </motion.div>
@@ -338,31 +343,29 @@ export function HomePage() {
       {/* R4.3.0: 我的卡片 */}
       <SkillCardShelf />
 
-      {/* R4.4.0: 贴纸墙入口 + R5.3.0: 卡牌展示柜入口 */}
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {stickerCount > 0 && (
-          <button
-            onClick={() => { sounds.play('tap'); nav('/stickers'); }}
-            className="p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
-            style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
-          >
-            <span className="text-xl">💛</span>
-            <span className="text-sm flex-1 text-left">贴纸墙</span>
-            <span className="text-xs text-num">{stickerCount}</span>
-          </button>
-        )}
-        {cardsCount > 0 && (
-          <button
-            onClick={() => { sounds.play('tap'); nav('/collection'); }}
-            className="p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
-            style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}
-          >
-            <span className="text-xl">🃏</span>
-            <span className="text-sm flex-1 text-left">卡牌柜</span>
-            <span className="text-xs text-num">{cardsCount}</span>
-          </button>
-        )}
-      </div>
+      {/* R5.4.0: 贴纸墙 + 卡牌柜各占一行（与上方双货币卡 / 我的券同宽）*/}
+      {stickerCount > 0 && (
+        <button
+          onClick={() => { sounds.play('tap'); nav('/stickers'); }}
+          className="w-full mt-3 p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
+          style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
+        >
+          <span className="text-xl">💛</span>
+          <span className="text-sm flex-1 text-left">贴纸墙</span>
+          <span className="text-xs text-num">{stickerCount}</span>
+          <span className="text-xs">›</span>
+        </button>
+      )}
+      <button
+        onClick={() => { sounds.play('tap'); nav('/collection'); }}
+        className="w-full mt-3 p-3 rounded-[var(--radius-md)] flex items-center gap-2 active:scale-[0.99] transition-transform"
+        style={{ background: 'var(--primary-soft)', color: 'var(--primary-strong)' }}
+      >
+        <span className="text-xl">🃏</span>
+        <span className="text-sm flex-1 text-left">卡牌柜</span>
+        <span className="text-xs text-num">{cardsCount}</span>
+        <span className="text-xs">›</span>
+      </button>
 
       {/* R5.1.0: 心愿池机制已删 */}
 
@@ -511,29 +514,7 @@ export function HomePage() {
         </div>
       )}
 
-      {/* R3.0 §3.3: 段位卡降级，移到 done 之后 */}
-      <div
-        className="mt-7 p-4 rounded-[var(--radius-lg)]"
-        style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs" style={{ color: 'var(--ink-muted)' }}>我的段位</div>
-            <div className="text-lg font-bold" style={{ color: 'var(--ink)' }}>
-              {rank.emoji} {rank.name}
-            </div>
-          </div>
-          {next && (
-            <div className="text-xs text-right" style={{ color: 'var(--ink-muted)' }}>
-              距离 {next.name}<br/>
-              <span className="text-num font-bold" style={{ color: 'var(--fatboy-700)' }}>
-                还差 {next.minPoints - total} ⭐
-              </span>
-            </div>
-          )}
-        </div>
-        <PetPanelExtras todayTasks={todayTasks ?? []} defs={taskDefs ?? []} allTasks={allTasks ?? []} />
-      </div>
+      {/* R5.4.0: RANKS 段位卡 + PetPanelExtras 已删（LEVELS 替代，段位详情在双货币卡点击进 LevelsModal）*/}
 
       {/* R3.0 §3.3: 周历条折叠 */}
       <CollapsibleHeatmap />
@@ -602,41 +583,68 @@ function IconBtn({
   );
 }
 
-// R3.0 §3.5: 浮动徽章
+// R3.0 §3.5 + R5.4.0: 浮动徽章 — 加 tooltip（点击 2 秒消失）
 function FloatBadge({
-  icon, children, color, textColor,
-}: { icon: React.ReactNode; children: React.ReactNode; color: string; textColor: string }) {
+  icon, children, color, textColor, tooltip,
+}: { icon: React.ReactNode; children: React.ReactNode; color: string; textColor: string; tooltip?: string }) {
+  const [showTip, setShowTip] = useState(false);
+  function reveal() {
+    if (!tooltip) return;
+    setShowTip(true);
+    setTimeout(() => setShowTip(false), 2000);
+  }
   return (
-    <span
-      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-sm"
-      style={{
-        background: color,
-        color: textColor,
-        boxShadow: 'var(--shadow-sm)',
-      }}
-    >
-      {icon}
-      <span className="text-num">{children}</span>
+    <span className="relative inline-block">
+      <button
+        type="button"
+        onClick={reveal}
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-sm active:scale-95 transition-transform"
+        style={{
+          background: color,
+          color: textColor,
+          boxShadow: 'var(--shadow-sm)',
+          border: 'none',
+          cursor: tooltip ? 'pointer' : 'default',
+        }}
+        aria-label={tooltip}
+      >
+        {icon}
+        <span className="text-num">{children}</span>
+      </button>
+      {showTip && tooltip && (
+        <span
+          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 rounded text-xs whitespace-nowrap"
+          style={{
+            background: 'var(--ink-strong)',
+            color: 'var(--surface-paper)',
+            boxShadow: 'var(--shadow-md)',
+            zIndex: 5,
+          }}
+        >
+          {tooltip}
+        </span>
+      )}
     </span>
   );
 }
 
-// R3.0 §3.3.7: 周历条折叠
+// R3.0 §3.3.7 + R5.4.0: 周历条折叠（标题字号统一为 text-xl font-bold，匹配"今日任务"）
 function CollapsibleHeatmap() {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-5">
+    <div className="mt-7">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between text-sm font-medium"
-        style={{ color: 'var(--ink-muted)' }}
+        className="w-full flex items-center justify-between"
       >
-        <span>本周进度</span>
-        <span className="text-xs">{open ? '▼ 收起' : '▶ 展开'}</span>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--ink)' }}>本周进度</h2>
+        <span className="text-sm" style={{ color: 'var(--ink-muted)' }}>
+          {open ? '▼ 收起' : '▶ 展开'}
+        </span>
       </button>
       {open && (
         <div
-          className="mt-2 p-3 rounded-[var(--radius-md)]"
+          className="mt-3 p-3 rounded-[var(--radius-md)]"
           style={{ background: 'var(--paper)', boxShadow: 'var(--shadow-sm)' }}
         >
           <HeatmapStrip />
@@ -699,33 +707,7 @@ function PendingTaskCard({ task: t, tt, badge }: { task: any; tt: any; badge: an
   );
 }
 
-function PetPanelExtras({ todayTasks, defs, allTasks }: { todayTasks: any[]; defs: any[]; allTasks: any[] }) {
-  const completed = todayTasks.filter(t => t.status === 'done' || t.status === 'evaluated').length;
-  const total = todayTasks.length;
-  const requiredRemain = todayTasks.filter(t => t.isRequired && t.status !== 'done' && t.status !== 'evaluated').length;
-  const weeklyDefs = activeWeeklyDefinitions(defs);
-  const weeklyAchieved = weeklyDefs.filter(d => weeklyProgress(d, allTasks).achieved).length;
-  return (
-    <div className="mt-3 pt-3 space-y-1 text-xs" style={{ borderTop: '1px solid var(--fog)' }}>
-      <div className="flex items-center justify-between" style={{ color: 'var(--ink-muted)' }}>
-        <span>今日进度</span>
-        <span style={{ color: 'var(--ink)' }}><b className="text-num">{completed}</b>/<span className="text-num">{total}</span></span>
-      </div>
-      {requiredRemain > 0 && (
-        <div className="flex items-center justify-between" style={{ color: 'var(--danger)' }}>
-          <span>必做剩余</span>
-          <span><b className="text-num">{requiredRemain}</b> 项</span>
-        </div>
-      )}
-      {weeklyDefs.length > 0 && (
-        <div className="flex items-center justify-between" style={{ color: 'var(--magic)' }}>
-          <span>本周任务</span>
-          <span><b className="text-num">{weeklyAchieved}</b>/<span className="text-num">{weeklyDefs.length}</span></span>
-        </div>
-      )}
-    </div>
-  );
-}
+// R5.4.0: PetPanelExtras 已删（属于老 RANKS 段位卡，整块下线）
 
 function WeeklyTasksPanel({ defs, allTasks, todayTasks }: { defs: any[]; allTasks: any[]; todayTasks: any[] }) {
   const toast = useAppStore(s => s.showToast);

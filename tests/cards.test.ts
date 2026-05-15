@@ -4,6 +4,7 @@ import { db } from '../src/db';
 import {
   CARD_CATALOG, issueCard, groupCards,
   checkAndIssueFocus, checkAndIssuePerfectDay, checkAndIssueWeekendWarrior,
+  checkAndIssueEarlyBird, checkAndIssueNightOwl, checkAndIssueRainbowDay, checkAndIssueMarathon,
 } from '../src/lib/cards';
 import type { CollectibleCard, Task, Evaluation } from '../src/types';
 
@@ -17,11 +18,15 @@ beforeEach(async () => {
 });
 
 describe('CARD_CATALOG', () => {
-  it('has 3 card types', () => {
-    expect(Object.keys(CARD_CATALOG)).toHaveLength(3);
+  it('has 7 card types (R5.4.0: +4 new)', () => {
+    expect(Object.keys(CARD_CATALOG)).toHaveLength(7);
     expect(CARD_CATALOG.focus).toBeDefined();
     expect(CARD_CATALOG['perfect-day']).toBeDefined();
     expect(CARD_CATALOG['weekend-warrior']).toBeDefined();
+    expect(CARD_CATALOG['early-bird']).toBeDefined();
+    expect(CARD_CATALOG['night-owl']).toBeDefined();
+    expect(CARD_CATALOG['rainbow-day']).toBeDefined();
+    expect(CARD_CATALOG.marathon).toBeDefined();
   });
 });
 
@@ -165,6 +170,106 @@ describe('checkAndIssueWeekendWarrior', () => {
     } as Task);
     const card = await checkAndIssueWeekendWarrior(db, sat.getTime());
     expect(card).toBeNull();
+  });
+});
+
+// ============================================================
+// R5.4.0: 4 张新卡触发器
+// ============================================================
+describe('checkAndIssueEarlyBird', () => {
+  it('issues card when completedAt < 8:00', async () => {
+    const earlyMorning = new Date('2026-05-15T07:30:00').getTime();
+    const t: Task = {
+      id: 't', title: 'x', date: '2026-05-15',
+      basePoints: 10, estimatedMinutes: 10, subject: 'math',
+      status: 'evaluated', createdAt: 1, completedAt: earlyMorning,
+    } as Task;
+    const card = await checkAndIssueEarlyBird(db, t, earlyMorning);
+    expect(card).not.toBeNull();
+    expect(card!.type).toBe('early-bird');
+  });
+  it('no card when completedAt ≥ 8:00', async () => {
+    const morning = new Date('2026-05-15T08:01:00').getTime();
+    const t: Task = {
+      id: 't', title: 'x', date: '2026-05-15',
+      basePoints: 10, estimatedMinutes: 10, subject: 'math',
+      status: 'evaluated', createdAt: 1, completedAt: morning,
+    } as Task;
+    expect(await checkAndIssueEarlyBird(db, t, morning)).toBeNull();
+  });
+});
+
+describe('checkAndIssueNightOwl', () => {
+  it('issues card when completedAt ≥ 21:00', async () => {
+    const night = new Date('2026-05-15T21:30:00').getTime();
+    const t: Task = {
+      id: 't', title: 'x', date: '2026-05-15',
+      basePoints: 10, estimatedMinutes: 10, subject: 'math',
+      status: 'evaluated', createdAt: 1, completedAt: night,
+    } as Task;
+    const card = await checkAndIssueNightOwl(db, t, night);
+    expect(card).not.toBeNull();
+    expect(card!.type).toBe('night-owl');
+  });
+  it('no card when completedAt < 21:00', async () => {
+    const evening = new Date('2026-05-15T20:59:00').getTime();
+    const t: Task = {
+      id: 't', title: 'x', date: '2026-05-15',
+      basePoints: 10, estimatedMinutes: 10, subject: 'math',
+      status: 'evaluated', createdAt: 1, completedAt: evening,
+    } as Task;
+    expect(await checkAndIssueNightOwl(db, t, evening)).toBeNull();
+  });
+});
+
+describe('checkAndIssueRainbowDay', () => {
+  async function seedDoneTask(id: string, subject: any) {
+    await db.tasks.add({
+      id, title: id, date: '2026-05-15',
+      basePoints: 10, estimatedMinutes: 10, subject,
+      status: 'done', createdAt: 1,
+    } as Task);
+  }
+  it('issues card when ≥ 3 different subjects done', async () => {
+    const now = new Date('2026-05-15T20:00:00').getTime();
+    await seedDoneTask('a', 'math');
+    await seedDoneTask('b', 'chinese');
+    await seedDoneTask('c', 'english');
+    const card = await checkAndIssueRainbowDay(db, now);
+    expect(card).not.toBeNull();
+  });
+  it('no card when < 3 subjects', async () => {
+    const now = new Date('2026-05-15T20:00:00').getTime();
+    await seedDoneTask('a', 'math');
+    await seedDoneTask('b', 'math');
+    expect(await checkAndIssueRainbowDay(db, now)).toBeNull();
+  });
+});
+
+describe('checkAndIssueMarathon', () => {
+  it('issues card when ≥ 5 tasks done in a day', async () => {
+    const now = new Date('2026-05-15T20:00:00').getTime();
+    for (let i = 0; i < 5; i++) {
+      await db.tasks.add({
+        id: `t${i}`, title: `t${i}`, date: '2026-05-15',
+        basePoints: 10, estimatedMinutes: 10, subject: 'math',
+        status: 'done', createdAt: i,
+      } as Task);
+    }
+    const card = await checkAndIssueMarathon(db, now);
+    expect(card).not.toBeNull();
+    expect(card!.type).toBe('marathon');
+  });
+  it('no card when < 5 tasks done', async () => {
+    const now = new Date('2026-05-15T20:00:00').getTime();
+    for (let i = 0; i < 4; i++) {
+      await db.tasks.add({
+        id: `t${i}`, title: `t${i}`, date: '2026-05-15',
+        basePoints: 10, estimatedMinutes: 10, subject: 'math',
+        status: 'done', createdAt: i,
+      } as Task);
+    }
+    expect(await checkAndIssueMarathon(db, now)).toBeNull();
   });
 });
 

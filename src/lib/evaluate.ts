@@ -10,8 +10,11 @@ import { earlyBonus } from './earlyBonus';
 import { calcCombo, comboBonusPoints } from './combo';
 import { difficultyBonus } from './difficulty';
 import { newId } from './ids';
-// R5.2.0: 卡牌 + 里程碑 hook
-import { checkAndIssueFocus, checkAndIssuePerfectDay, checkAndIssueWeekendWarrior } from './cards';
+// R5.2.0 / R5.4.0: 卡牌 + 里程碑 hook
+import {
+  checkAndIssueFocus, checkAndIssuePerfectDay, checkAndIssueWeekendWarrior,
+  checkAndIssueEarlyBird, checkAndIssueNightOwl, checkAndIssueRainbowDay, checkAndIssueMarathon,
+} from './cards';
 import { checkFirstPerfect, checkFirstGoldTask, checkFirstLongTask } from './badges';
 
 export interface EvalInput {
@@ -132,10 +135,14 @@ export async function evaluateTaskOnce(
   try {
     const finalTask = await db.tasks.get(task.id);
     if (finalTask) {
-      // 卡牌
+      // 卡牌（R5.2 + R5.4）
       await checkAndIssueFocus(db, finalTask);
       await checkAndIssuePerfectDay(db);
       await checkAndIssueWeekendWarrior(db);
+      await checkAndIssueEarlyBird(db, finalTask);
+      await checkAndIssueNightOwl(db, finalTask);
+      await checkAndIssueRainbowDay(db);
+      await checkAndIssueMarathon(db);
       // 里程碑（first-* 系列）
       await checkFirstPerfect(db, { completion: input.completion, quality: input.quality, attitude: input.attitude });
       await checkFirstGoldTask(db, finalTask);

@@ -371,7 +371,12 @@ export interface WitnessMoment {
 export type CollectibleCardType =
   | 'focus'              // 专注卡：实际用时 ≥ 30min 任务（每天最多 1）
   | 'perfect-day'        // 完美一天：当日所有评分都是三维全 5（每天最多 1）
-  | 'weekend-warrior';   // 周末战士：周六或周日完成全部任务（每周末最多 1）
+  | 'weekend-warrior'    // 周末战士：周六或周日完成全部任务（每周末最多 1）
+  // R5.4.0 新增 4 张
+  | 'early-bird'         // 早起鸟：早 8:00 前完成 1 个任务（每天最多 1）
+  | 'night-owl'          // 夜猫子：晚 21:00 后完成 1 个任务（每天最多 1）
+  | 'rainbow-day'        // 彩虹一天：一天内完成 ≥ 3 个不同科目任务（每天最多 1）
+  | 'marathon';          // 马拉松：一天完成 ≥ 5 个任务（每天最多 1）
 
 export interface CollectibleCard {
   id: string;

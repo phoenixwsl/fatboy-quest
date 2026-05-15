@@ -42,6 +42,27 @@ export const CARD_CATALOG: Record<CollectibleCardType, CardSpec> = {
     description: '周六或周日完成全部任务',
     repeatable: true,
   },
+  // R5.4.0 新增 4 张
+  'early-bird': {
+    emoji: '🌅', name: '早起鸟',
+    description: '早上 8:00 前完成 1 个任务',
+    repeatable: true,
+  },
+  'night-owl': {
+    emoji: '🦉', name: '夜猫子',
+    description: '晚上 21:00 后完成 1 个任务',
+    repeatable: true,
+  },
+  'rainbow-day': {
+    emoji: '🌈', name: '彩虹一天',
+    description: '一天内完成 3 个不同科目的任务',
+    repeatable: true,
+  },
+  marathon: {
+    emoji: '🏃', name: '马拉松',
+    description: '一天完成 5 个或更多任务',
+    repeatable: true,
+  },
 };
 
 // ------------------------------------------------------------
@@ -150,6 +171,71 @@ export async function checkAndIssueWeekendWarrior(
   const allDone = todayTasks.every(t => t.status === 'done' || t.status === 'evaluated');
   if (!allDone) return null;
   return issueCard(db, 'weekend-warrior', { context: date, oncePerWeekend: true, now });
+}
+
+// ============================================================
+// R5.4.0: 4 张新卡触发器
+// ============================================================
+
+/**
+ * 早起鸟 → 任务的 completedAt 在当日 8:00 之前
+ * 调用时机：评分完成后（task 已 evaluated）
+ */
+export async function checkAndIssueEarlyBird(
+  db: FatboyDB,
+  task: Task,
+  now: number = Date.now(),
+): Promise<CollectibleCard | null> {
+  if (!task.completedAt) return null;
+  const d = new Date(task.completedAt);
+  if (d.getHours() >= 8) return null;
+  return issueCard(db, 'early-bird', { context: task.id, oncePerDay: true, now });
+}
+
+/**
+ * 夜猫子 → 任务的 completedAt 在当日 21:00 之后
+ */
+export async function checkAndIssueNightOwl(
+  db: FatboyDB,
+  task: Task,
+  now: number = Date.now(),
+): Promise<CollectibleCard | null> {
+  if (!task.completedAt) return null;
+  const d = new Date(task.completedAt);
+  if (d.getHours() < 21) return null;
+  return issueCard(db, 'night-owl', { context: task.id, oncePerDay: true, now });
+}
+
+/**
+ * 彩虹一天 → 当日完成 (done/evaluated) 的任务覆盖 ≥ 3 个不同 subject
+ */
+export async function checkAndIssueRainbowDay(
+  db: FatboyDB,
+  now: number = Date.now(),
+): Promise<CollectibleCard | null> {
+  const date = todayString(new Date(now));
+  const todayTasks = await db.tasks.where({ date }).toArray();
+  const doneSubjects = new Set(
+    todayTasks
+      .filter(t => t.status === 'done' || t.status === 'evaluated')
+      .map(t => t.subject),
+  );
+  if (doneSubjects.size < 3) return null;
+  return issueCard(db, 'rainbow-day', { context: date, oncePerDay: true, now });
+}
+
+/**
+ * 马拉松 → 当日完成 (done/evaluated) 的任务数 ≥ 5
+ */
+export async function checkAndIssueMarathon(
+  db: FatboyDB,
+  now: number = Date.now(),
+): Promise<CollectibleCard | null> {
+  const date = todayString(new Date(now));
+  const todayTasks = await db.tasks.where({ date }).toArray();
+  const doneCount = todayTasks.filter(t => t.status === 'done' || t.status === 'evaluated').length;
+  if (doneCount < 5) return null;
+  return issueCard(db, 'marathon', { context: date, oncePerDay: true, now });
 }
 
 // ------------------------------------------------------------
