@@ -16,6 +16,14 @@ coverage
 # Vite/Vitest tmp configs
 vite.config.*.timestamp-*
 vitest.config.*.timestamp-*
+# tsc 编译产物（vite.config.ts / vitest.config.ts 不应输出到根目录；
+# tsconfig.node.json 已设 outDir=.tsbuildcache + emitDeclarationOnly 修根因，
+# 这里再 ignore 一道防御）
+vite.config.d.ts
+vite.config.js
+vitest.config.d.ts
+vitest.config.js
 
 # TypeScript build cache
 tsconfig.tsbuildinfo
+.tsbuildcache
