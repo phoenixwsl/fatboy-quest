@@ -12,7 +12,8 @@ import { TASK_TYPE_LABEL, TASK_TYPE_BORDER_STYLE, TASK_TYPE_BADGE_STYLE, weeklyP
 import { useAppStore } from '../../store/useAppStore';
 import { SubjectIcon } from '../HomePage';
 import { DifficultyStars } from '../../components/DifficultyStars';
-import type { SubjectType, Task, TaskDefinition, TaskType } from '../../types';
+import type { SubjectType, Task, TaskDefinition, TaskType, StarLevel } from '../../types';
+import { DIFFICULTY_COLORS } from '../../lib/difficulty';
 
 type FilterKind = 'all' | 'normal' | 'daily-required' | 'weekly-min' | 'weekly-once';
 
@@ -50,7 +51,7 @@ export function TaskManager() {
   const [date, setDate] = useState(todayString());
   const [isRequired, setIsRequired] = useState(false);
   const [weeklyMinTimes, setWeeklyMinTimes] = useState(3);
-  const [difficulty, setDifficulty] = useState<1 | 2 | 3>(1);  // R3.2 难度
+  const [difficulty, setDifficulty] = useState<StarLevel>('bronze');  // R3.2 → R4.0.0 铜/银/金
 
   const templates = (() => {
     if (!allTasks) return [];
@@ -288,24 +289,29 @@ export function TaskManager() {
             </label>
           )}
 
-          {/* R3.2: 难度选择 — 仅家长可见 */}
+          {/* R3.2 → R4.0.0: 难度选择 — 铜/银/金，仅家长可见 */}
           <div className="mt-3">
             <div className="text-xs mb-1.5" style={{ color: 'var(--ink-muted)' }}>
               难度（仅家长可设）
             </div>
             <div className="flex gap-2">
-              {[1, 2, 3].map(d => {
+              {(['bronze', 'silver', 'gold'] as StarLevel[]).map(d => {
                 const active = difficulty === d;
-                const bonus = d === 1 ? '默认' : d === 2 ? '+5 ⭐' : '+10 ⭐';
+                const bonus = d === 'bronze' ? '默认' : d === 'silver' ? '+5 ⭐' : '+10 ⭐';
+                const stars = d === 'bronze' ? '★' : d === 'silver' ? '★★' : '★★★';
+                const label = d === 'bronze' ? '铜' : d === 'silver' ? '银' : '金';
+                const colors = DIFFICULTY_COLORS[d];
                 return (
                   <button
                     key={d}
-                    onClick={() => setDifficulty(d as 1 | 2 | 3)}
+                    onClick={() => setDifficulty(d)}
                     aria-pressed={active}
                     className={`tag-btn flex-1 ${active ? 'active' : ''}`}
+                    style={active ? { background: colors.soft, borderColor: colors.fill, color: colors.strong } : undefined}
                   >
-                    {'⭐'.repeat(d)}{'☆'.repeat(3 - d)}
-                    <span className="ml-1 text-[10px]" style={{ color: active ? 'var(--fatboy-700)' : 'var(--ink-faint)' }}>
+                    <span style={{ color: colors.fill }}>{stars}</span>
+                    <span className="ml-1">{label}</span>
+                    <span className="ml-1 text-[10px]" style={{ color: active ? colors.strong : 'var(--ink-faint)' }}>
                       {bonus}
                     </span>
                   </button>

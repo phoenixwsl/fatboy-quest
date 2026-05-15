@@ -4,12 +4,24 @@
 // 并在 db/index.ts 里写迁移逻辑。
 // ============================================================
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 // v2: 新增 Task.createdBy, Settings.soundEnabled
 // v3: 新增 actualStartedAt / pause / extend / undo 字段，templateHidden 表
-// v5: Fatboy v4 集成 - 旧 pet.skinId='skin_xxx' 迁移到新 character id
 // v4: 引入 TaskDefinition 循环任务定义、Task.taskType 颜色区分、Redemption.usedAt 库存、
 //     Settings 周末模式/晚安/分析/声音包 等多个新设置项
+// v5: Fatboy v4 集成 - 旧 pet.skinId='skin_xxx' 迁移到新 character id
+// v6: 加 errorLogs 表
+// v7 (R4.0.0): kid-rewards 商店重构基础设施
+//   - Task/TaskDefinition.difficulty: 1|2|3 → 'bronze'|'silver'|'gold'
+//   - ShopItem: 加 category/tags/tier/rotationStatus/lastDisplayedAt
+//                isWishable/isLocked/unlockLifetimeThreshold/stockPerSeason/unlockCondition
+//   - 预置 DQ/蜜雪 stockPerWeek 改 1
+//   - 预置 preset-guard 从 shop 移除（守护卡转 SkillCard）
+//   - 新表：skillCards / wishingPool / witnessMoments（声明，R4.3+ 使用）
+//
+// 关于 Pet.lifetimePoints / level / 任务计数器：暂不存储，按需 derive。
+// 详见 src/lib/petStats.ts。这是为了避免 R4.0.0 接触所有 db.points.add 调用方，
+// 等 R4.3.0 引入 hook 时再加 cache。
 
 export type TaskStatus =
   | 'pending'     // 待安排（在作业池里）
@@ -20,6 +32,14 @@ export type TaskStatus =
 
 export type SubjectType =
   | 'math' | 'chinese' | 'english' | 'reading' | 'writing' | 'other';
+
+// R4.0.0: 任务星级（替代 R3.2 的 1|2|3 数字）
+// 重命名为铜/银/金，UI 用对应金属色渲染。lib/difficulty.ts 仍是 difficultyBonus
+// 等业务逻辑的入口；类型在 lib/unlockCondition.ts 定义并 re-export。
+export type { StarLevel } from '../lib/unlockCondition';
+import type { StarLevel } from '../lib/unlockCondition';
+import type { UnlockCondition } from '../lib/unlockCondition';
+import type { ShopCategory } from '../lib/categories';
 
 // v4: 任务类型 - 用于颜色区分 + 推断行为
 export type TaskType =
@@ -66,8 +86,9 @@ export interface Task {
   overtimeSoundPlayedAt?: number;   // 第一次进入超时时声音已响起的时间（防重）
   // R2.4.3: 完成后家长长时间未评分的提醒
   unevaluatedNotifySentAt?: number; // 防重戳
-  // R3.2: 难度（1-3 星，仅家长可设，默认 1）
-  difficulty?: 1 | 2 | 3;
+  // R3.2 → R4.0.0: 难度（铜/银/金，仅家长可设，默认 'bronze'）
+  // 老数据 1|2|3 在 v7 migration 转换为字符串
+  difficulty?: StarLevel;
 }
 
 // v4: 循环任务定义
@@ -85,8 +106,8 @@ export interface TaskDefinition {
   createdAt: number;
   archivedAt?: number;
   lastGeneratedFor?: string;        // 最近一次生成实例时的日期/周
-  // R3.2: 难度（1-3 星）
-  difficulty?: 1 | 2 | 3;
+  // R3.2 → R4.0.0: 难度（铜/银/金）
+  difficulty?: StarLevel;
 }
 
 export interface Evaluation {
@@ -161,11 +182,22 @@ export interface ShopItem {
   id: string;
   name: string;
   emoji: string;
-  costPoints: number;
+  costPoints: number;                       // > 0 = 走积分通路；0 + unlockCondition 设了 = 走条件解锁通路
   stockPerWeek: number;
   redeemedThisWeek: number;
   weekKey: string | null;
   enabled: boolean;
+  // === R4.0.0 新增（v7） ===
+  category?: ShopCategory;                  // 4 分类，老数据迁移默认 'food'
+  tags?: string[];                          // chip 二级筛选用
+  tier?: 'instant' | 'mid' | 'long';        // 时间档（migration 按价格推断）
+  rotationStatus?: 'displayed' | 'shelved'; // 强制轮转状态，默认 'displayed'
+  lastDisplayedAt?: number;                 // 最近一次进入 displayed 的时间
+  isWishable?: boolean;                     // 是否可做许愿池（积分通路大件用）
+  isLocked?: boolean;                       // 锁定区"???"商品标记
+  unlockLifetimeThreshold?: number;         // 兼容字段：等同 unlockCondition: { kind: 'lifetimePoints' }
+  stockPerSeason?: number;                  // 季度限购（玩具堆大件）
+  unlockCondition?: UnlockCondition;        // 条件解锁通路（与 costPoints>0 互斥）
 }
 
 // v4: redemption 流程升级
@@ -257,4 +289,50 @@ export interface ErrorLog {
   stack?: string;
   url?: string;
   appVersion?: string;
+}
+
+// ============================================================
+// v7 (R4.0.0): kid-rewards 商店重构基础设施 — 新表声明
+// 这些表在 R4.0.0 仅声明，行为代码在 R4.3.0+ 实现
+// ============================================================
+
+export type SkillCardType =
+  | 'guard'    // 守护卡：抵 1 次连击中断
+  | 'pardon'   // 豁免券：缺勤一天不算断击
+  | 'extend'   // 延时券：任务超时缓冲 5 分钟
+  | 'replace'  // 替换券：换掉非必做任务
+  | 'pause'    // 暂停券：暂停超 3 分钟不强退
+  | 'help'     // 求助券：一键求助家长（默认无限）
+  | 'skip'     // 跳过券：跳过 1 个非必做任务
+  | 'mystery'; // 神秘券：抽 1 次盲盒
+
+export interface SkillCard {
+  id: string;
+  type: SkillCardType;
+  source: string;                    // 'streak-7day' | 'weekly-auto' | 'manual-grant' | 'migration-*' | ...
+  earnedAt: number;
+  expiresAt: number;                 // earnedAt + 30 天
+  usedAt?: number;
+  consumedRefId?: string;            // 关联到使用时的对象（taskId / scheduleId）
+}
+
+export interface WishingPool {
+  id: 'singleton';                   // 一次只能一个许愿
+  shopItemId: string;
+  openedAt: number;
+  startBonusPoints: number;          // endowed progress 起步点数（= 商品价 × 0.12）
+  currentProgress: number;           // 累计点数（含起步）
+  targetPoints: number;              // 商品价
+  autoStreamRatio: number;           // 默认 0.5
+  lockedUntil: number;               // openedAt + 7 × 86400000
+  fulfilledAt?: number;
+}
+
+export interface WitnessMoment {
+  id: string;
+  ts: number;
+  text: string;
+  emoji: string;
+  fromRecipientId: string;           // 'preset-mom' | 'preset-dad' | ...
+  fromLabel: string;                 // 冗余存 label，方便孩子端直接显示
 }

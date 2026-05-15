@@ -3,6 +3,7 @@ import type {
   Task, Evaluation, Schedule, PointsEntry, StreakState, Pet,
   Badge, ShopItem, Redemption, BarkRecipient, Settings, TemplateHidden,
   TaskDefinition, RitualLog, ErrorLog,
+  SkillCard, WishingPool, WitnessMoment,
 } from '../types';
 import { SCHEMA_VERSION } from '../types';
 
@@ -22,6 +23,10 @@ export class FatboyDB extends Dexie {
   taskDefinitions!: Table<TaskDefinition, string>;
   ritualLogs!: Table<RitualLog, string>;
   errorLogs!: Table<ErrorLog, string>;
+  // R4.0.0 (v7): kid-rewards 商店重构基础设施 — 表声明，行为代码 R4.3.0+
+  skillCards!: Table<SkillCard, string>;
+  wishingPool!: Table<WishingPool, 'singleton'>;
+  witnessMoments!: Table<WitnessMoment, string>;
 
   constructor() {
     super('FatboyQuestDB');
@@ -144,6 +149,103 @@ export class FatboyDB extends Dexie {
       ritualLogs: 'id, kind, date',
       errorLogs: 'id, ts, kind',
     });
+
+    // v7 (R4.0.0): kid-rewards 商店重构基础设施
+    //   - 新表：skillCards / wishingPool / witnessMoments
+    //   - Task/TaskDefinition.difficulty: 1|2|3 → 'bronze'|'silver'|'gold'
+    //   - ShopItem 加 category/tier/rotationStatus 等字段并设默认
+    //   - 预置 DQ/蜜雪 stockPerWeek 改 1
+    //   - 预置 preset-guard 从 shop 移除（守护卡转 SkillCard）
+    this.version(7).stores({
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled, category, rotationStatus',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+      errorLogs: 'id, ts, kind',
+      // 新表
+      skillCards: 'id, type, earnedAt, expiresAt, usedAt',
+      wishingPool: 'id',
+      witnessMoments: 'id, ts, fromRecipientId',
+    }).upgrade(async (tx) => {
+      const DIFFICULTY_MAP: Record<number, 'bronze' | 'silver' | 'gold'> = {
+        1: 'bronze', 2: 'silver', 3: 'gold',
+      };
+      const remapDiff = (v: unknown): 'bronze' | 'silver' | 'gold' => {
+        if (typeof v === 'number') return DIFFICULTY_MAP[v] ?? 'bronze';
+        if (v === 'bronze' || v === 'silver' || v === 'gold') return v;
+        return 'bronze';
+      };
+
+      // 1. Tasks: difficulty 数字 → 字符串
+      const tasks = await tx.table('tasks').toArray();
+      for (const t of tasks) {
+        if (t.difficulty !== undefined && typeof t.difficulty === 'number') {
+          await tx.table('tasks').update(t.id, { difficulty: remapDiff(t.difficulty) });
+        }
+      }
+
+      // 2. TaskDefinitions: 同上
+      const defs = await tx.table('taskDefinitions').toArray();
+      for (const d of defs) {
+        if (d.difficulty !== undefined && typeof d.difficulty === 'number') {
+          await tx.table('taskDefinitions').update(d.id, { difficulty: remapDiff(d.difficulty) });
+        }
+      }
+
+      // 3. ShopItem 默认字段填充 + 预置调整
+      const shopItems = await tx.table('shop').toArray();
+      for (const s of shopItems) {
+        const updates: Partial<ShopItem> = {};
+        if (s.category === undefined) updates.category = 'food';
+        if (s.tier === undefined) {
+          updates.tier = (s.costPoints ?? 0) >= 1000 ? 'long'
+                       : (s.costPoints ?? 0) >= 200  ? 'mid'
+                       : 'instant';
+        }
+        if (s.rotationStatus === undefined) updates.rotationStatus = 'displayed';
+        if (s.tags === undefined) updates.tags = [];
+        // 预置价格/库存调整
+        if (s.id === 'preset-dq')    updates.stockPerWeek = 1;
+        if (s.id === 'preset-mixue') updates.stockPerWeek = 1;
+        if (Object.keys(updates).length > 0) {
+          await tx.table('shop').update(s.id, updates);
+        }
+      }
+
+      // 4. preset-guard 从 shop 移除，未使用的兑换记录转成 SkillCard
+      const guard = shopItems.find((s: ShopItem) => s.id === 'preset-guard');
+      if (guard) {
+        const guardRedemptions = await tx
+          .table('redemptions')
+          .where('shopItemId').equals('preset-guard')
+          .toArray();
+        const now = Date.now();
+        const THIRTY_DAYS = 30 * 24 * 3600 * 1000;
+        for (const r of guardRedemptions) {
+          if (!r.usedAt) {
+            const earnedAt = r.redeemedAt ?? now;
+            await tx.table('skillCards').add({
+              id: 'sk_' + Math.random().toString(36).slice(2, 10) + earnedAt,
+              type: 'guard',
+              source: 'migration-from-preset-guard',
+              earnedAt,
+              expiresAt: earnedAt + THIRTY_DAYS,
+            } as SkillCard);
+          }
+        }
+        await tx.table('shop').delete('preset-guard');
+      }
+    });
   }
 }
 
@@ -218,10 +320,19 @@ export async function initializeDB() {
     lastWeeklyGiftWeek: null,
   });
 
+  // R4.0.0 (v7): preset-guard 不再上架（守护卡迁到 SkillCard 系统、行为解锁）
+  // DQ / 蜜雪 stockPerWeek=1（用户拍板），加 category/tier/rotationStatus 默认
   await db.shop.bulkPut([
-    { id: 'preset-dq', name: 'DQ 雪糕券', emoji: '🍦', costPoints: 300, stockPerWeek: 1, redeemedThisWeek: 0, weekKey: null, enabled: true },
-    { id: 'preset-mixue', name: '蜜雪冰城券', emoji: '🥤', costPoints: 150, stockPerWeek: 2, redeemedThisWeek: 0, weekKey: null, enabled: true },
-    { id: 'preset-guard', name: '守护卡（保护连击）', emoji: '🛡️', costPoints: 0, stockPerWeek: 99, redeemedThisWeek: 0, weekKey: null, enabled: true },
+    {
+      id: 'preset-dq', name: 'DQ 雪糕券', emoji: '🍦',
+      costPoints: 300, stockPerWeek: 1, redeemedThisWeek: 0, weekKey: null, enabled: true,
+      category: 'food', tier: 'mid', rotationStatus: 'displayed', tags: ['零食'],
+    },
+    {
+      id: 'preset-mixue', name: '蜜雪冰城券', emoji: '🥤',
+      costPoints: 150, stockPerWeek: 1, redeemedThisWeek: 0, weekKey: null, enabled: true,
+      category: 'food', tier: 'instant', rotationStatus: 'displayed', tags: ['饮品'],
+    },
   ]);
 
   // R3.0.1: 内置爸爸 / 妈妈 Bark 接收人

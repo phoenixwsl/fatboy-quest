@@ -273,7 +273,7 @@ export function Evaluations() {
                   </div>
                   <div className="text-xs mt-0.5" style={{ color: 'var(--ink-muted)' }}>
                     预估 <span className="text-num">{openTask.estimatedMinutes}</span> 分
-                    {openTask.difficulty && openTask.difficulty > 1 && (
+                    {openTask.difficulty && openTask.difficulty !== 'bronze' && (
                       <> · 难度 {DIFFICULTY_LABELS[openTask.difficulty]}（额外 +{difficultyPts} ⭐）</>
                     )}
                   </div>
