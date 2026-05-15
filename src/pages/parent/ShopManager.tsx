@@ -33,7 +33,7 @@ export function ShopManager() {
   const toast = useAppStore(s => s.showToast);
   const confirmModal = useAppStore(s => s.confirmModal);
   const items = useLiveQuery(() => db.shop.toArray());
-  const wishingPool = useLiveQuery(() => db.wishingPool.get('singleton'));
+  // R5.1.0: 心愿池机制已删
 
   // 通用字段
   const [name, setName] = useState('');
@@ -48,7 +48,7 @@ export function ShopManager() {
   // 积分通路字段
   const [cost, setCost] = useState(100);
   const [stockPerWeek, setStockPerWeek] = useState(1);
-  const [isWishable, setIsWishable] = useState(false);
+  // R5.1.0: isWishable 删除（许愿池机制移除）
 
   // 条件通路字段
   const [unlockCond, setUnlockCond] = useState<UnlockCondition | null>(
@@ -71,9 +71,6 @@ export function ShopManager() {
     }
     if (channel === 'condition') {
       return { color: '#7FC8A9', text: `${SHOP_CATEGORIES[category].label} · 进度条形式（达成可领取）` };
-    }
-    if (channel === 'points' && isWishable && finalTier === 'long') {
-      return { color: '#FFD66B', text: `${SHOP_CATEGORIES[category].label} · 显示"💫 许愿"按钮，许愿后进心愿池` };
     }
     return { color: '#F5A04A', text: `${SHOP_CATEGORIES[category].label} · 普通商品流` };
   })();
@@ -113,13 +110,12 @@ export function ShopManager() {
       item = {
         ...baseFields,
         costPoints: Math.max(1, cost),
-        ...(isWishable && finalTier === 'long' ? { isWishable: true } : {}),
       };
     }
 
     await db.shop.add(item);
     setName(''); setCost(100); setStockPerWeek(1);
-    setSelectedTags([]); setIsWishable(false); setIsLocked(false);
+    setSelectedTags([]); setIsLocked(false);
     toast('已添加', 'success');
   }
 
@@ -148,7 +144,6 @@ export function ShopManager() {
     const plan = planRotation({
       items,
       now: Date.now(),
-      wishedItemId: wishingPool?.shopItemId,
     });
     await applyRotation(plan, Date.now(), {
       shopUpdate: async (id, patch) => { await db.shop.update(id, patch); },
@@ -159,21 +154,16 @@ export function ShopManager() {
   // 列表分组
   const grouped = (() => {
     const all = items ?? [];
-    const inWishing = all.filter(i => i.id === wishingPool?.shopItemId);
-    const locked = all.filter(i => i.isLocked && i.id !== wishingPool?.shopItemId);
-    const conditional = all.filter(i =>
-      i.enabled && !i.isLocked && i.unlockCondition &&
-      i.id !== wishingPool?.shopItemId);
+    const locked = all.filter(i => i.isLocked);
+    const conditional = all.filter(i => i.enabled && !i.isLocked && i.unlockCondition);
     const displayed = all.filter(i =>
       i.enabled && !i.isLocked && !i.unlockCondition &&
-      (i.rotationStatus ?? 'displayed') === 'displayed' &&
-      i.id !== wishingPool?.shopItemId);
+      (i.rotationStatus ?? 'displayed') === 'displayed');
     const shelved = all.filter(i =>
       i.enabled && !i.isLocked && !i.unlockCondition &&
-      i.rotationStatus === 'shelved' &&
-      i.id !== wishingPool?.shopItemId);
+      i.rotationStatus === 'shelved');
     const disabled = all.filter(i => !i.enabled);
-    return { inWishing, locked, conditional, displayed, shelved, disabled };
+    return { locked, conditional, displayed, shelved, disabled };
   })();
 
   return (
@@ -305,22 +295,7 @@ export function ShopManager() {
               </div>
             </div>
 
-            {finalTier === 'long' && (
-              <label className="flex items-start gap-2 cursor-pointer mb-3">
-                <input
-                  type="checkbox"
-                  checked={isWishable}
-                  onChange={e => setIsWishable(e.target.checked)}
-                  className="mt-0.5"
-                />
-                <div>
-                  <div className="text-sm">💫 做成"许愿池"大件</div>
-                  <div className="text-[10px]" style={{ color: 'var(--ink-faint)' }}>
-                    孩子许愿后，每次得分 50% 自动流入；开局送 12% 起步
-                  </div>
-                </div>
-              </label>
-            )}
+            {/* R5.1.0: 许愿池 toggle 已删 */}
           </>
         )}
 
@@ -366,9 +341,6 @@ export function ShopManager() {
       <ItemSection title="🎯 条件解锁" hint="进度条形式，达成自动揭晓" color="#FFD66B" items={grouped.conditional} editCost={editCost} toggleEnabled={toggleEnabled} delItem={delItem} />
       <ItemSection title="🔒 锁定区" hint='以"???"形式挂底部' color="#9C8CD9" items={grouped.locked} editCost={editCost} toggleEnabled={toggleEnabled} delItem={delItem} />
       <ItemSection title="📦 暂存（轮转中）" hint="本周不展示，会随轮转回归" color="#A0B8B0" items={grouped.shelved} editCost={editCost} toggleEnabled={toggleEnabled} delItem={delItem} />
-      {grouped.inWishing.length > 0 && (
-        <ItemSection title="💫 心愿池中" hint="孩子正在攒这一件" color="#F5A04A" items={grouped.inWishing} editCost={editCost} toggleEnabled={toggleEnabled} delItem={delItem} />
-      )}
       {grouped.disabled.length > 0 && (
         <ItemSection title="🚫 已下架" hint="孩子看不到" color="#C0C0C0" items={grouped.disabled} editCost={editCost} toggleEnabled={toggleEnabled} delItem={delItem} />
       )}
@@ -407,7 +379,6 @@ function ItemSection({
             <div className="flex-1 min-w-0">
               <div className="font-medium flex items-center gap-2 flex-wrap">
                 {it.name}
-                {it.isWishable && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--state-info-soft)', color: 'var(--state-info-strong)' }}>💫 许愿池</span>}
                 {it.isLocked && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-fog)', color: 'var(--ink-muted)' }}>🔒 锁定</span>}
                 {it.unlockCondition && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--state-warn-soft)', color: 'var(--state-warn-strong)' }}>🎯 条件</span>}
               </div>

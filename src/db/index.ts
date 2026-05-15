@@ -3,7 +3,7 @@ import type {
   Task, Evaluation, Schedule, PointsEntry, StreakState, Pet,
   Badge, ShopItem, Redemption, BarkRecipient, Settings, TemplateHidden,
   TaskDefinition, RitualLog, ErrorLog,
-  SkillCard, WishingPool, WitnessMoment,
+  SkillCard, WishingPool, WitnessMoment, CollectibleCard,
 } from '../types';
 import { SCHEMA_VERSION } from '../types';
 
@@ -24,9 +24,11 @@ export class FatboyDB extends Dexie {
   ritualLogs!: Table<RitualLog, string>;
   errorLogs!: Table<ErrorLog, string>;
   // R4.0.0 (v7): kid-rewards 商店重构基础设施 — 表声明，行为代码 R4.3.0+
-  skillCards!: Table<SkillCard, string>;
-  wishingPool!: Table<WishingPool, 'singleton'>;
+  skillCards!: Table<SkillCard, string>;       // 券（4 种：guard/skip/mystery/extend）
+  wishingPool!: Table<WishingPool, 'singleton'>; // R5.1.0 已弃用，保留声明避免破坏老 schema
   witnessMoments!: Table<WitnessMoment, string>;
+  // R5.1.0: 卡牌（收藏型）
+  cards!: Table<CollectibleCard, string>;
 
   constructor() {
     super('FatboyQuestDB');
@@ -286,6 +288,94 @@ export class FatboyDB extends Dexie {
         }
       }
     });
+
+    // v9 (R5.1.0): 三层架构（券/卡牌/里程碑）+ 删许愿池 + 任务类型简化
+    //   - 新表 cards
+    //   - TaskType: normal/daily-required/weekly-min/weekly-once → once/daily/weekly
+    //   - TaskDefinition: weeklyMinTimes → weeklyTimes（合并）
+    //   - 已存的预置 wishingPool 数据清空（UI 不再用）
+    //   - 删 streak.guardCards / pardonCardsThisWeek（豁免券系统全删）
+    //   - 4 件分挡乐高预置（删 isWishable 用 condition 复合）
+    this.version(9).stores({
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled, category, rotationStatus',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+      errorLogs: 'id, ts, kind',
+      skillCards: 'id, type, earnedAt, expiresAt, usedAt',
+      wishingPool: 'id',
+      witnessMoments: 'id, ts, fromRecipientId',
+      cards: 'id, type, earnedAt',
+    }).upgrade(async (tx) => {
+      // 1) Task.taskType 字符串映射
+      const TT_MAP: Record<string, string> = {
+        'normal': 'once',
+        'daily-required': 'daily',
+        'weekly-min': 'weekly',
+        'weekly-once': 'weekly',
+      };
+      const tasks = await tx.table('tasks').toArray();
+      for (const t of tasks) {
+        if (t.taskType && TT_MAP[t.taskType]) {
+          await tx.table('tasks').update(t.id, { taskType: TT_MAP[t.taskType] });
+        }
+      }
+
+      // 2) TaskDefinition.type 字符串映射 + weeklyMinTimes → weeklyTimes
+      const defs = await tx.table('taskDefinitions').toArray();
+      for (const d of defs) {
+        const updates: any = {};
+        if (d.type && TT_MAP[d.type]) updates.type = TT_MAP[d.type];
+        if (d.weeklyMinTimes !== undefined && d.weeklyTimes === undefined) {
+          updates.weeklyTimes = d.weeklyMinTimes;
+        }
+        // weekly-once 的 weeklyTimes 设为 1（如果没设过）
+        if (d.type === 'weekly-once' && updates.weeklyTimes === undefined) {
+          updates.weeklyTimes = 1;
+        }
+        if (Object.keys(updates).length > 0) {
+          await tx.table('taskDefinitions').update(d.id, updates);
+        }
+      }
+
+      // 3) wishingPool 清空（UI 不再用，避免数据残留困扰）
+      await tx.table('wishingPool').clear();
+
+      // 4) streak: guardCards / pardonCardsThisWeek 清零（豁免券系统删）
+      const streak = await tx.table('streak').get('singleton');
+      if (streak) {
+        await tx.table('streak').update('singleton', {
+          guardCards: 0,
+          pardonCardsThisWeek: 0,
+        });
+      }
+
+      // 5) shop 预置升级：删除老 isWishable + 加 4 件分挡乐高
+      const shopItems = await tx.table('shop').toArray();
+      for (const item of shopItems) {
+        if (item.id === 'preset-lego-mid' || item.id === 'preset-lego-big') {
+          // 老 wishable 乐高被新 4 挡替代，删除
+          await tx.table('shop').delete(item.id);
+        }
+      }
+      const existingIds = new Set(shopItems.map((i: ShopItem) => i.id));
+      const newPresets = buildLegoPresets(Date.now());
+      for (const p of newPresets) {
+        if (!existingIds.has(p.id)) {
+          await tx.table('shop').add(p);
+        }
+      }
+    });
   }
 }
 
@@ -317,11 +407,9 @@ export function buildPresetItems(now: number): ShopItem[] {
     base('preset-plush',  '小毛绒抓一个',    '🧸', 'toy', 'mid', 250, 1, ['毛绒']),
     base('preset-stress', '解压玩具盲盒',    '🎨', 'toy', 'mid', 280, 1, ['解压']),
 
-    // === 积分通路 - 大件 wishable ===
-    { ...base('preset-lego-mid', '中型乐高套装', '🧱', 'toy', 'long', 600, 0, ['乐高']),
-      isWishable: true, stockPerSeason: 1 },
-    { ...base('preset-lego-big', '大乐高套装', '🚀', 'toy', 'long', 4500, 0, ['乐高']),
-      isWishable: true, stockPerSeason: 1 },
+    // === 积分通路 - 大件 4 挡（10 积分 = 1 元，3000/5000/8000/10000）===
+    // 大件用 composite 条件：积分够 + 累计完美任务数达阈值
+    ...buildLegoPresets(now),
 
     // === 条件解锁通路（unlockCondition）===
     { ...base('preset-trophy-5k', '5000 分纪念奖杯', '🏆', 'toy', 'long', 0, 0, ['收藏品']),
@@ -344,26 +432,42 @@ export function buildPresetItems(now: number): ShopItem[] {
   ];
 }
 
-export const db = new FatboyDB();
+// ============================================================
+// R5.1.0: 4 件分挡乐高（10 积分 = 1 元，3000/5000/8000/10000）
+// 大件用 composite 条件：积分够 + 累计完美任务数达阈值
+// 完美数仅作"门槛"（不消耗），积分扣（兑换时正常 spend）
+// ============================================================
+export function buildLegoPresets(now: number): ShopItem[] {
+  const lego = (id: string, name: string, emoji: string, points: number, perfectThreshold: number): ShopItem => ({
+    id, name, emoji,
+    costPoints: points,
+    stockPerWeek: 1,                  // 每周最多兑 1 件大件，避免短期囤
+    redeemedThisWeek: 0,
+    weekKey: null,
+    enabled: true,
+    category: 'toy',
+    tier: 'long',
+    rotationStatus: 'displayed',
+    lastDisplayedAt: now,
+    tags: ['乐高'],
+    unlockCondition: {
+      kind: 'composite',
+      all: [
+        { kind: 'lifetimePoints', threshold: points },
+        { kind: 'perfectTask', count: perfectThreshold, window: 'lifetime' },
+      ],
+    },
+  });
+  return [
+    lego('preset-lego-3000',  '中型乐高（约 300 元）',  '🧱', 3000,  3),
+    lego('preset-lego-5000',  '大乐高（约 500 元）',    '🚀', 5000,  5),
+    lego('preset-lego-8000',  '超大乐高（约 800 元）',  '🏰', 8000, 10),
+    lego('preset-lego-10000', '旗舰乐高（约 1000 元）', '🛸', 10000, 15),
+  ];
+}
 
-// R4.2.0: 心愿池流入 hook —— 任何 PointsEntry insert 后，正向 delta 异步
-// 流入 wishingPool（如果开了）。用 setTimeout(0) 调度到当前事务提交后执行，
-// 避开"wishingPool 不在 transaction 范围"问题。
-//
-// 失败静默：如果用户没开心愿池或心愿池表读取失败，不影响主积分流。
-db.points.hook('creating', (_pk, obj: any) => {
-  const delta = obj?.delta;
-  if (typeof delta === 'number' && delta > 0) {
-    setTimeout(async () => {
-      try {
-        const { streamPoints } = await import('../lib/wishingPool');
-        await streamPoints(db, delta);
-      } catch {
-        /* silent */
-      }
-    }, 0);
-  }
-});
+export const db = new FatboyDB();
+// R5.1.0: 心愿池 hook 已删（许愿池机制全删）
 
 export async function initializeDB() {
   const existing = await db.settings.get('singleton');

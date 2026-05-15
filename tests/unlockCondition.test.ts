@@ -66,10 +66,10 @@ describe('evaluateCondition — taskCount with window', () => {
     const c: UnlockCondition = { kind: 'taskCount', star: 'gold', count: 3, window: 'week' };
     const got = evaluateCondition(c, ctx({
       byWindow: {
-        week:     { bronze: 0, silver: 0, gold: 3, long: 0, perfect: 0 },
-        month:    { bronze: 0, silver: 0, gold: 99, long: 0, perfect: 0 },
-        quarter:  { bronze: 0, silver: 0, gold: 0, long: 0, perfect: 0 },
-        lifetime: { bronze: 0, silver: 0, gold: 0, long: 0, perfect: 0 },
+        week:     { none: 0, bronze: 0, silver: 0, gold: 3, long: 0, perfect: 0 },
+        month:    { none: 0, bronze: 0, silver: 0, gold: 99, long: 0, perfect: 0 },
+        quarter:  { none: 0, bronze: 0, silver: 0, gold: 0, long: 0, perfect: 0 },
+        lifetime: { none: 0, bronze: 0, silver: 0, gold: 0, long: 0, perfect: 0 },
       },
     }));
     expect(got).toEqual({ met: true, progress: 3, target: 3 });
@@ -78,7 +78,7 @@ describe('evaluateCondition — taskCount with window', () => {
     const c: UnlockCondition = { kind: 'taskCount', star: 'gold', count: 3, window: 'week' };
     const got = evaluateCondition(c, ctx({
       byWindow: {
-        week:     { bronze: 5, silver: 5, gold: 0, long: 0, perfect: 0 },
+        week:     { none: 0, bronze: 5, silver: 5, gold: 0, long: 0, perfect: 0 },
         month:    emptyContext().byWindow.month,
         quarter:  emptyContext().byWindow.quarter,
         lifetime: emptyContext().byWindow.lifetime,
@@ -93,14 +93,14 @@ describe('evaluateCondition — longTask & perfectTask', () => {
   it('long task by lifetime window', () => {
     const c: UnlockCondition = { kind: 'longTask', count: 10, window: 'lifetime' };
     const got = evaluateCondition(c, ctx({
-      byWindow: { ...emptyContext().byWindow, lifetime: { bronze: 0, silver: 0, gold: 0, long: 12, perfect: 0 } },
+      byWindow: { ...emptyContext().byWindow, lifetime: { none: 0, bronze: 0, silver: 0, gold: 0, long: 12, perfect: 0 } },
     }));
     expect(got).toEqual({ met: true, progress: 12, target: 10 });
   });
   it('perfect task by month window', () => {
     const c: UnlockCondition = { kind: 'perfectTask', count: 5, window: 'month' };
     const got = evaluateCondition(c, ctx({
-      byWindow: { ...emptyContext().byWindow, month: { bronze: 0, silver: 0, gold: 0, long: 0, perfect: 4 } },
+      byWindow: { ...emptyContext().byWindow, month: { none: 0, bronze: 0, silver: 0, gold: 0, long: 0, perfect: 4 } },
     }));
     expect(got).toEqual({ met: false, progress: 4, target: 5 });
   });

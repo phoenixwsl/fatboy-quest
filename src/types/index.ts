@@ -4,7 +4,7 @@
 // 并在 db/index.ts 里写迁移逻辑。
 // ============================================================
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 // v2: 新增 Task.createdBy, Settings.soundEnabled
 // v3: 新增 actualStartedAt / pause / extend / undo 字段，templateHidden 表
 // v4: 引入 TaskDefinition 循环任务定义、Task.taskType 颜色区分、Redemption.usedAt 库存、
@@ -23,6 +23,16 @@ export const SCHEMA_VERSION = 8;
 //   - ShopCategory 简化为 'toy' | 'food'（'plant' / 'decor' → 'toy' migration）
 //   - 内置 13 件预置示例覆盖所有机制（积分通路 / 许愿池 / 条件解锁 / 锁定区）
 //   - 幂等 seed：只补缺失的 preset-* id，不重新覆盖已删除的
+//
+// v9 (R5.1.0): 三层架构 + 删许愿池 + 4 档难度
+//   - StarLevel 加 'none'（0 星 = 默认无奖励，作业很差/没做好的标记）
+//   - TaskType 4 种 → 3 种：'normal' → 'once'，'daily-required' → 'daily'，
+//     'weekly-min' + 'weekly-once' → 'weekly'（带 weeklyTimes 字段，默认 1）
+//   - TaskDefinition.weeklyMinTimes → weeklyTimes
+//   - 新表 cards（卡牌：纯收藏，无 expiresAt 无 usedAt）
+//   - wishingPool 表保留声明但数据清空、UI 不再用（许愿池机制全删）
+//   - 4 件分挡乐高预置（3000/5000/8000/10000 积分 + 完美数门槛）
+//   - 删 streak.guardCards / pardonCardsThisWeek（豁免券系统全删）
 //
 // 关于 Pet.lifetimePoints / level / 任务计数器：暂不存储，按需 derive。
 // 详见 src/lib/petStats.ts。这是为了避免 R4.0.0 接触所有 db.points.add 调用方，
@@ -46,12 +56,18 @@ import type { StarLevel } from '../lib/unlockCondition';
 import type { UnlockCondition } from '../lib/unlockCondition';
 import type { ShopCategory } from '../lib/categories';
 
-// v4: 任务类型 - 用于颜色区分 + 推断行为
+// v4 → v9 (R5.1.0): 任务类型简化为 3 种（新代码统一用前 3 种）
+// 老 4 种保留作向后兼容，新 UI 用 normalizeTaskType() 映射
+// migration 已把 DB 里的老值改成新值；老 const/UI 引用还在过渡
 export type TaskType =
-  | 'normal'           // 普通一次性（白色边框）
-  | 'daily-required'   // 每日必做（红色边框）
-  | 'weekly-min'       // 每周至少 N 次（紫色边框）
-  | 'weekly-once';     // 每周一次（蓝色边框）
+  | 'once'             // 单次任务
+  | 'daily'            // 每天必做
+  | 'weekly'           // 每周任务
+  // === 老类型，向后兼容（不在 UI 显示，被 normalizeTaskType 映射）===
+  | 'normal'
+  | 'daily-required'
+  | 'weekly-min'
+  | 'weekly-once';
 
 export interface Task {
   id: string;
@@ -96,7 +112,7 @@ export interface Task {
   difficulty?: StarLevel;
 }
 
-// v4: 循环任务定义
+// v4 → v9 (R5.1.0): 循环任务定义
 export interface TaskDefinition {
   id: string;
   title: string;
@@ -104,14 +120,17 @@ export interface TaskDefinition {
   subject: SubjectType;
   basePoints: number;
   estimatedMinutes: number;
-  type: 'daily-required' | 'weekly-min' | 'weekly-once';
-  weeklyMinTimes?: number;          // 仅 weekly-min 用
-  isRequired?: boolean;             // 仅 daily-required 用
+  // v9: 重命名 'daily-required' → 'daily', 合并 weekly-min/once → 'weekly'
+  // 老值保留兼容（migration 已转换 DB 数据；老 const 引用过渡期还在）
+  type: 'daily' | 'weekly' | 'daily-required' | 'weekly-min' | 'weekly-once';
+  weeklyTimes?: number;             // R5.1.0: 合并 weeklyMinTimes，weekly 类型用，默认 1
+  /** @deprecated 用 weeklyTimes，老字段保留兼容 */
+  weeklyMinTimes?: number;
+  isRequired?: boolean;             // 仅 daily 用
   active: boolean;
   createdAt: number;
   archivedAt?: number;
   lastGeneratedFor?: string;        // 最近一次生成实例时的日期/周
-  // R3.2 → R4.0.0: 难度（铜/银/金）
   difficulty?: StarLevel;
 }
 
@@ -340,4 +359,22 @@ export interface WitnessMoment {
   emoji: string;
   fromRecipientId: string;           // 'preset-mom' | 'preset-dad' | ...
   fromLabel: string;                 // 冗余存 label，方便孩子端直接显示
+}
+
+// ============================================================
+// v9 (R5.1.0): 卡牌系统 — 收藏型，永远累积，不可消费
+// 同 type 可有多张（堆叠），无 expiresAt 无 usedAt
+// 触发：行为达标自动发；与 SkillCard（券）/ Badge（里程碑）正交
+// ============================================================
+export type CollectibleCardType =
+  | 'focus'              // 专注卡：实际用时 ≥ 30min 任务（每天最多 1）
+  | 'perfect-day'        // 完美一天：当日所有评分都是三维全 5（每天最多 1）
+  | 'weekend-warrior';   // 周末战士：周六或周日完成全部任务（每周末最多 1）
+
+export interface CollectibleCard {
+  id: string;
+  type: CollectibleCardType;
+  earnedAt: number;
+  /** 关联到触发的对象（taskId / 日期 等） */
+  context?: string;
 }

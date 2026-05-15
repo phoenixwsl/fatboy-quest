@@ -34,6 +34,7 @@ const WINDOW_LABELS: Record<Window, string> = {
 };
 
 const STAR_LABELS: Record<StarLevel, { label: string; color: string }> = {
+  none:   { label: '☆ 0 星', color: '#5A5A5A' },
   bronze: { label: '🥉 铜', color: '#B87333' },
   silver: { label: '🥈 银', color: '#7A7A7A' },
   gold:   { label: '🥇 金', color: '#A87C00' },

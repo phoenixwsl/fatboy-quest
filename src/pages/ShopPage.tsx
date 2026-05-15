@@ -1,17 +1,14 @@
 // ============================================================
-// R4.1.0 + R4.2.0: 商店页（重构）
+// R5.1.0: 商店页（许愿池删除版）
 //
 // 新形态：
-//   - 4 分类 tab + chip 二级筛选
-//   - 双通路渲染：积分商品（购买） + 条件商品（进度条解锁）
-//   - 大件 isWishable → 进店 = 许愿池入口（不直接购买）
+//   - 2 tab + chip 二级筛选
+//   - 双通路渲染：积分商品（购买）+ 条件商品（进度条解锁）
+//   - 大件用 composite 条件（积分 + 完美任务数门槛），统一进度条
 //   - 锁定区"???"商品固定挂底部
-//   - 心愿池常驻顶部（如有）
 //   - 我的库存 / 最近使用保留
-//
-// preset-guard 已在 v7 移除，旧代码移除
 // ============================================================
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,14 +23,11 @@ import type { ShopItem, Redemption } from '../types';
 import { CategoryTabs } from '../components/CategoryTabs';
 import { DEFAULT_CATEGORY, type ShopCategory } from '../lib/categories';
 import { LockedArea } from '../components/LockedArea';
-import { WishingPoolBar } from '../components/WishingPoolBar';
 import { ProgressBar } from '../components/ProgressBar';
 import { buildUnlockContext } from '../lib/petStats';
 import { emptyContext, evaluateCondition, describeCondition, type UnlockContext } from '../lib/unlockCondition';
-import { openPool, cancelPool, fulfillPool, isUnlocked, CANCEL_REFUND_RATIO } from '../lib/wishingPool';
 import { SHOP_CATEGORIES } from '../lib/categories';
 import { useMasteryToast } from '../components/MasteryToast';
-// CategoryFilter type removed in R5 — use ShopCategory directly
 
 export function ShopPage() {
   const nav = useNavigate();
@@ -45,11 +39,9 @@ export function ShopPage() {
   const settings = useLiveQuery(() => db.settings.get('singleton'));
   const myInventory = useLiveQuery(() => db.redemptions.filter(r => !r.usedAt && !r.fulfilledAt).toArray());
   const usedRecent = useLiveQuery(() => db.redemptions.filter(r => !!(r.usedAt || r.fulfilledAt)).reverse().sortBy('redeemedAt'));
-  const wishingPool = useLiveQuery(() => db.wishingPool.get('singleton'));
 
   const total = pointsEntries ? totalPoints(pointsEntries) : 0;
   const [confirmItem, setConfirmItem] = useState<ShopItem | null>(null);
-  const [wishItem, setWishItem] = useState<ShopItem | null>(null);
   const [category, setCategory] = useState<ShopCategory>(DEFAULT_CATEGORY);
   const [chip, setChip] = useState<string | null>(null);
   const { showMasteryToast, MasteryToastUI } = useMasteryToast();
@@ -62,18 +54,14 @@ export function ShopPage() {
     return () => { alive = false; };
   }, [pointsEntries?.length, allItems?.length]);
 
-  const wishedItem = useMemo(() => {
-    if (!wishingPool || !allItems) return undefined;
-    return allItems.find(i => i.id === wishingPool.shopItemId);
-  }, [wishingPool, allItems]);
+  // R5.1.0: wishingPool 已删
 
   // ---------- 商品分类 ----------
   const enabledItems = (allItems ?? []).filter(s => s.enabled);
   const lockedItems = enabledItems.filter(s => s.isLocked);
   const visibleItems = enabledItems.filter(s =>
     !s.isLocked &&
-    (s.rotationStatus ?? 'displayed') === 'displayed' &&
-    s.id !== wishingPool?.shopItemId   // 心愿池中的商品不再列在普通商品流
+    (s.rotationStatus ?? 'displayed') === 'displayed'
   );
 
   const filteredItems = visibleItems.filter(s => {
@@ -135,57 +123,7 @@ export function ShopPage() {
     setConfirmItem(null);
   }
 
-  async function startWish(item: ShopItem) {
-    const result = await openPool(db, item.id);
-    if (!result.ok) {
-      if (result.reason === 'pool_already_open') toast('已经有一个心愿在攒了', 'warn');
-      else if (result.reason === 'item_not_wishable') toast('这件不能许愿', 'warn');
-      else toast('许愿失败', 'warn');
-      return;
-    }
-    sounds.play('unlock');
-    toast(`💫 已许愿 ${item.name}！开局送 12% 起步`, 'success');
-    setWishItem(null);
-  }
-
-  async function cancelWish() {
-    if (!wishingPool) return;
-    if (!isUnlocked(wishingPool)) {
-      toast('许愿后 7 天内不能改愿', 'warn');
-      return;
-    }
-    const ok = await confirmModal({
-      title: '撤销心愿？',
-      body: `已积进度会退 ${Math.round(CANCEL_REFUND_RATIO * 100)}%（起步红利不退）。确定要换个心愿吗？`,
-      emoji: '💔',
-      tone: 'warn',
-      confirmLabel: '撤销',
-    });
-    if (!ok) return;
-    const r = await cancelPool(db, Date.now(), async (delta, reason, refId) => {
-      await db.points.add({ id: newId('pt'), ts: Date.now(), delta, reason, refId });
-    });
-    if (r.ok) {
-      toast(`✓ 已撤销，退回 ${r.refundedPoints ?? 0} 积分`, 'success');
-    } else {
-      toast('撤销失败', 'warn');
-    }
-  }
-
-  async function fulfillWish() {
-    if (!wishingPool) return;
-    const wishedItemNow = await db.shop.get(wishingPool.shopItemId);
-    const r = await fulfillPool(db, Date.now(), newId);
-    if (r.ok) {
-      sounds.play('fanfare');
-      toast('🎉 心愿达成！已进入"我的库存"', 'success');
-      if (wishedItemNow) showMasteryToast(wishedItemNow).catch(() => {});
-    } else if (r.reason === 'not_complete') {
-      toast('还没攒够呢', 'warn');
-    } else {
-      toast('达成失败', 'warn');
-    }
-  }
+  // R5.1.0: startWish / cancelWish / fulfillWish 已删（许愿池机制移除）
 
   async function useItem(red: Redemption) {
     const ok = await confirmModal({
@@ -222,25 +160,7 @@ export function ShopPage() {
         <div className="text-xs mt-1" style={{ color: 'var(--ink-faint)' }}>连击 {streak?.currentStreak ?? 0} 天</div>
       </div>
 
-      {/* 心愿池常驻 */}
-      {wishingPool && !wishingPool.fulfilledAt && (
-        <div className="mb-4">
-          <WishingPoolBar pool={wishingPool} item={wishedItem} showCancelHint />
-          <div className="flex gap-2 mt-2">
-            {wishingPool.currentProgress >= wishingPool.targetPoints ? (
-              <button onClick={fulfillWish} className="space-btn flex-1">🎉 达成兑换</button>
-            ) : (
-              <button
-                onClick={cancelWish}
-                className="space-btn-ghost flex-1 text-sm"
-                disabled={!isUnlocked(wishingPool)}
-              >
-                💔 撤销心愿
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* R5.1.0: 心愿池机制已删 */}
 
       {/* 我的库存 */}
       {myInventory && myInventory.length > 0 && (
@@ -284,8 +204,6 @@ export function ShopPage() {
             ctx={ctx}
             total={total}
             onBuy={() => setConfirmItem(item)}
-            onWish={() => setWishItem(item)}
-            wishingActive={!!wishingPool && !wishingPool.fulfilledAt}
           />
         ))}
       </div>
@@ -330,9 +248,6 @@ export function ShopPage() {
         {confirmItem && (
           <ConfirmRedeemModal item={confirmItem} onClose={() => setConfirmItem(null)} onConfirm={() => redeem(confirmItem)} />
         )}
-        {wishItem && (
-          <ConfirmWishModal item={wishItem} onClose={() => setWishItem(null)} onConfirm={() => startWish(wishItem)} />
-        )}
       </AnimatePresence>
 
       {/* R4.3.0: 兑换仪式 mastery toast */}
@@ -342,20 +257,17 @@ export function ShopPage() {
 }
 
 // ============================================================
-// 单行商品（积分通路 / 条件通路 / wishable 大件）
+// R5.1.0: 单行商品（积分通路 / 条件通路）
 // ============================================================
 function ShopRow({
-  item, ctx, total, onBuy, onWish, wishingActive,
+  item, ctx, total, onBuy,
 }: {
   item: ShopItem;
   ctx: UnlockContext;
   total: number;
   onBuy: () => void;
-  onWish: () => void;
-  wishingActive: boolean;
 }) {
   const isConditional = !!item.unlockCondition;
-  const isWishLargeItem = item.isWishable && !isConditional;
 
   if (isConditional) {
     const progress = evaluateCondition(item.unlockCondition!, ctx);
@@ -363,6 +275,11 @@ function ShopRow({
     const tone = cond.kind === 'taskCount'
       ? (cond.star === 'gold' ? 'gold' : cond.star === 'silver' ? 'silver' : 'bronze')
       : 'points';
+    // 大件：积分够 + 完美数够 → 同时也要积分扣得起
+    const affordable = item.costPoints <= 0 || total >= item.costPoints;
+    const wk = isoWeekString(new Date());
+    const usedThisWeek = item.weekKey === wk ? item.redeemedThisWeek : 0;
+    const stockLeft = item.stockPerWeek > 0 ? item.stockPerWeek - usedThisWeek : Infinity;
     return (
       <div className="space-card p-3 flex items-center gap-3">
         <div className="text-3xl">{item.emoji}</div>
@@ -370,6 +287,7 @@ function ShopRow({
           <div className="font-medium truncate">{item.name}</div>
           <div className="text-xs mt-1" style={{ color: 'var(--ink-faint)' }}>
             {describeCondition(cond)} · {progress.progress}/{progress.target}
+            {item.costPoints > 0 && <> · 兑换需 {item.costPoints} 分</>}
           </div>
           <div className="mt-1.5">
             <ProgressBar
@@ -381,39 +299,14 @@ function ShopRow({
           </div>
         </div>
         {progress.met ? (
-          <button className="space-btn text-sm" onClick={onBuy}>领取</button>
+          <button className="space-btn text-sm" onClick={onBuy} disabled={!affordable || stockLeft <= 0}>
+            {!affordable ? `差 ${item.costPoints - total}` : stockLeft <= 0 ? '本周满' : (item.costPoints > 0 ? '兑换' : '领取')}
+          </button>
         ) : (
           <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--surface-mist)', color: 'var(--ink-faint)' }}>
             进行中
           </span>
         )}
-      </div>
-    );
-  }
-
-  if (isWishLargeItem) {
-    return (
-      <div className="space-card p-3 flex items-center gap-3">
-        <div className="text-3xl">{item.emoji}</div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">{item.name}</div>
-          <div className="text-xs" style={{ color: 'var(--ink-faint)' }}>
-            🎯 大件 · 目标 {item.costPoints} 分 · 许愿后 50% 积分自动流入
-          </div>
-          {item.category && (
-            <div className="text-[10px] mt-0.5" style={{ color: 'var(--ink-faint)' }}>
-              {SHOP_CATEGORIES[item.category].emoji} {SHOP_CATEGORIES[item.category].label}
-            </div>
-          )}
-        </div>
-        <button
-          className="space-btn text-sm"
-          onClick={onWish}
-          disabled={wishingActive}
-          title={wishingActive ? '已经有心愿在攒，先撤销或达成' : '许愿这一件'}
-        >
-          💫 许愿
-        </button>
       </div>
     );
   }
@@ -484,35 +377,4 @@ function ConfirmRedeemModal({ item, onClose, onConfirm }: { item: ShopItem; onCl
   );
 }
 
-function ConfirmWishModal({ item, onClose, onConfirm }: { item: ShopItem; onClose: () => void; onConfirm: () => void }) {
-  const startBonus = Math.round(item.costPoints * 0.12);
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-        className="space-card p-6 w-full max-w-sm text-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="text-6xl mb-2">{item.emoji}</div>
-        <div className="text-lg font-bold mb-2">许愿这一件？</div>
-        <div className="mb-4 text-sm" style={{ color: 'var(--ink-muted)' }}>
-          目标 <b style={{ color: 'var(--state-warn)' }}>{item.costPoints}</b> 积分<br/>
-          <b>{item.name}</b>
-        </div>
-        <div className="text-xs mb-4 space-y-1" style={{ color: 'var(--ink-faint)' }}>
-          <div>✨ 开局送 <b>{startBonus}</b> 分起步（{Math.round(0.12 * 100)}% endowed bonus）</div>
-          <div>💧 之后每次得分 50% 自动流入心愿池</div>
-          <div>🔒 7 天内不能改愿，专心攒</div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={onClose} className="space-btn-ghost flex-1">再想想</button>
-          <button onClick={onConfirm} className="space-btn flex-1">💫 许愿</button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
+// R5.1.0: ConfirmWishModal 已删（许愿池机制移除）

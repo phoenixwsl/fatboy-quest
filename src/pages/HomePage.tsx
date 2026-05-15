@@ -31,7 +31,6 @@ import { DifficultyStars } from '../components/DifficultyStars';
 import { SkinPicker } from '../components/SkinPicker';
 import { IdleNagBubble } from '../components/IdleNagBubble';
 import { ThemePicker } from './parent/Settings';
-import { WishingPoolBar } from '../components/WishingPoolBar';
 import { SkillCardShelf } from '../components/SkillCardShelf';
 import { getLifetimePoints } from '../lib/petStats';
 import { getLevelFromLifetime, getNextLevel } from '../lib/levels';
@@ -59,12 +58,7 @@ export function HomePage() {
   const todaySchedules = useLiveQuery(() => db.schedules.where({ date: today }).toArray(), [today]);
   const pointsEntries = useLiveQuery(() => db.points.toArray());
   const taskDefs = useLiveQuery(() => db.taskDefinitions.toArray());
-  // R4.2.0: 心愿池常驻显示（如有未达成）
-  const wishingPool = useLiveQuery(() => db.wishingPool.get('singleton'));
-  const wishedItem = useLiveQuery(
-    async () => wishingPool ? await db.shop.get(wishingPool.shopItemId) : undefined,
-    [wishingPool?.shopItemId],
-  );
+  // R5.1.0: 心愿池机制已删
   // R4.3.0: 终身积分 derived（监听 points 表变化）
   const lifetimePoints = useLiveQuery(async () => await getLifetimePoints(db), []) ?? 0;
   const currentLevel = getLevelFromLifetime(lifetimePoints);
@@ -350,12 +344,7 @@ export function HomePage() {
         </button>
       )}
 
-      {/* R4.2.0: 心愿池常驻 — 有未达成的心愿就在首页显示进度条 */}
-      {wishingPool && !wishingPool.fulfilledAt && (
-        <div className="mt-5">
-          <WishingPoolBar pool={wishingPool} item={wishedItem ?? undefined} />
-        </div>
-      )}
+      {/* R5.1.0: 心愿池机制已删 */}
 
       {/* R2.1.1: 检测到正在进行的闯关，强引导回去 */}
       {scheduledOrInProgress.length > 0 && (

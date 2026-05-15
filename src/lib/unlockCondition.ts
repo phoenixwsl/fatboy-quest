@@ -11,7 +11,8 @@
 
 import type { Evaluation, Task } from '../types';
 
-export type StarLevel = 'bronze' | 'silver' | 'gold';
+// R5.1.0: 加 'none' 表示 0 星（默认/作业很差），1/2/3 星才是"加难度奖励"
+export type StarLevel = 'none' | 'bronze' | 'silver' | 'gold';
 
 export type Window = 'week' | 'month' | 'quarter' | 'lifetime';
 
@@ -55,6 +56,7 @@ export type UnlockCondition =
 // ============================================================
 
 export interface WindowedCounts {
+  none: number;          // R5.1.0: 0 星任务计数（一般不用作解锁条件，但为统计完整性保留）
   bronze: number;
   silver: number;
   gold: number;
@@ -69,7 +71,7 @@ export interface UnlockContext {
 }
 
 export function emptyWindowedCounts(): WindowedCounts {
-  return { bronze: 0, silver: 0, gold: 0, long: 0, perfect: 0 };
+  return { none: 0, bronze: 0, silver: 0, gold: 0, long: 0, perfect: 0 };
 }
 
 export function emptyContext(): UnlockContext {
@@ -135,6 +137,7 @@ export function evaluateCondition(c: UnlockCondition, ctx: UnlockContext): Unloc
 // ============================================================
 
 const STAR_LABEL: Record<StarLevel, string> = {
+  none:   '普通任务',
   bronze: '铜任务',
   silver: '银任务',
   gold:   '金任务',

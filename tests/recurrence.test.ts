@@ -39,7 +39,7 @@ describe('ensureDailyTasksForDate', () => {
       def({ id: 'd2', title: 'B' }),
     ], []);
     expect(out).toHaveLength(2);
-    expect(out[0].taskType).toBe('daily-required');
+    expect(out[0].taskType).toBe('daily');     // R5.1.0: 重命名
     expect(out[0].definitionId).toBe('d1');
     expect(out[0].date).toBe('2026-05-12');
     expect(out[0].status).toBe('pending');
@@ -105,7 +105,7 @@ describe('makeWeeklyInstance', () => {
   it('creates a task tied to the weekly def', () => {
     const t = makeWeeklyInstance(def({ id: 'w1', type: 'weekly-min', weeklyMinTimes: 3 }), '2026-05-12');
     expect(t.definitionId).toBe('w1');
-    expect(t.taskType).toBe('weekly-min');
+    expect(t.taskType).toBe('weekly');         // R5.1.0: weekly-min → weekly
     expect(t.status).toBe('pending');
   });
 });
