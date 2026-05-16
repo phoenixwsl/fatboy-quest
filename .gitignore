@@ -30,3 +30,4 @@ tsconfig.tsbuildinfo
 
 # Claude Code local config
 .claude/launch.json
+.claude/settings.local.json
