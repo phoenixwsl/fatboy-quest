@@ -27,3 +27,6 @@ vitest.config.js
 # TypeScript build cache
 tsconfig.tsbuildinfo
 .tsbuildcache
+
+# Claude Code local config
+.claude/launch.json

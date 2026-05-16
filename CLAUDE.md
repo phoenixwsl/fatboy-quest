@@ -30,12 +30,26 @@ This file is auto-loaded by Claude Code / Cowork at the start of every session. 
 - canvas-confetti（已装未充分用）
 - 部署：GitHub Pages `https://phoenixwsl.github.io/fatboy-quest/`
 
-## 4. 已建立的设计/产品资产
+## 4. 已建立的设计/产品资产 — Skill 库
 
-- `.claude/skills/visual-design/` — 完整视觉系统 skill（色彩 / 形状 / 字体 / 多主题 10 法则 / 5 套现成主题）
-- `.claude/skills/adhd-ux/` — ADHD 用户体验法则
-- `.claude/skills/release-checklist/` — 发版前清单
-- `src/index.css` — 三主题完整 token 系统（cozy/starry/mecha），用语义层 token（`--primary` / `--accent` / `--surface-paper` / `--ink-strong` 等），勿用 tailwind 颜色 utility 硬编码（`text-white/40`、`bg-emerald-500/30` 等）
+**5 个 skill 形成完整决策链**，任何改动按"决策层 → 专项层 → 发版层"顺序找：
+
+### 决策层（入口）
+- **`.claude/skills/children-app-design/`** — 上层产品哲学 + 决策框架
+  - 任何新 feature 提议**先过这里的 4 维度评分**（A 心理健康 / B 家长信任 / C 复杂度 / D 替代-促进亲子互动）
+  - 总分 < 0 拒绝；0-2 谨慎；3+ 可做；6+ 优先
+  - 含 10 个 worked examples（排行榜 / 三件好事 / 限时秒杀 / AI 聊天 / 班级任务...）
+
+### 专项层（执行细节）
+- **`.claude/skills/visual-design/`** — 视觉系统（色彩 / 形状 / 字体 / 多主题 10 法则 / 5 套现成主题 / Gurney·Albers·Itten 三大师）
+- **`.claude/skills/adhd-ux/`** — ADHD 用户体验（时间反馈分级 / 启动摩擦最小化 / 失败温柔 / 即时奖励 / 反焦虑放大）
+- **`.claude/skills/kid-rewards/`** — 积分经济（兑换 / 通胀 / 通货保护 / Streak / 守护卡 / 彩蛋）
+
+### 发版层（守门）
+- **`.claude/skills/release-checklist/`** — Pre-flight 清单（tsc → tests → build → schema-migration → 版本 bump → iPad 缓存提示 → 一句话 commit）
+
+### 工程层资产
+- `src/index.css` — 三主题完整 token 系统（cozy/starry/mecha），用语义层 token（`--primary` / `--accent` / `--surface-paper` / `--ink-strong` / `--state-success-soft/strong` 等）。**勿用 tailwind 颜色 utility 硬编码**（`text-white/40`、`bg-emerald-500/30` 等已被 R3.4.1 全量清理）
 - `tests/` — 421+ 单元 + 集成测试，pre-commit hook 跑 tsc + vitest + build
 
 ## 5. 工作流约定
@@ -65,6 +79,14 @@ bump 改 `src/version.ts` 的 `APP_VERSION` 和 `APP_BUILD_DATE`。
 
 任何涉及 3+ 文件 / 引入新依赖 / 改 DB schema 的改动，**先列 plan 让用户确认**，再动手。不要一头扎进去改 200 个文件后才发现方向不对。
 
+### 5.4.1 新 feature 提议先过 children-app-design 决策框架
+
+用户说"加个 X 功能"时**不要直接动手实现**。先：
+1. 用 `children-app-design/SKILL.md` 的 4 维度评分（A/B/C/D 各 -2 到 +2）
+2. 如果总分 < 0：**拒绝并给反提议**（用 +分维度替代 -分维度，例如"排行榜" → "自己对比自己"）
+3. 如果总分 3+：再下钻到 visual-design / adhd-ux / kid-rewards 等专项 skill 做执行设计
+4. 任何 feature 实现前都让用户看见决策评分，不要黑箱实现
+
 ### 5.5 复杂改动用 subagent
 
 大批量机械修改（如 token 化、命名重构）用 Task 工具开 subagent 批量处理，主线对话保持决策层级。改完用 reviewer subagent 独立审一遍。
@@ -86,7 +108,11 @@ bump 改 `src/version.ts` 的 `APP_VERSION` 和 `APP_BUILD_DATE`。
 
 | 想做的事 | 看哪里 |
 |---|---|
-| 改主题颜色 | `src/index.css` + 调用 `.claude/skills/visual-design` |
+| **决定要不要做某个新 feature** | **先过 `.claude/skills/children-app-design` 决策框架** |
+| 改主题颜色 / 视觉 | `src/index.css` + `.claude/skills/visual-design` |
+| 改奖励 / 积分 / 兑换机制 | `.claude/skills/kid-rewards` + `src/lib/points.ts` / `src/lib/evaluate.ts` |
+| 改 ADHD 友好行为（超时反馈、提醒分级）| `.claude/skills/adhd-ux` + `src/pages/QuestPage.tsx` |
+| 准备发版 / 提交 / push | `.claude/skills/release-checklist` |
 | 加任务/积分逻辑 | `src/lib/evaluate.ts`, `src/lib/points.ts`, `src/lib/difficulty.ts` |
 | 改 DB schema | `src/db/index.ts`（注意写 migration） |
 | 改家长设置页 | `src/pages/parent/Settings.tsx` |
