@@ -5,10 +5,8 @@ import 'fake-indexeddb/auto';
 // R5.7.0: 给个简易 stub，不需要返回真 URL，组件挂载/卸载不报错即可
 if (typeof URL.createObjectURL !== 'function') {
   let counter = 0;
-  // @ts-expect-error jsdom polyfill
   URL.createObjectURL = (_: Blob | MediaSource) => `blob:fake/${++counter}`;
 }
 if (typeof URL.revokeObjectURL !== 'function') {
-  // @ts-expect-error jsdom polyfill
   URL.revokeObjectURL = (_: string) => {};
 }
