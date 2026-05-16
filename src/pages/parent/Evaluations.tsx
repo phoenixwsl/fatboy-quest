@@ -10,7 +10,7 @@ import { SubjectIcon } from '../HomePage';
 import { DifficultyStars } from '../../components/DifficultyStars';
 import { DIFFICULTY_LABELS, difficultyBonus } from '../../lib/difficulty';
 import { useAppStore } from '../../store/useAppStore';
-import { evaluateTaskOnce, QUICK_PRESETS, smartDefaultBasePoints } from '../../lib/evaluate';
+import { evaluateTaskOnce, abortTask, QUICK_PRESETS, smartDefaultBasePoints } from '../../lib/evaluate';
 import type { Task } from '../../types';
 
 export function Evaluations() {
@@ -63,6 +63,22 @@ export function Evaluations() {
       toast(`⚡ 连击额外 +${r.comboBonusPoints} 积分`, 'success');
     }
     toast(`✓ 已评分 +${r.finalPoints + r.earlyBonusPoints} 积分`, 'success');
+    setOpenTask(null);
+  }
+
+  // R5.6.0: 作废任务（孩子点错了）
+  async function abortOpenTask() {
+    if (!openTask) return;
+    const ok = await confirmModal({
+      title: '作废这条任务？',
+      body: `「${openTask.title}」会被直接删除，不评分、不计分。\n孩子点错时用，删除后不可恢复。`,
+      emoji: '🗑',
+      tone: 'danger',
+      confirmLabel: '确认作废',
+    });
+    if (!ok) return;
+    await abortTask(db, openTask.id);
+    toast('已作废，已从待评分移除', 'info');
     setOpenTask(null);
   }
 
@@ -369,6 +385,21 @@ export function Evaluations() {
                 <button onClick={() => setOpenTask(null)} className="space-btn-ghost flex-1">取消</button>
                 <button onClick={submit} className="space-btn flex-1">提交评分</button>
               </div>
+              {/* R5.6.0: 孩子点错时直接作废 — 低显著度，放在主操作下方 */}
+              <button
+                onClick={abortOpenTask}
+                className="w-full mt-3 text-xs"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--ink-faint)',
+                  cursor: 'pointer',
+                  padding: '6px 0',
+                  textDecoration: 'underline',
+                }}
+              >
+                🗑 点错了，作废这条任务
+              </button>
             </motion.div>
           </motion.div>
           );

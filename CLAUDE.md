@@ -58,6 +58,8 @@ This file is auto-loaded by Claude Code / Cowork at the start of every session. 
 
 **一句话 commit**：`R3.4.1: 242 处硬编码颜色 token 化`。不要展开多行解释 — 用户已明确不要详细 commit。
 
+**所有 commit 都必须带版本号前缀**（包括 chore / docs / test —— 无一例外）。每次提交前先 bump `src/version.ts`，commit message 用同一个版本号开头，例如 `R5.6.0: xxx`。禁止出现 `chore: xxx` 这种不带版本号的 commit。
+
 ### 5.2 版本号
 
 `RX.Y.Z` 模式：

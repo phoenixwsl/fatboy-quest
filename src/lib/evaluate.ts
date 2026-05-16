@@ -159,6 +159,24 @@ export async function evaluateTaskOnce(
   };
 }
 
+// R5.6.0: 作废任务（孩子点错了）— 直接删除，不评分、不计分、不触发任何副作用。
+// 关键：从当天 schedule.items 摘掉，否则 combo 的 allEvaluated 永不成立 + 孩子端出现幽灵格。
+export async function abortTask(db: FatboyDB, taskId: string): Promise<void> {
+  await db.transaction('rw', db.tasks, db.schedules, async () => {
+    const t = await db.tasks.get(taskId);
+    if (!t) return;
+    await db.tasks.delete(taskId);
+    const schs = await db.schedules.where({ date: t.date }).toArray();
+    for (const s of schs) {
+      if (s.items.some((i: any) => i.taskId === taskId)) {
+        await db.schedules.update(s.id, {
+          items: s.items.filter((i: any) => i.taskId !== taskId),
+        });
+      }
+    }
+  });
+}
+
 // R2.4.1 快速评分套餐
 export const QUICK_PRESETS = [
   { id: 'perfect', label: '🌟 完美', stars: { completion: 5, quality: 5, attitude: 5 }, tone: 'amber' as const },

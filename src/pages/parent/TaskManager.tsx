@@ -8,7 +8,7 @@ import { db } from '../../db';
 import { newId } from '../../lib/ids';
 import { todayString, addDays, formatChineseDate } from '../../lib/time';
 import { extractTemplates, type TaskTemplate } from '../../lib/templates';
-import { TASK_TYPE_LABEL, TASK_TYPE_BORDER_STYLE, TASK_TYPE_BADGE_STYLE, weeklyProgress } from '../../lib/recurrence';
+import { TASK_TYPE_LABEL, TASK_TYPE_BORDER_STYLE, TASK_TYPE_BADGE_STYLE, weeklyProgress, generateTodayDailyTasks } from '../../lib/recurrence';
 import { useAppStore } from '../../store/useAppStore';
 import { SubjectIcon } from '../HomePage';
 import { DifficultyStars } from '../../components/DifficultyStars';
@@ -116,6 +116,10 @@ export function TaskManager() {
         difficulty,
       };
       await db.taskDefinitions.add(d);
+      // R5.6.0: daily 立即物化今天的实例，孩子端 HomePage 当场可见（幂等）
+      if (taskType === 'daily') {
+        try { await generateTodayDailyTasks(db as any); } catch {}
+      }
       toast(`✓ 已添加循环任务：${TASK_TYPE_LABEL[taskType]}`, 'success');
     }
     setTitle(''); setDescription(''); setIsRequired(false);

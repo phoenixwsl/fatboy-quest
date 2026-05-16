@@ -19,7 +19,7 @@ import { useAppStore } from '../store/useAppStore';
 import { APP_VERSION } from '../version';
 import { HeatmapStrip } from '../components/HeatmapStrip';
 import { isWeekend } from '../lib/weekendMode';
-import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance, hasInstanceToday } from '../lib/recurrence';
+import { TASK_TYPE_BORDER, TASK_TYPE_BADGE, activeWeeklyDefinitions, weeklyProgress, makeWeeklyInstance, hasInstanceToday, generateTodayDailyTasks } from '../lib/recurrence';
 import { scoreRatio, ratioColorClass } from '../lib/points';
 import { detectHealActions, isHealNeeded } from '../lib/heal';
 // R5.1.0: 豁免券系统已删（PardonBanner 移除）
@@ -103,6 +103,11 @@ export function HomePage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTasks?.length, todaySchedules?.length, today]);
+
+  // R5.6.0: 兜底补齐今日每日任务（家长在别处加完、孩子稍后开页）。幂等 — 按 definitionId 去重
+  useEffect(() => {
+    generateTodayDailyTasks(db as any).catch(() => {});
+  }, []);
 
   // 同步音效开关 + 声音包
   useEffect(() => {

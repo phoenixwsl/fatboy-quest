@@ -545,60 +545,34 @@ export async function initializeDB() {
   await ensureDefaultRecipients();
 }
 
-// R3.0.1: 内置默认 Bark 接收人（首次初始化 + 老用户兜底）
-// R3.0.2: 修正 — 之前 mom / dad 的 key 写反了，加自动纠正
+// R5.6.0: 内置默认 Bark 接收人 — 仅在「一个接收人都没有」时写入。
+// 只要用户改过/删过/加过任何接收人，一律不动（默认值只在没设置时生效）。
 export async function ensureDefaultRecipients() {
-  // 正确对应关系
-  const MOM_KEY = 'DfjzKiUDcfdWLcnMeR6jXf';
-  const DAD_KEY = 'aWEsiXKUPXgZAPNiz6r835';
-
-  const DEFAULTS = [
-    {
-      id: 'preset-mom',
-      label: '妈妈',
-      emoji: '👩',
-      serverUrl: 'https://api.day.app',
-      key: MOM_KEY,
-    },
-    {
-      id: 'preset-dad',
-      label: '爸爸',
-      emoji: '👨',
-      serverUrl: 'https://api.day.app',
-      key: DAD_KEY,
-    },
-  ];
-
   const existing = await db.recipients.toArray();
+  if (existing.length > 0) return; // 有任何接收人 → 一律不覆盖、不补回
 
-  // R3.0.2 一次性纠正：如果 preset-mom / preset-dad 存在但 key 反了 → 修
-  for (const d of DEFAULTS) {
-    const found = existing.find(r => r.id === d.id);
-    if (found && found.key !== d.key) {
-      await db.recipients.update(d.id, { key: d.key, label: d.label, emoji: d.emoji });
-    }
-  }
+  const SUBS = {
+    subTaskDone: true,
+    subRoundDone: true,
+    subMilestone: true,
+    subPendingReview: true,
+    subWeeklyReport: true,
+    subHelp: true,
+    subStreakAlert: true,
+    subShopPurchase: true,
+    enabled: true,
+  };
 
-  // 首次添加（如果还没有这条预置）
-  const refreshed = await db.recipients.toArray();
-  const existingIds = new Set(refreshed.map(r => r.id));
-  const existingKeys = new Set(refreshed.map(r => r.key));
-  for (const d of DEFAULTS) {
-    if (existingIds.has(d.id)) continue;
-    if (existingKeys.has(d.key)) continue; // 用户自己加过同 key（自定义 id）→ 跳过
-    await db.recipients.add({
-      ...d,
-      subTaskDone: true,
-      subRoundDone: true,
-      subMilestone: true,
-      subPendingReview: true,
-      subWeeklyReport: true,
-      subHelp: true,
-      subStreakAlert: true,
-      subShopPurchase: true,
-      enabled: true,
-    } as any);
-  }
+  await db.recipients.bulkAdd([
+    {
+      id: 'preset-mom', label: '妈妈', emoji: '👩',
+      serverUrl: 'https://api.day.app', key: 'DfjzKiUDcfdWLcnMeR6jXf', ...SUBS,
+    },
+    {
+      id: 'preset-dad', label: '爸爸', emoji: '👨',
+      serverUrl: 'https://api.day.app', key: 'aWEsiXKUPXgZAPNiz6r835', ...SUBS,
+    },
+  ] as any);
 }
 
 export function hashAnswer(answer: string): string {
