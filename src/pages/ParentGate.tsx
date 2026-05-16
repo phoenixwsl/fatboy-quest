@@ -13,8 +13,13 @@ export function ParentGate() {
   const [answer, setAnswer] = useState('');
   const [newPin, setNewPin] = useState('');
 
+  // useLiveQuery 未解析完时 settings 为 undefined —— 此时不能把"数据没加载"
+  // 误判成"PIN 错误"（会出现首毫秒点确定就报错的 bug，也让测试出现竞态）
+  const loading = settings === undefined;
+
   const submit = () => {
-    if (pin === settings?.pin) {
+    if (loading) return;
+    if (pin === settings.pin) {
       nav('/parent/dashboard');
     } else {
       setError('PIN 错误');
@@ -23,6 +28,7 @@ export function ParentGate() {
   };
 
   const resetPin = async () => {
+    if (loading) return;
     if (hashAnswer(answer) !== settings?.securityAnswer) {
       setError('密保答案错误'); return;
     }
@@ -56,7 +62,7 @@ export function ParentGate() {
               style={{ background: 'var(--surface-mist)' }}
               autoFocus
             />
-            <button onClick={submit} className="space-btn w-full mt-3">确定</button>
+            <button onClick={submit} disabled={loading} className="space-btn w-full mt-3">确定</button>
             <button onClick={() => { setForgot(true); setError(''); }} className="text-sm w-full mt-3" style={{ color: 'var(--ink-faint)' }}>忘记 PIN？</button>
           </>
         ) : (
@@ -79,7 +85,7 @@ export function ParentGate() {
               className="w-full px-4 py-3 rounded-xl outline-none text-center tracking-widest text-2xl"
               style={{ background: 'var(--surface-mist)' }}
             />
-            <button onClick={resetPin} className="space-btn w-full mt-3">重置 PIN</button>
+            <button onClick={resetPin} disabled={loading} className="space-btn w-full mt-3">重置 PIN</button>
             <button onClick={() => setForgot(false)} className="text-sm w-full mt-2" style={{ color: 'var(--ink-faint)' }}>返回</button>
           </>
         )}

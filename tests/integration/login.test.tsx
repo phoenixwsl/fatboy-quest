@@ -131,8 +131,12 @@ describe('L · ParentGate PIN 门禁', () => {
     renderGate();
 
     const pinInput = await screen.findByPlaceholderText(/输入 4 位 PIN/);
+    const okBtn = screen.getByRole('button', { name: /确定/ });
+    // 等 settings useLiveQuery 解析完（确定按钮 enabled）—— 否则 PIN 校验有竞态
+    await waitFor(() => expect(okBtn).toBeEnabled());
+
     fireEvent.change(pinInput, { target: { value: '0000' } });
-    fireEvent.click(screen.getByRole('button', { name: /确定/ }));
+    fireEvent.click(okBtn);
 
     await waitFor(() => {
       expect(screen.getByText(/PIN 错误/)).toBeInTheDocument();
@@ -140,7 +144,7 @@ describe('L · ParentGate PIN 门禁', () => {
     expect((pinInput as HTMLInputElement).value).toBe('');
 
     fireEvent.change(pinInput, { target: { value: '1234' } });
-    fireEvent.click(screen.getByRole('button', { name: /确定/ }));
+    fireEvent.click(okBtn);
 
     await waitFor(() => {
       expect(screen.getByTestId('dashboard')).toBeInTheDocument();
@@ -162,7 +166,9 @@ describe('L · ParentGate PIN 门禁', () => {
 
     fireEvent.change(answerInput, { target: { value: '答案' } });
     fireEvent.change(newPinInput, { target: { value: '9999' } });
-    fireEvent.click(screen.getByRole('button', { name: '重置 PIN' }));
+    const resetBtn = screen.getByRole('button', { name: '重置 PIN' });
+    await waitFor(() => expect(resetBtn).toBeEnabled());
+    fireEvent.click(resetBtn);
 
     await waitFor(async () => {
       const s = await db.settings.get('singleton');
@@ -178,17 +184,19 @@ describe('L · ParentGate PIN 门禁', () => {
 
     renderGate();
     const pinInput = await screen.findByPlaceholderText(/输入 4 位 PIN/);
+    const okBtn = screen.getByRole('button', { name: /确定/ });
+    await waitFor(() => expect(okBtn).toBeEnabled());
 
     // 旧 PIN 应该失败
     fireEvent.change(pinInput, { target: { value: '1234' } });
-    fireEvent.click(screen.getByRole('button', { name: /确定/ }));
+    fireEvent.click(okBtn);
     await waitFor(() => {
       expect(screen.getByText(/PIN 错误/)).toBeInTheDocument();
     });
 
     // 新 PIN 通过
     fireEvent.change(pinInput, { target: { value: '9999' } });
-    fireEvent.click(screen.getByRole('button', { name: /确定/ }));
+    fireEvent.click(okBtn);
     await waitFor(() => {
       expect(screen.getByTestId('dashboard')).toBeInTheDocument();
     });
