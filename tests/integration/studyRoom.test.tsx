@@ -1,16 +1,11 @@
 // ============================================================
-// 书房（StudyRoomPage）集成测试 — R3.5
+// 书房（StudyRoomPage）集成测试
 //
 // 覆盖：
-//   SR1: 页面渲染基础元素（标题、三柜、桌前肥仔、积分）
-//   SR2: 左柜点击 → trophy 浮层 + 标题
-//   SR3: 中柜点击 → lego 浮层 + 空状态文案
-//   SR4: 右柜点击 → toy 浮层 + 空状态文案
-//   SR5: trophy 浮层在 badges 为空时显示鼓励文案
-//   SR6: trophy 浮层在 badges 非空时显示成就网格
-//   SR7: 关闭按钮可以关闭浮层
+//   SR1: 页面渲染基础元素（标题、科比海报、桌前肥仔、积分）
 //   SR8: 积分徽章显示外面同款 total 数字
 //   SR9: 返回按钮触发 navigate(-1)
+//   SR10: 商店按钮跳转 /shop
 // ============================================================
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -59,17 +54,15 @@ function renderStudyRoom() {
 }
 
 describe('SR · StudyRoom 页面渲染', () => {
-  it('SR1: 渲染基础元素 — 标题 / 三柜 / 桌前问候 / 商店按钮', async () => {
+  it('SR1: 渲染基础元素 — 标题 / 科比海报 / 桌前问候 / 商店按钮', async () => {
     renderStudyRoom();
 
     await waitFor(() => {
       expect(screen.getByText('肥仔的书房')).toBeTruthy();
     });
 
-    // 三个柜子
-    expect(screen.getByText('奖杯柜')).toBeTruthy();
-    expect(screen.getByText('LEGO 柜')).toBeTruthy();
-    expect(screen.getByText('玩具柜')).toBeTruthy();
+    // 科比海报
+    expect(screen.getByAltText('偶像海报')).toBeTruthy();
 
     // 商店按钮 + 返回按钮
     expect(screen.getByText(/装饰商店/)).toBeTruthy();
@@ -78,96 +71,6 @@ describe('SR · StudyRoom 页面渲染', () => {
     // 桌前问候（包含 childName "肥仔"）
     const greeting = await screen.findByText(/肥仔$/);
     expect(greeting).toBeTruthy();
-  });
-});
-
-describe('SR · 三柜可点击 + Overlay 类型分发', () => {
-  it('SR2: 点左柜 → 打开 trophy overlay（标题"我的成就"）', async () => {
-    renderStudyRoom();
-    await screen.findByText('奖杯柜');
-
-    fireEvent.click(screen.getByText('奖杯柜'));
-
-    await waitFor(() => {
-      expect(screen.getByText(/我的成就/)).toBeTruthy();
-    });
-  });
-
-  it('SR3: 点中柜 → 打开 lego overlay + 空状态文案', async () => {
-    renderStudyRoom();
-    await screen.findByText('LEGO 柜');
-
-    fireEvent.click(screen.getByText('LEGO 柜'));
-
-    await waitFor(() => {
-      expect(screen.getByText(/我的 LEGO/)).toBeTruthy();
-    });
-    // 空状态文案
-    expect(screen.getByText(/还没有 LEGO 收藏/)).toBeTruthy();
-  });
-
-  it('SR4: 点右柜 → 打开 toy overlay + 空状态文案', async () => {
-    renderStudyRoom();
-    await screen.findByText('玩具柜');
-
-    fireEvent.click(screen.getByText('玩具柜'));
-
-    await waitFor(() => {
-      expect(screen.getByText(/我的玩具/)).toBeTruthy();
-    });
-    expect(screen.getByText(/还没有玩具收藏/)).toBeTruthy();
-  });
-});
-
-describe('SR · trophy 浮层空 vs 非空', () => {
-  it('SR5: badges 为空时显示鼓励文案', async () => {
-    renderStudyRoom();
-    await screen.findByText('奖杯柜');
-
-    fireEvent.click(screen.getByText('奖杯柜'));
-
-    await waitFor(() => {
-      expect(screen.getByText(/继续加油/)).toBeTruthy();
-    });
-  });
-
-  it('SR6: badges 非空时显示成就网格', async () => {
-    // 先 seed 一个真实的 badge id（从 ACHIEVEMENTS 取）
-    await db.badges.put({ id: 'first_step', unlockedAt: Date.now() } as any);
-
-    renderStudyRoom();
-    await screen.findByText('奖杯柜');
-
-    fireEvent.click(screen.getByText('奖杯柜'));
-
-    await waitFor(() => {
-      // 成就标题 "第一步" 应该渲染在 trophy-card 里
-      expect(screen.getByText('第一步')).toBeTruthy();
-    });
-    // 计数 "1 个"
-    expect(screen.getByText(/1 个/)).toBeTruthy();
-    // 不应再看到空状态
-    expect(screen.queryByText(/继续加油/)).toBeNull();
-  });
-});
-
-describe('SR · 关闭浮层', () => {
-  it('SR7: 点关闭按钮可以关闭 overlay', async () => {
-    renderStudyRoom();
-    await screen.findByText('LEGO 柜');
-
-    fireEvent.click(screen.getByText('LEGO 柜'));
-    await waitFor(() => {
-      expect(screen.getByText(/我的 LEGO/)).toBeTruthy();
-    });
-
-    // 关闭按钮 aria-label="关闭"
-    const closeBtn = screen.getByLabelText('关闭');
-    fireEvent.click(closeBtn);
-
-    await waitFor(() => {
-      expect(screen.queryByText(/我的 LEGO/)).toBeNull();
-    });
   });
 });
 
@@ -189,7 +92,18 @@ describe('SR · 积分显示与外面对齐', () => {
 });
 
 describe('SR · 导航', () => {
-  it('SR9: 点商店按钮 → 跳到 /shop', async () => {
+  it('SR9: 点返回按钮 → 返回上一页', async () => {
+    renderStudyRoom();
+    await screen.findByText('← 返回');
+
+    fireEvent.click(screen.getByText('← 返回'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('prev-page')).toBeTruthy();
+    });
+  });
+
+  it('SR10: 点商店按钮 → 跳到 /shop', async () => {
     renderStudyRoom();
     await screen.findByText(/装饰商店/);
 

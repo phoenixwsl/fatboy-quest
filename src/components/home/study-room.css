@@ -12,40 +12,36 @@
 }
 
 /* =====================================================
-   画框卡片 — 3 张并排，跟外面 paper 卡同语言
+   科比海报 — 单张居中，宽幅画框
    ===================================================== */
-.study-painting-card {
+.study-hero-poster {
   position: relative;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 16 / 9;
+  max-width: 480px;
+  margin: 0 auto;
   background: var(--paper);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
-  padding: 6px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 8px;
   overflow: hidden;
 }
-.study-painting-card::after {
-  /* 画框内的细金线，跟外面金色徽章呼应（cozy/starry/mecha 自动跟随） */
+.study-hero-poster::after {
   content: '';
   position: absolute;
-  inset: 4px;
-  border: 1px solid var(--ink-faint);
-  border-radius: calc(var(--radius-sm) - 4px);
+  inset: 5px;
+  border: 2px solid var(--ink-faint);
+  border-radius: calc(var(--radius-md) - 5px);
   pointer-events: none;
-  opacity: 0.6;
+  opacity: 0.5;
 }
-.study-painting-mat {
+.study-hero-poster-mat {
   position: relative;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--mist);
-  border-radius: calc(var(--radius-sm) - 6px);
+  border-radius: calc(var(--radius-md) - 8px);
   overflow: hidden;
 }
-.study-painting-mat > svg,
-.study-painting-mat > img {
+.study-hero-poster-mat > img {
   width: 100%;
   height: 100%;
   display: block;
@@ -53,76 +49,7 @@
 }
 
 /* =====================================================
-   柜子卡片 — 可点击 + hover/active 发光
-   ===================================================== */
-.study-cabinet-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 14px 8px 12px;
-  background: var(--paper);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  border: none;
-  cursor: pointer;
-  position: relative;
-  transition:
-    transform 100ms ease,
-    box-shadow 180ms ease,
-    filter 180ms ease;
-  /* 立体底色 3px（跟 HomePage 英雄卡同款） */
-}
-.study-cabinet-card::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -3px;
-  height: 8px;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  background: var(--fog);
-  z-index: -1;
-}
-@media (hover: hover) {
-  .study-cabinet-card:hover {
-    filter: brightness(1.05);
-    box-shadow:
-      var(--shadow-md),
-      0 0 24px var(--primary-soft);
-  }
-}
-.study-cabinet-card:active {
-  transform: scale(0.97);
-  filter: brightness(0.95);
-}
-.study-cabinet-emblem {
-  width: 72px;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 6px;
-}
-.study-cabinet-emblem > svg {
-  width: 100%;
-  height: 100%;
-}
-.study-cabinet-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.2;
-}
-.study-cabinet-subtitle {
-  font-size: 11px;
-  color: var(--ink-muted);
-  margin-top: 2px;
-  line-height: 1.2;
-}
-
-/* =====================================================
-   桌前肥仔场景 — 桌子 + 肥仔 + 桌两端绿植 + 台灯
+   桌前肥仔场景 — 桌子 + 肥仔 + 左侧向日葵 + 台灯
    ===================================================== */
 .study-desk-scene {
   position: relative;
@@ -190,7 +117,7 @@
   height: 100%;
 }
 
-/* 桌子两端绿植 */
+/* 左侧绿植 */
 .study-plant {
   position: absolute;
   bottom: 0;
@@ -204,9 +131,6 @@
 }
 .study-plant-l {
   left: 8px;
-}
-.study-plant-r {
-  right: 8px;
 }
 
 /* iPad 较宽时桌子场景给更多高度 */
