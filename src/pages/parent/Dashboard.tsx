@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   ArrowLeft, ClipboardList, Star, Gift, Calendar as CalendarIcon,
   Settings as SettingsIcon, Database, Smartphone, Sparkles,
-  Flame, Target, Clock,
+  Flame, Target, Clock, Frame as FrameIcon,
 } from 'lucide-react';
 import { db } from '../../db';
 import { todayString } from '../../lib/time';
@@ -44,6 +44,7 @@ export function ParentDashboard() {
     { Icon: ClipboardList, label: '任务管理', desc: '一次性 + 循环', to: '/parent/tasks' },
     { Icon: Star, label: '待评分', desc: `${pendingReview?.length ?? 0} 项等你评分`, to: '/parent/evaluations', urgent: (pendingReview?.length ?? 0) > 0 },
     { Icon: Gift, label: '奖励商店', desc: '管理可兑换奖励', to: '/parent/shop' },
+    { Icon: FrameIcon, label: '画廊管理', desc: '取下作品 / 管理图片', to: '/parent/gallery' },
     { Icon: Smartphone, label: '通知接收人', desc: '配置 Bark 推送', to: '/parent/recipients' },
     { Icon: SettingsIcon, label: '设置', desc: 'PIN / 密保 / 通知 / 重置', to: '/parent/settings' },
     { Icon: CalendarIcon, label: '贡献日历', desc: '月度热力图 + 长图导出', to: '/calendar' },

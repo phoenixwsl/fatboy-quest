@@ -1,116 +1,235 @@
 // ============================================================
-// 书房（StudyRoomPage）集成测试
+// 画廊（原 StudyRoomPage，R5.7.0 改为画廊）集成测试
 //
 // 覆盖：
-//   SR1: 页面渲染基础元素（标题、科比海报、桌前肥仔、积分）
-//   SR8: 积分徽章显示外面同款 total 数字
-//   SR9: 返回按钮触发 navigate(-1)
-//   SR10: 商店按钮跳转 /shop
+//   G1: 页面渲染基础元素（标题 = "肥仔的画廊"，返回按钮，瀑布流容器）
+//   G2: 数据库有图时渲染为卡片
+//   G3: 孩子端不显示"取下"按钮 (路径 /home)
+//   G4: 家长端显示"取下"按钮 (路径 /parent/gallery)
+//   G5: 点击 "取下" → 弹二次确认 modal ("再想想" + "取下")
+//   G6: 确认 "取下" → 从 DB 删除
+//   G7: 取消 ("再想想") → 不删除
+//   G8: 返回按钮触发 navigate(-1)
+//   G9: 100 张上限 — UploadCard 显示 disabled
 // ============================================================
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { db, initializeDB } from '../../src/db';
+import { db } from '../../src/db';
 import { StudyRoomPage } from '../../src/pages/StudyRoomPage';
+import { GALLERY_MAX_IMAGES } from '../../src/types';
+import type { GalleryImage } from '../../src/types';
 import { resetDB, seedSetupComplete } from './helpers';
 
 vi.mock('../../src/lib/sounds', () => ({
   sounds: { play: vi.fn(), setEnabled: vi.fn(), setPack: vi.fn() },
   syncFromSettings: vi.fn(),
 }));
-vi.mock('framer-motion', async () => {
-  const React = await import('react');
-  const passthrough = (tag: string) =>
-    React.forwardRef<any, any>(({
-      children, layoutId, layout, initial, animate, exit, transition,
-      whileTap, whileHover, variants, ...rest
-    }: any, ref) => React.createElement(tag, { ref, ...rest }, children));
-  const motion: any = new Proxy({}, { get: (_, k: string) => passthrough(k) });
+
+// gallerySeed 会尝试 fetch + canvas，jsdom 都不行 — 静默 mock
+vi.mock('../../src/lib/gallerySeed', () => ({
+  seedGalleryIfEmpty: vi.fn(() => Promise.resolve()),
+}));
+
+function makeImg(id: string, overrides: Partial<GalleryImage> = {}): GalleryImage {
+  const fullBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' });
+  const thumbBlob = new Blob([new Uint8Array([1])], { type: 'image/jpeg' });
   return {
-    motion,
-    AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
-    useAnimation: () => ({ start: vi.fn(), stop: vi.fn() }),
-    useMotionValue: (v: any) => ({ get: () => v, set: vi.fn() }),
-    useTransform: () => ({ get: () => 0 }),
+    id,
+    fullBlob,
+    thumbBlob,
+    width: 1200,
+    height: 800,
+    ratio: 1.5,
+    uploadedBy: 'child',
+    uploadedAt: Date.now(),
+    title: `图片 ${id}`,
+    ...overrides,
   };
-});
+}
 
 beforeEach(async () => {
   await resetDB();
-  await initializeDB();
   await seedSetupComplete({ childName: '肥仔' });
 });
 
-function renderStudyRoom() {
+/** 渲染指定路径 — '/home' (孩子端) 或 '/parent/gallery' (家长端) */
+function renderAt(path: '/home' | '/parent/gallery') {
   return render(
-    <MemoryRouter initialEntries={['/back', '/home']} initialIndex={1}>
+    <MemoryRouter initialEntries={['/back', path]} initialIndex={1}>
       <Routes>
         <Route path="/home" element={<StudyRoomPage />} />
+        <Route path="/parent/gallery" element={<StudyRoomPage />} />
         <Route path="/back" element={<div data-testid="prev-page">PREV</div>} />
-        <Route path="/shop" element={<div data-testid="shop-page">SHOP</div>} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
-describe('SR · StudyRoom 页面渲染', () => {
-  it('SR1: 渲染基础元素 — 标题 / 科比海报 / 桌前问候 / 商店按钮', async () => {
-    renderStudyRoom();
-
+describe('G · 画廊页基础渲染', () => {
+  it('G1: 标题 = "肥仔的画廊"，返回按钮，瀑布流容器存在', async () => {
+    renderAt('/home');
     await waitFor(() => {
-      expect(screen.getByText('肥仔的书房')).toBeTruthy();
+      expect(screen.getByText('肥仔的画廊')).toBeTruthy();
     });
-
-    // 科比海报
-    expect(screen.getByAltText('偶像海报')).toBeTruthy();
-
-    // 商店按钮 + 返回按钮
-    expect(screen.getByText(/装饰商店/)).toBeTruthy();
     expect(screen.getByText('← 返回')).toBeTruthy();
-
-    // 桌前问候（包含 childName "肥仔"）
-    const greeting = await screen.findByText(/肥仔$/);
-    expect(greeting).toBeTruthy();
+    expect(document.querySelector('.gallery-masonry')).toBeTruthy();
   });
-});
 
-describe('SR · 积分显示与外面对齐', () => {
-  it('SR8: 积分徽章数字 = 当前 total（与 HomePage 同源）', async () => {
-    // 给个 30 + 15 = 45 的积分记录
-    await db.points.bulkPut([
-      { id: 'p1', taskId: 't1', delta: 30, ts: Date.now(), reason: 'task' },
-      { id: 'p2', taskId: 't2', delta: 15, ts: Date.now(), reason: 'task' },
-    ] as any);
+  it('G1.1: 画廊空时显示空态文案', async () => {
+    renderAt('/home');
+    await waitFor(() => {
+      expect(screen.getByText(/画廊还空着/)).toBeTruthy();
+    });
+  });
 
-    renderStudyRoom();
+  it('G2: DB 有图时渲染为卡片', async () => {
+    await db.galleryImages.bulkAdd([
+      makeImg('a', { title: '向日葵' }),
+      makeImg('b', { title: '中秋全家福' }),
+    ]);
+    renderAt('/home');
 
     await waitFor(() => {
-      // 积分数字 45 出现（study-points-badge 里的 .text-num）
-      expect(screen.getByText('45')).toBeTruthy();
+      expect(screen.getByText('向日葵')).toBeTruthy();
+      expect(screen.getByText('中秋全家福')).toBeTruthy();
     });
   });
 });
 
-describe('SR · 导航', () => {
-  it('SR9: 点返回按钮 → 返回上一页', async () => {
-    renderStudyRoom();
+describe('G · 路径权限模型', () => {
+  it('G3: 孩子端打开 lightbox 不显示"取下"按钮', async () => {
+    await db.galleryImages.add(makeImg('a', { title: '向日葵' }));
+    renderAt('/home');
+
+    await waitFor(() => expect(screen.getByText('向日葵')).toBeTruthy());
+
+    // 点开 lightbox
+    fireEvent.click(screen.getByLabelText('向日葵'));
+
+    await waitFor(() => {
+      // lightbox 渲染了
+      expect(document.querySelector('.gallery-lightbox-backdrop')).toBeTruthy();
+    });
+
+    // 没有"取下"按钮
+    expect(screen.queryByText('取下')).toBeNull();
+  });
+
+  it('G4: 家长端打开 lightbox 显示"取下"按钮', async () => {
+    await db.galleryImages.add(makeImg('a', { title: '向日葵' }));
+    renderAt('/parent/gallery');
+
+    await waitFor(() => expect(screen.getByText('向日葵')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('向日葵'));
+
+    await waitFor(() => {
+      expect(screen.getByText('取下')).toBeTruthy();
+    });
+  });
+});
+
+describe('G · 删除流程', () => {
+  it('G5: 点"取下" → 弹二次确认 modal', async () => {
+    await db.galleryImages.add(makeImg('a', { title: '向日葵' }));
+    renderAt('/parent/gallery');
+
+    await waitFor(() => expect(screen.getByText('向日葵')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('向日葵'));
+
+    await waitFor(() => screen.getByText('取下'));
+    fireEvent.click(screen.getByText('取下'));
+
+    await waitFor(() => {
+      // modal 上既有"再想想"也有"取下"按钮
+      expect(screen.getByText('再想想')).toBeTruthy();
+      // confirmation 文案
+      expect(screen.getByText(/不可恢复/)).toBeTruthy();
+    });
+  });
+
+  it('G6: 确认"取下" → DB 真删', async () => {
+    await db.galleryImages.add(makeImg('a', { title: '向日葵' }));
+    renderAt('/parent/gallery');
+
+    await waitFor(() => expect(screen.getByText('向日葵')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('向日葵'));
+    await waitFor(() => screen.getByText('取下'));
+
+    // 第一次点是 lightbox 的"取下"按钮
+    fireEvent.click(screen.getByText('取下'));
+
+    // 等 modal 弹出 — 现在屏幕上有 2 个"取下"（lightbox + modal 内）
+    await waitFor(() => screen.getByText('再想想'));
+    // 在 modal 里再点"取下"（取所有"取下"中的最后一个）
+    const takeDownButtons = screen.getAllByText('取下');
+    fireEvent.click(takeDownButtons[takeDownButtons.length - 1]);
+
+    await waitFor(async () => {
+      const remaining = await db.galleryImages.toArray();
+      expect(remaining).toHaveLength(0);
+    });
+  });
+
+  it('G7: 取消"再想想" → 不删', async () => {
+    await db.galleryImages.add(makeImg('a', { title: '向日葵' }));
+    renderAt('/parent/gallery');
+
+    await waitFor(() => expect(screen.getByText('向日葵')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('向日葵'));
+    await waitFor(() => screen.getByText('取下'));
+    fireEvent.click(screen.getByText('取下'));
+    await waitFor(() => screen.getByText('再想想'));
+
+    fireEvent.click(screen.getByText('再想想'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('再想想')).toBeNull();
+    });
+    const remaining = await db.galleryImages.toArray();
+    expect(remaining).toHaveLength(1);
+  });
+});
+
+describe('G · 导航', () => {
+  it('G8: 点返回按钮 → 返回上一页', async () => {
+    renderAt('/home');
     await screen.findByText('← 返回');
-
     fireEvent.click(screen.getByText('← 返回'));
-
     await waitFor(() => {
       expect(screen.getByTestId('prev-page')).toBeTruthy();
     });
   });
+});
 
-  it('SR10: 点商店按钮 → 跳到 /shop', async () => {
-    renderStudyRoom();
-    await screen.findByText(/装饰商店/);
+describe('G · 容量上限', () => {
+  it('G9: 100 张时上传卡 disabled', async () => {
+    // 塞 100 张
+    const imgs = Array.from({ length: GALLERY_MAX_IMAGES }, (_, i) =>
+      makeImg(`g${i}`),
+    );
+    await db.galleryImages.bulkAdd(imgs);
 
-    fireEvent.click(screen.getByText(/装饰商店/));
+    renderAt('/home');
 
     await waitFor(() => {
-      expect(screen.getByTestId('shop-page')).toBeTruthy();
+      expect(screen.getByText(/画廊已满/)).toBeTruthy();
+    });
+
+    // upload card 的 role=button 应该 aria-disabled="true"
+    const uploadCard = document.querySelector('.gallery-upload-card');
+    expect(uploadCard?.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('G9.1: 90-99 张时显示剩余张数', async () => {
+    const imgs = Array.from({ length: 92 }, (_, i) => makeImg(`g${i}`));
+    await db.galleryImages.bulkAdd(imgs);
+
+    renderAt('/home');
+
+    await waitFor(() => {
+      expect(screen.getByText(/还能挂 8 张/)).toBeTruthy();
     });
   });
 });

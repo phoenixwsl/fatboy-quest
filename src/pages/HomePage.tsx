@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { motion } from 'framer-motion';
 import {
   Trophy, Settings as SettingsIcon, Flame, Star,
-  Calendar as CalendarIcon, Swords, Plus, ChevronRight, Palette, X, Home as HomeIcon,
+  Calendar as CalendarIcon, Swords, Plus, ChevronRight, Palette, X, Frame as FrameIcon,
   Gift,
 } from 'lucide-react';
 import { db } from '../db';
@@ -203,9 +203,9 @@ export function HomePage() {
             bg="var(--fatboy-50)" fg="var(--fatboy-700)"
           ><Trophy size={20} /></IconBtn>
           <IconBtn
-            label="肥仔的书房" onClick={() => { sounds.play('tap'); nav('/home'); }}
+            label="肥仔的画廊" onClick={() => { sounds.play('tap'); nav('/home'); }}
             bg="var(--primary-soft)" fg="var(--primary-strong)"
-          ><HomeIcon size={20} /></IconBtn>
+          ><FrameIcon size={20} /></IconBtn>
           {/* R5.0.0: 商店上方图标行 */}
           <IconBtn
             label="奖励商店" onClick={() => { sounds.play('tap'); nav('/shop'); }}

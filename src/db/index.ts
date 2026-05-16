@@ -4,6 +4,7 @@ import type {
   Badge, ShopItem, Redemption, BarkRecipient, Settings, TemplateHidden,
   TaskDefinition, RitualLog, ErrorLog,
   SkillCard, WishingPool, WitnessMoment, CollectibleCard,
+  GalleryImage,
 } from '../types';
 import { SCHEMA_VERSION } from '../types';
 
@@ -29,6 +30,8 @@ export class FatboyDB extends Dexie {
   witnessMoments!: Table<WitnessMoment, string>;
   // R5.1.0: 卡牌（收藏型）
   cards!: Table<CollectibleCard, string>;
+  // R5.7.0 (v10): 肥仔画廊
+  galleryImages!: Table<GalleryImage, string>;
 
   constructor() {
     super('FatboyQuestDB');
@@ -376,6 +379,40 @@ export class FatboyDB extends Dexie {
         }
       }
     });
+
+    // v10 (R5.7.0): 肥仔之家 → 肥仔画廊
+    //   - 新表 galleryImages：温馨家庭画廊，100 张硬上限
+    //   - 字段：fullBlob(长边 1200 JPEG 0.82) + thumbBlob(长边 400 JPEG 0.75)
+    //     + 元数据(title/artist/year/medium/caption，全 optional)
+    //   - 权限：双端可上传、仅家长可删除
+    //   - 不在 migration 里 seed 任何图片(避免动 Blob/打包静态资源)。
+    //     启动逻辑里(initializeDB / GalleryPage 首次进入)按需 seed center_hero.jpg。
+    //   - 详见 .claude/skills/gallery-design/SKILL.md
+    this.version(10).stores({
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled, category, rotationStatus',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+      errorLogs: 'id, ts, kind',
+      skillCards: 'id, type, earnedAt, expiresAt, usedAt',
+      wishingPool: 'id',
+      witnessMoments: 'id, ts, fromRecipientId',
+      cards: 'id, type, earnedAt',
+      // 新表 — 索引按上传时间倒序 + 上传者过滤
+      galleryImages: 'id, uploadedAt, uploadedBy',
+    });
+    // v10 不需要 upgrade 块：新表为空，老用户升级后画廊空白，
+    // 由 GalleryPage 引导 seed center_hero.jpg（见 lib/gallerySeed.ts）
   }
 }
 

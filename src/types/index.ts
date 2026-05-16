@@ -4,7 +4,7 @@
 // 并在 db/index.ts 里写迁移逻辑。
 // ============================================================
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 // v2: 新增 Task.createdBy, Settings.soundEnabled
 // v3: 新增 actualStartedAt / pause / extend / undo 字段，templateHidden 表
 // v4: 引入 TaskDefinition 循环任务定义、Task.taskType 颜色区分、Redemption.usedAt 库存、
@@ -33,6 +33,13 @@ export const SCHEMA_VERSION = 9;
 //   - wishingPool 表保留声明但数据清空、UI 不再用（许愿池机制全删）
 //   - 4 件分挡乐高预置（3000/5000/8000/10000 积分 + 完美数门槛）
 //   - 删 streak.guardCards / pardonCardsThisWeek（豁免券系统全删）
+//
+// v10 (R5.7.0): 肥仔之家 → 肥仔画廊
+//   - 新表 galleryImages：温馨家庭画廊，100 张硬上限
+//   - 字段：fullBlob(长边 1200 JPEG 0.82) + thumbBlob(长边 400 JPEG 0.75) + 元数据
+//   - 权限：双端可上传、仅家长可删除
+//   - migration 时把原 center_hero.jpg 转为第一张种子图，老用户升级不丢
+//   - 详见 .claude/skills/gallery-design/SKILL.md
 //
 // 关于 Pet.lifetimePoints / level / 任务计数器：暂不存储，按需 derive。
 // 详见 src/lib/petStats.ts。这是为了避免 R4.0.0 接触所有 db.points.add 调用方，
@@ -384,4 +391,39 @@ export interface CollectibleCard {
   earnedAt: number;
   /** 关联到触发的对象（taskId / 日期 等） */
   context?: string;
+}
+
+// ============================================================
+// v10 (R5.7.0): 肥仔画廊
+// 温馨家庭画廊（不是高冷艺术展），100 张硬上限
+// 详见 .claude/skills/gallery-design/SKILL.md
+// ============================================================
+export const GALLERY_MAX_IMAGES = 100;
+
+export interface GalleryImage {
+  id: string;
+  /** 主图 Blob — 长边 1200px, JPEG 0.82, ≤ 400KB */
+  fullBlob: Blob;
+  /** 缩略图 Blob — 长边 400px, JPEG 0.75, ~30KB（瀑布流用） */
+  thumbBlob: Blob;
+  /** 压缩后尺寸（瀑布流布局/aspect-ratio 用） */
+  width: number;
+  height: number;
+  ratio: number;   // width / height
+
+  /** 谁上传的 */
+  uploadedBy: 'parent' | 'child';
+  uploadedAt: number;
+
+  // 美术馆 wall label —— 全 optional，孩子可以不写
+  /** 作品名，如 "向日葵" / "中秋全家福" */
+  title?: string;
+  /** 作者（孩子上传时默认 settings.childName，可改） */
+  artist?: string;
+  /** 创作年份 */
+  year?: number;
+  /** 媒介 — "蜡笔画" / "照片" / "iPad 涂鸦" / "水彩" */
+  medium?: string;
+  /** 一句话说明，上限 80 字 */
+  caption?: string;
 }

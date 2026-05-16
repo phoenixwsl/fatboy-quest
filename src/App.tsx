@@ -144,6 +144,8 @@ export default function App() {
                 <Route path="/parent/recipients" element={<Recipients />} />
                 <Route path="/parent/settings" element={<ParentSettings />} />
                 <Route path="/parent/data" element={<DataExport />} />
+                {/* R5.7.0: 家长端画廊管理 —— 复用 StudyRoom 组件,在 /parent/* 路径下自动启用删除按钮 */}
+                <Route path="/parent/gallery" element={<StudyRoomPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}

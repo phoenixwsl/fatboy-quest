@@ -18,7 +18,7 @@ This file is auto-loaded by Claude Code / Cowork at the start of every session. 
 3. **不能引入付费/订阅服务**：这是单人爸爸副业项目，所有依赖必须免费。
 4. **不能写恶意代码 / 不能涉及未成年人不当内容**：用户是孩子。
 5. **Bark 推送 key 是写死的**：爸爸 `aWEsiXKUPXgZAPNiz6r835`、妈妈 `DfjzKiUDcfdWLcnMeR6jXf`。代码里 `ensureDefaultRecipients()` 会自动校正历史互换的情况，不要乱动。
-6. **数据库 schema 已演进到 v6**：改 schema 必须写 migration，不能破坏老用户的本地数据。
+6. **数据库 schema 已演进到 v10**：改 schema 必须写 migration，不能破坏老用户的本地数据。
 
 ## 3. 技术栈速查
 
@@ -32,7 +32,7 @@ This file is auto-loaded by Claude Code / Cowork at the start of every session. 
 
 ## 4. 已建立的设计/产品资产 — Skill 库
 
-**5 个 skill 形成完整决策链**，任何改动按"决策层 → 专项层 → 发版层"顺序找：
+**6 个 skill 形成完整决策链**，任何改动按"决策层 → 专项层 → 发版层"顺序找：
 
 ### 决策层（入口）
 - **`.claude/skills/children-app-design/`** — 上层产品哲学 + 决策框架
@@ -44,6 +44,7 @@ This file is auto-loaded by Claude Code / Cowork at the start of every session. 
 - **`.claude/skills/visual-design/`** — 视觉系统（色彩 / 形状 / 字体 / 多主题 10 法则 / 5 套现成主题 / Gurney·Albers·Itten 三大师）
 - **`.claude/skills/adhd-ux/`** — ADHD 用户体验（时间反馈分级 / 启动摩擦最小化 / 失败温柔 / 即时奖励 / 反焦虑放大）
 - **`.claude/skills/kid-rewards/`** — 积分经济（兑换 / 通胀 / 通货保护 / Streak / 守护卡 / 彩蛋）
+- **`.claude/skills/gallery-design/`** — 温馨家庭画廊（瀑布流 / 美术馆 wall label / 100 张硬上限 / 米白底 lightbox / 反 feature 列表 — 拦 Pinterest 化）
 
 ### 发版层（守门）
 - **`.claude/skills/release-checklist/`** — Pre-flight 清单（tsc → tests → build → schema-migration → 版本 bump → iPad 缓存提示 → 一句话 commit）
@@ -121,6 +122,7 @@ bump 改 `src/version.ts` 的 `APP_VERSION` 和 `APP_BUILD_DATE`。
 | 改孩子首页 | `src/pages/HomePage.tsx` |
 | 改闯关页 | `src/pages/QuestPage.tsx` |
 | 改评分弹窗 | `src/pages/parent/Evaluations.tsx` |
+| **改画廊**（瀑布流/lightbox/上传/删除）| `.claude/skills/gallery-design` + `src/components/home/StudyRoom.tsx` + `src/components/gallery/*` + `src/lib/imageCompress.ts` |
 | 看测试 | `tests/`（单元）+ `tests/integration/`（集成） |
 | 看历史版本/约定 | 这个文件 + git log |
 
@@ -135,11 +137,11 @@ bump 改 `src/version.ts` 的 `APP_VERSION` 和 `APP_BUILD_DATE`。
 
 ### Done（最近 5 个）
 
+- ✓ R5.7.0: 肥仔之家 → 温馨家庭画廊（gallery-design skill + DB v10 galleryImages + 100 张瀑布流 + 美术馆 wall label lightbox + 双端可传仅家长可删）
+- ✓ R5.6.1: gallery-design skill 立项（决策框架 + 视觉法则 + 反 feature 列表）
 - ✓ R3.4.1: 242 处硬编码颜色 token 化
 - ✓ R3.4.0: 建立 visual-design skill + 主题重写
 - ✓ R3.3.1: 修主题深色态文字不可读 + 主题给孩子用 + 评分弹窗加任务细节
-- ✓ R3.3.0: 多主题系统 + 难度星 + 屏幕长亮
-- ✓ R3.2: 难度 1-3 星（算法 B）
 
 ## 9. 联系方式
 

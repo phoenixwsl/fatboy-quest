@@ -1,0 +1,369 @@
+/* ============================================================
+ * 画廊 R5.7.0 — gallery-design skill 第 4 节定义的视觉 token
+ *
+ * 灵魂：肥仔家客厅墙上的相片墙
+ * NOT 美术馆 / NOT Pinterest / NOT 朋友圈
+ *
+ * 跟随 cozy/starry/mecha 三主题自动适配
+ * ============================================================ */
+
+:root {
+  /* 相框 —— 法则 2：白色相框边是相片墙的灵魂 */
+  --gallery-frame-bg:      #FFFFFF;
+  --gallery-frame-border:  rgba(224, 200, 160, 0.55);  /* 淡米色描边 */
+  --gallery-frame-shadow:  0 4px 12px rgba(140, 90, 40, 0.10);
+  --gallery-frame-padding: 6px;
+  --gallery-frame-radius:  14px;  /* 法则 3：12-16px 甜区 */
+
+  /* 衬线 caption —— 法则 5 */
+  --gallery-caption-font:  "Source Han Serif SC", "Songti SC", "Noto Serif SC", Georgia, serif;
+
+  /* lightbox —— 法则 8.1 米白背景 */
+  --gallery-lightbox-bg:   rgba(255, 255, 250, 0.92);
+  --gallery-lightbox-frame-padding: 10px;
+}
+
+/* 暗主题下相框略灰但仍暖 */
+[data-theme="starry"], [data-theme="mecha"] {
+  --gallery-frame-bg:      #F2EFE8;
+  --gallery-frame-border:  rgba(200, 180, 140, 0.40);
+  --gallery-frame-shadow:  0 4px 16px rgba(80, 50, 20, 0.30);
+  --gallery-lightbox-bg:   rgba(30, 28, 35, 0.85);  /* 暗主题用深一点的米白，避免和页面背景冲突 */
+}
+
+/* ============================================================
+ * 瀑布流容器 —— CSS columns 短列优先
+ * iPad 竖屏 2 列 / iPad 横屏 3 列
+ * ============================================================ */
+.gallery-masonry {
+  columns: 2;
+  column-gap: 20px;          /* 法则 7：留白比图大胆 */
+  padding: 0;
+}
+
+@media (min-width: 900px) and (orientation: landscape) {
+  .gallery-masonry {
+    columns: 3;
+  }
+}
+
+/* iPhone 等小屏：1 列（虽然 iPad-only，但安全垫） */
+@media (max-width: 480px) {
+  .gallery-masonry {
+    columns: 1;
+  }
+}
+
+.gallery-card {
+  break-inside: avoid;       /* 防止单图被切两列 */
+  margin-bottom: 20px;
+  background: var(--gallery-frame-bg);
+  border: 1px solid var(--gallery-frame-border);
+  border-radius: var(--gallery-frame-radius);
+  padding: var(--gallery-frame-padding);
+  box-shadow: var(--gallery-frame-shadow);
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  display: block;
+}
+
+.gallery-card:active {
+  transform: scale(0.985);
+}
+
+.gallery-card-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: calc(var(--gallery-frame-radius) - 6px);
+  background: var(--surface-mist);  /* 加载前占位 */
+}
+
+.gallery-card-caption {
+  font-family: var(--gallery-caption-font);
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-align: center;
+  margin-top: 4px;
+  padding: 0 6px 4px 6px;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  /* 单行省略 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+ * 上传"+"卡片 —— 法则 9：上传 = 挂新画
+ * ============================================================ */
+.gallery-upload-card {
+  break-inside: avoid;
+  margin-bottom: 20px;
+  border-radius: var(--gallery-frame-radius);
+  border: 2px dashed var(--gallery-frame-border);
+  background: var(--surface-mist);
+  color: var(--ink-muted);
+  font-family: var(--gallery-caption-font);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  gap: 8px;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+
+.gallery-upload-card:active {
+  background: var(--surface-fog);
+  border-color: var(--ink-faint);
+}
+
+.gallery-upload-card[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================================
+ * 空态
+ * ============================================================ */
+.gallery-empty {
+  text-align: center;
+  padding: 60px 24px;
+  font-family: var(--gallery-caption-font);
+  color: var(--ink-muted);
+  line-height: 1.8;
+}
+
+/* ============================================================
+ * Lightbox —— 法则 8：米白底 + 美术馆标签
+ * ============================================================ */
+.gallery-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--gallery-lightbox-bg);
+  backdrop-filter: blur(20px) saturate(1.05);
+  -webkit-backdrop-filter: blur(20px) saturate(1.05);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.gallery-lightbox-stage {
+  max-width: min(86vw, 820px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.gallery-lightbox-frame {
+  background: var(--gallery-frame-bg);
+  padding: var(--gallery-lightbox-frame-padding);
+  border-radius: 16px;
+  border: 1px solid var(--gallery-frame-border);
+  box-shadow: 0 12px 40px rgba(80, 50, 20, 0.16);
+  max-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-lightbox-img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(70vh - 20px);
+  width: auto;
+  height: auto;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+/* 美术馆 wall label */
+.gallery-wall-label {
+  font-family: var(--gallery-caption-font);
+  color: var(--ink-strong);
+  align-self: flex-start;     /* 左对齐主图左下 */
+  max-width: 100%;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+
+.gallery-wall-label-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink-strong);
+  margin: 0 0 4px 0;
+}
+
+.gallery-wall-label-line {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.gallery-wall-label-medium {
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin: 6px 0 0 0;
+}
+
+.gallery-wall-label-caption {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin: 12px 0 0 0;
+  line-height: 1.7;
+  max-width: 60ch;
+}
+
+/* lightbox 右上角 close */
+.gallery-lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.gallery-lightbox-close:active {
+  background: var(--surface-mist);
+}
+
+/* 家长端：删除按钮 —— 远离 close (法则 9) */
+.gallery-lightbox-delete {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--gallery-frame-border);
+  color: var(--ink-muted);
+  font-family: var(--gallery-caption-font);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gallery-lightbox-delete:active {
+  background: var(--surface-mist);
+}
+
+/* ============================================================
+ * 删除确认 modal —— "再想想 / 取下"
+ * ============================================================ */
+.gallery-delete-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 30, 20, 0.45);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.gallery-delete-modal {
+  background: var(--surface-paper);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px 20px;
+  max-width: 360px;
+  width: 100%;
+  font-family: var(--gallery-caption-font);
+  color: var(--ink-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+.gallery-delete-thumb {
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+  margin: 0 auto 16px;
+  background: var(--surface-mist);
+  border: 4px solid #FFFFFF;
+  box-shadow: var(--gallery-frame-shadow);
+  object-fit: cover;
+}
+
+.gallery-delete-text {
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0 0 4px 0;
+}
+
+.gallery-delete-sub {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 0 0 20px 0;
+}
+
+.gallery-delete-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.gallery-delete-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-family: var(--gallery-caption-font);
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.gallery-delete-actions .btn-keep {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+}
+
+.gallery-delete-actions .btn-take-down {
+  background: var(--surface-paper);
+  color: #C46A30;             /* 暖橙红文字，按钮底色保持中性 */
+  border-color: var(--gallery-frame-border);
+}
+
+/* ============================================================
+ * 入场动画 —— 法则 10：纸张展开
+ * ============================================================ */
+@keyframes gallery-card-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.gallery-card,
+.gallery-upload-card {
+  animation: gallery-card-in 400ms ease-out backwards;
+}
+
+/* stagger 用 nth-child 简单实现，30ms 一档 */
+.gallery-card:nth-child(1)  { animation-delay: 0ms; }
+.gallery-card:nth-child(2)  { animation-delay: 30ms; }
+.gallery-card:nth-child(3)  { animation-delay: 60ms; }
+.gallery-card:nth-child(4)  { animation-delay: 90ms; }
+.gallery-card:nth-child(5)  { animation-delay: 120ms; }
+.gallery-card:nth-child(6)  { animation-delay: 150ms; }
+.gallery-card:nth-child(7)  { animation-delay: 180ms; }
+.gallery-card:nth-child(8)  { animation-delay: 210ms; }
+.gallery-card:nth-child(9)  { animation-delay: 240ms; }
+.gallery-card:nth-child(10) { animation-delay: 270ms; }
+.gallery-card:nth-child(n+11) { animation-delay: 300ms; }
