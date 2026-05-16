@@ -12,9 +12,9 @@
 // ============================================================
 
 import { db } from '../db';
-import { compressForGallery } from './imageCompress';
+import { compressWithTransform } from './imageCompress';
 import centerHeroImg from '../assets/home/paintings/center_hero.jpg';
-import type { GalleryImage } from '../types';
+import { DEFAULT_FRAME, DEFAULT_DISPLAY_SIZE, type GalleryImage } from '../types';
 
 const SEED_ID = 'seed-kobe-poster';
 
@@ -36,12 +36,18 @@ export async function seedGalleryIfEmpty(): Promise<void> {
     const blob = await resp.blob();
     const file = new File([blob], 'kobe.jpg', { type: 'image/jpeg' });
 
-    const { fullBlob, thumbBlob, width, height, ratio } = await compressForGallery(file);
+    // R5.8.0: 用 compressWithTransform 同时拿 originalBlob,让种子图也支持"换画框"
+    const { fullBlob, thumbBlob, originalBlob, width, height, ratio } =
+      await compressWithTransform(file, { frame: DEFAULT_FRAME });
 
     const seed: GalleryImage = {
       id: SEED_ID,
       fullBlob,
       thumbBlob,
+      originalBlob,
+      cropFrame: DEFAULT_FRAME,
+      rotation: 0,
+      displaySize: DEFAULT_DISPLAY_SIZE,
       width, height, ratio,
       uploadedBy: 'parent',
       uploadedAt: Date.now(),

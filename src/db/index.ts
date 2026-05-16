@@ -413,6 +413,36 @@ export class FatboyDB extends Dexie {
     });
     // v10 不需要 upgrade 块：新表为空，老用户升级后画廊空白，
     // 由 GalleryPage 引导 seed center_hero.jpg（见 lib/gallerySeed.ts）
+
+    // v11 (R5.8.0): 上传编辑器 + 画框系统 + 双端可删
+    //   - GalleryImage 加 originalBlob/cropFrame/rotation/displaySize 字段
+    //   - 索引结构不变 (仍是 id, uploadedAt, uploadedBy)
+    //   - 老图(R5.7 时期上传)不会有 originalBlob,UI 自动 disable"换画框"
+    //   - 详见 .claude/skills/gallery-design/SKILL.md
+    this.version(11).stores({
+      tasks: 'id, date, status, definitionId, taskType, [date+status]',
+      evaluations: 'id, taskId, evaluatedAt',
+      schedules: 'id, date, round',
+      points: 'id, ts, reason',
+      streak: 'id',
+      pet: 'id',
+      badges: 'id, unlockedAt',
+      shop: 'id, enabled, category, rotationStatus',
+      redemptions: 'id, redeemedAt, shopItemId, usedAt',
+      recipients: 'id, enabled',
+      settings: 'id',
+      templateHidden: 'title, hiddenAt',
+      taskDefinitions: 'id, type, active',
+      ritualLogs: 'id, kind, date',
+      errorLogs: 'id, ts, kind',
+      skillCards: 'id, type, earnedAt, expiresAt, usedAt',
+      wishingPool: 'id',
+      witnessMoments: 'id, ts, fromRecipientId',
+      cards: 'id, type, earnedAt',
+      galleryImages: 'id, uploadedAt, uploadedBy',
+    });
+    // v11 不需要 upgrade 块：新字段在 IndexedDB 里是 schemaless 的,
+    // 已有数据自动兼容（缺字段时 UI 走 fallback）。
   }
 }
 

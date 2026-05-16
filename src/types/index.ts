@@ -4,7 +4,7 @@
 // 并在 db/index.ts 里写迁移逻辑。
 // ============================================================
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 // v2: 新增 Task.createdBy, Settings.soundEnabled
 // v3: 新增 actualStartedAt / pause / extend / undo 字段，templateHidden 表
 // v4: 引入 TaskDefinition 循环任务定义、Task.taskType 颜色区分、Redemption.usedAt 库存、
@@ -40,6 +40,14 @@ export const SCHEMA_VERSION = 10;
 //   - 权限：双端可上传、仅家长可删除
 //   - migration 时把原 center_hero.jpg 转为第一张种子图，老用户升级不丢
 //   - 详见 .claude/skills/gallery-design/SKILL.md
+//
+// v11 (R5.8.0): 上传编辑器 + 画框系统 + 双端可删
+//   - GalleryImage 加 originalBlob(长边 1600 JPEG 0.85, ~600KB) 用于"换画框"
+//   - 加 cropFrame: '1:1'|'4:5'|'4:3'|'3:4' 记录当前画框
+//   - 加 rotation: 0|90|180|270 记录当前应用的旋转
+//   - 老图无 originalBlob → "换画框"disabled,只能"取下/换描述"
+//   - 双端可删(去掉 isParentSide 门禁,二次确认护栏依然在)
+//   - 见 .claude/skills/gallery-design/SKILL.md 第 6.2 节(上传编辑器规范)
 //
 // 关于 Pet.lifetimePoints / level / 任务计数器：暂不存储，按需 derive。
 // 详见 src/lib/petStats.ts。这是为了避免 R4.0.0 接触所有 db.points.add 调用方，
@@ -400,12 +408,41 @@ export interface CollectibleCard {
 // ============================================================
 export const GALLERY_MAX_IMAGES = 100;
 
+/** 画框形状 —— R5.8.0,4 种固定比例,无"原图"选项(整体画展感统一) */
+export type GalleryFrame = '1:1' | '4:5' | '4:3' | '3:4';
+
+export const GALLERY_FRAMES: Array<{ id: GalleryFrame; label: string; ratio: number }> = [
+  { id: '1:1', label: '方形',   ratio: 1 / 1 },
+  { id: '4:5', label: '拍立得', ratio: 4 / 5 },
+  { id: '4:3', label: '横幅',   ratio: 4 / 3 },
+  { id: '3:4', label: '竖幅',   ratio: 3 / 4 },
+];
+
+export const DEFAULT_FRAME: GalleryFrame = '4:5';
+
+/**
+ * 画框大小 —— R5.8.0,两档(大/小)在瀑布流里制造层次感(sa lon hang)。
+ *  large: 占列 ~85-100%（视觉锚点）
+ *  small: 占列 ~55-72%（卫星图，让 large 旁边有呼吸）
+ */
+export type GalleryDisplaySize = 'small' | 'large';
+export const DEFAULT_DISPLAY_SIZE: GalleryDisplaySize = 'large';
+
 export interface GalleryImage {
   id: string;
-  /** 主图 Blob — 长边 1200px, JPEG 0.82, ≤ 400KB */
+  /** 主图 Blob — 长边 1200px, JPEG 0.82, ≤ 400KB (已应用 rotation+crop) */
   fullBlob: Blob;
-  /** 缩略图 Blob — 长边 400px, JPEG 0.75, ~30KB（瀑布流用） */
+  /** 缩略图 Blob — 长边 400px, JPEG 0.75, ~30KB（瀑布流用,已应用变换） */
   thumbBlob: Blob;
+  /** 原图 Blob — 长边 1600px, JPEG 0.85, ~600KB (用于"换画框"再裁) — R5.8.0+ 新图才有 */
+  originalBlob?: Blob;
+  /** 当前应用的画框形状 (R5.8.0+) */
+  cropFrame?: GalleryFrame;
+  /** 当前应用的旋转角度 (R5.8.0+) */
+  rotation?: 0 | 90 | 180 | 270;
+  /** 画框显示大小 (R5.8.0+) —— 决定瀑布流里的相对宽度,营造 salon hang 层次 */
+  displaySize?: GalleryDisplaySize;
+
   /** 压缩后尺寸（瀑布流布局/aspect-ratio 用） */
   width: number;
   height: number;

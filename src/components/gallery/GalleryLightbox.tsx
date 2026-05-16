@@ -1,17 +1,15 @@
 // ============================================================
 // Lightbox — gallery-design skill 第 8 节
-//
-// 关键约束：
-//   - 米白底 + backdrop-blur，NOT 黑底
-//   - 美术馆 wall label：title / artist · year / medium / caption
-//   - 所有字段 optional，全空就只显示主图
-//   - ESC / 单击空白关闭
-//   - 左右滑动 / 箭头键翻页
-//   - 家长端右上"取下"按钮（远离 close X，法则 9）
+// R5.8.0 升级：单一"取下"按钮 → 4 按钮动作菜单
+//   - 取下      → 二次确认 modal
+//   - 换画框    → UploadEditor 重压缩(需要 originalBlob,老图禁用)
+//   - 换描述    → EditDescriptionDialog
+//   - 关闭      → 退出
+// 调用方按 callbacks 传 onRequestX,某个 callback 为 undefined 则按钮不出现。
 // ============================================================
 
 import { useEffect, useState, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2, Frame as FrameIcon, Pencil } from 'lucide-react';
 import type { GalleryImage } from '../../types';
 
 interface Props {
@@ -19,19 +17,20 @@ interface Props {
   currentId: string | null;
   onClose: () => void;
   onNavigate: (newId: string) => void;
-  /** 仅家长端传入，给出"取下"按钮 */
   onRequestDelete?: (id: string) => void;
+  onRequestReframe?: (id: string) => void;
+  onRequestEditDescription?: (id: string) => void;
 }
 
 export function GalleryLightbox({
-  images, currentId, onClose, onNavigate, onRequestDelete,
+  images, currentId, onClose, onNavigate,
+  onRequestDelete, onRequestReframe, onRequestEditDescription,
 }: Props) {
   const current = images.find((i) => i.id === currentId);
   const currentIndex = current ? images.indexOf(current) : -1;
 
   const [url, setUrl] = useState<string | null>(null);
 
-  // 用 fullBlob 渲染（lightbox 是放大场景）
   useEffect(() => {
     if (!current) { setUrl(null); return; }
     const u = URL.createObjectURL(current.fullBlob);
@@ -49,7 +48,6 @@ export function GalleryLightbox({
     }
   }, [currentIndex, images, onNavigate]);
 
-  // 键盘：ESC 关闭，左右翻页
   useEffect(() => {
     if (!current) return;
     const handler = (e: KeyboardEvent) => {
@@ -61,7 +59,6 @@ export function GalleryLightbox({
     return () => window.removeEventListener('keydown', handler);
   }, [current, onClose, navPrev, navNext]);
 
-  // 简易 swipe（仅触摸）
   const [touchStart, setTouchStart] = useState<number | null>(null);
   function handleTouchStart(e: React.TouchEvent) {
     setTouchStart(e.touches[0].clientX);
@@ -76,7 +73,6 @@ export function GalleryLightbox({
 
   if (!current) return null;
 
-  // 美术馆标签：缺哪行不渲染哪行
   const artistYearLine =
     current.artist && current.year != null
       ? `${current.artist} · ${current.year}`
@@ -88,6 +84,8 @@ export function GalleryLightbox({
 
   const hasLabel =
     !!(current.title || artistYearLine || current.medium || current.caption);
+
+  const canReframe = !!current.originalBlob;
 
   return (
     <div
@@ -105,16 +103,6 @@ export function GalleryLightbox({
       >
         <X size={20} />
       </button>
-
-      {onRequestDelete && (
-        <button
-          type="button"
-          className="gallery-lightbox-delete"
-          onClick={(e) => { e.stopPropagation(); onRequestDelete(current.id); }}
-        >
-          取下
-        </button>
-      )}
 
       <div
         className="gallery-lightbox-stage"
@@ -150,6 +138,45 @@ export function GalleryLightbox({
           </div>
         )}
       </div>
+
+      {/* 动作菜单 —— 底部居中,4 按钮 */}
+      {(onRequestDelete || onRequestReframe || onRequestEditDescription) && (
+        <div
+          className="gallery-lightbox-actions"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onRequestEditDescription && (
+            <button
+              type="button"
+              className="gallery-lightbox-action"
+              onClick={() => onRequestEditDescription(current.id)}
+            >
+              <Pencil size={15} /> 换描述
+            </button>
+          )}
+          {onRequestReframe && (
+            <button
+              type="button"
+              className="gallery-lightbox-action"
+              onClick={() => canReframe && onRequestReframe(current.id)}
+              disabled={!canReframe}
+              title={canReframe ? '换个画框' : '老画无法换框（仅 R5.8 后上传的支持）'}
+            >
+              <FrameIcon size={15} /> 换画框
+            </button>
+          )}
+          {onRequestDelete && (
+            <button
+              type="button"
+              className="gallery-lightbox-action"
+              data-tone="danger"
+              onClick={() => onRequestDelete(current.id)}
+            >
+              <Trash2 size={15} /> 取下
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

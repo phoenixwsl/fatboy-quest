@@ -18,7 +18,7 @@ This file is auto-loaded by Claude Code / Cowork at the start of every session. 
 3. **不能引入付费/订阅服务**：这是单人爸爸副业项目，所有依赖必须免费。
 4. **不能写恶意代码 / 不能涉及未成年人不当内容**：用户是孩子。
 5. **Bark 推送 key 是写死的**：爸爸 `aWEsiXKUPXgZAPNiz6r835`、妈妈 `DfjzKiUDcfdWLcnMeR6jXf`。代码里 `ensureDefaultRecipients()` 会自动校正历史互换的情况，不要乱动。
-6. **数据库 schema 已演进到 v10**：改 schema 必须写 migration，不能破坏老用户的本地数据。
+6. **数据库 schema 已演进到 v11**：改 schema 必须写 migration，不能破坏老用户的本地数据。
 
 ## 3. 技术栈速查
 
@@ -137,6 +137,8 @@ bump 改 `src/version.ts` 的 `APP_VERSION` 和 `APP_BUILD_DATE`。
 
 ### Done（最近 5 个）
 
+- ✓ R5.8.0: 上传编辑器（4 画框 × 2 大小 + 旋转 + 平移）+ Lightbox 动作菜单（取下/换画框/换描述）+ salon-hang 层次感（大/小档 + 微旋转 + 留白）+ 双端可删 + skill 沉淀画框比例与摆放原则
+- ✓ R5.7.1: 修 tests/setup.ts 多余的 @ts-expect-error 导致 CI build 失败
 - ✓ R5.7.0: 肥仔之家 → 温馨家庭画廊（gallery-design skill + DB v10 galleryImages + 100 张瀑布流 + 美术馆 wall label lightbox + 双端可传仅家长可删）
 - ✓ R5.6.1: gallery-design skill 立项（决策框架 + 视觉法则 + 反 feature 列表）
 - ✓ R3.4.1: 242 处硬编码颜色 token 化

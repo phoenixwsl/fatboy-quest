@@ -34,16 +34,18 @@
 /* ============================================================
  * 瀑布流容器 —— CSS columns 短列优先
  * iPad 竖屏 2 列 / iPad 横屏 3 列
+ * 调性参考：Cosmos.so / Apple Memories（留白瀑布流，不是 Pinterest 填满）
  * ============================================================ */
 .gallery-masonry {
   columns: 2;
-  column-gap: 20px;          /* 法则 7：留白比图大胆 */
-  padding: 0;
+  column-gap: 28px;          /* Cosmos 风格：比 Pinterest 大得多 */
+  padding: 0 4px;
 }
 
 @media (min-width: 900px) and (orientation: landscape) {
   .gallery-masonry {
     columns: 3;
+    column-gap: 32px;
   }
 }
 
@@ -56,20 +58,25 @@
 
 .gallery-card {
   break-inside: avoid;       /* 防止单图被切两列 */
-  margin-bottom: 20px;
   background: var(--gallery-frame-bg);
   border: 1px solid var(--gallery-frame-border);
   border-radius: var(--gallery-frame-radius);
-  padding: var(--gallery-frame-padding);
   box-shadow: var(--gallery-frame-shadow);
   cursor: pointer;
   transition: transform 200ms ease, box-shadow 200ms ease;
   display: block;
+  position: relative;
+  /* width / margin-bottom / padding / transform 由 inline style 提供（基于 id hash 微变） */
 }
 
 .gallery-card:active {
-  transform: scale(0.985);
+  transform: scale(0.985) !important;     /* 覆盖 hash 旋转,active 态优先 */
 }
+
+/* 列内对齐变体 —— 让卡片错开,不像 grid 那么齐 */
+.gallery-card[data-align="left"]   { margin-right: auto; }
+.gallery-card[data-align="right"]  { margin-left: auto; }
+.gallery-card[data-align="center"] { margin-left: auto; margin-right: auto; }
 
 .gallery-card-img {
   display: block;
@@ -77,6 +84,51 @@
   height: auto;
   border-radius: calc(var(--gallery-frame-radius) - 6px);
   background: var(--surface-mist);  /* 加载前占位 */
+}
+
+/* 管理模式 —— 顶栏切到"管理"时显示卡片角标 × 按钮 (R5.8.0 两端均可) */
+.gallery-card-delete-corner {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-paper);
+  border: 1.5px solid var(--gallery-frame-border);
+  box-shadow: var(--gallery-frame-shadow);
+  color: var(--ink-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.gallery-card-delete-corner:active {
+  background: var(--surface-mist);
+  transform: scale(0.92);
+}
+
+/* 管理模式顶栏 toggle 按钮 */
+.gallery-manage-toggle {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface-paper);
+  color: var(--ink-muted);
+  border: 1px solid var(--gallery-frame-border);
+  font-family: var(--gallery-caption-font);
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.gallery-manage-toggle[data-active="true"] {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
 }
 
 .gallery-card-caption {
@@ -245,23 +297,34 @@
   background: var(--surface-mist);
 }
 
-/* 家长端：删除按钮 —— 远离 close (法则 9) */
+/* Lightbox 删除按钮 —— 远离 close (法则 9), R5.8.0 加大更显眼 */
 .gallery-lightbox-delete {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  padding: 6px 14px;
+  top: 18px;
+  left: 18px;
+  padding: 10px 18px;
   border-radius: 999px;
-  background: transparent;
-  border: 1px solid var(--gallery-frame-border);
-  color: var(--ink-muted);
+  background: var(--surface-paper);
+  border: 1.5px solid var(--gallery-frame-border);
+  color: var(--ink-strong);
   font-family: var(--gallery-caption-font);
-  font-size: 13px;
+  font-size: 15px;
+  letter-spacing: 0.04em;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--gallery-frame-shadow);
+  min-height: 40px;
+}
+
+.gallery-lightbox-delete:hover {
+  background: var(--surface-mist);
 }
 
 .gallery-lightbox-delete:active {
-  background: var(--surface-mist);
+  background: var(--surface-fog);
+  transform: scale(0.96);
 }
 
 /* ============================================================
@@ -340,6 +403,270 @@
   background: var(--surface-paper);
   color: #C46A30;             /* 暖橙红文字，按钮底色保持中性 */
   border-color: var(--gallery-frame-border);
+}
+
+/* ============================================================
+ * 上传/编辑画框 modal (R5.8.0)
+ * ============================================================ */
+.gallery-upload-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 30, 20, 0.5);
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.gallery-upload-modal {
+  background: var(--surface-paper);
+  border-radius: 22px;
+  padding: 20px;
+  max-width: 460px;
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  color: var(--ink-strong);
+  font-family: var(--gallery-caption-font);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gallery-upload-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -4px -4px 0;
+}
+
+.gallery-upload-title {
+  font-family: var(--gallery-caption-font);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.gallery-upload-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.gallery-upload-close:active {
+  background: var(--surface-mist);
+}
+
+.gallery-upload-preview-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-mist);
+  border-radius: 16px;
+  padding: 16px;
+  min-height: 280px;
+  touch-action: none;       /* 让拖拽事件不被滚动吞掉 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gallery-upload-preview {
+  display: block;
+  background: #FFFFFF;
+  border: 1px solid var(--gallery-frame-border);
+  border-radius: 8px;
+  box-shadow: var(--gallery-frame-shadow);
+  max-width: 100%;
+  max-height: 380px;
+  pointer-events: none;     /* 拖拽事件在 wrap 上 */
+}
+
+.gallery-upload-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.gallery-upload-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gallery-upload-section-label {
+  width: 36px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.gallery-upload-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gallery-upload-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  border: 1px solid var(--gallery-frame-border);
+  font-family: var(--gallery-caption-font);
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  min-height: 36px;
+}
+
+.gallery-upload-chip[data-active="true"] {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+}
+
+.gallery-upload-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.gallery-upload-btn-primary,
+.gallery-upload-btn-secondary {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-family: var(--gallery-caption-font);
+  font-size: 15px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.gallery-upload-btn-primary {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+}
+
+.gallery-upload-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.gallery-upload-btn-secondary {
+  background: var(--surface-paper);
+  color: var(--ink-strong);
+  border-color: var(--gallery-frame-border);
+}
+
+.gallery-upload-btn-secondary:active {
+  background: var(--surface-mist);
+}
+
+.gallery-upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gallery-upload-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gallery-upload-field-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+.gallery-upload-field-input {
+  font-family: var(--gallery-caption-font);
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--gallery-frame-border);
+  background: var(--surface-paper);
+  color: var(--ink-strong);
+  resize: vertical;
+  min-height: 38px;
+}
+
+.gallery-upload-field-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.gallery-upload-busy {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+/* ============================================================
+ * Lightbox 动作菜单（R5.8.0）—— 替换原单一"取下"按钮
+ * 4 按钮:取下 / 换画框 / 换描述 / 关闭
+ * ============================================================ */
+.gallery-lightbox-actions {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 2;
+}
+
+.gallery-lightbox-action {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--surface-paper);
+  border: 1.5px solid var(--gallery-frame-border);
+  color: var(--ink-strong);
+  font-family: var(--gallery-caption-font);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: var(--gallery-frame-shadow);
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gallery-lightbox-action:active {
+  transform: scale(0.96);
+  background: var(--surface-mist);
+}
+
+.gallery-lightbox-action[data-tone="danger"] {
+  color: #B05A14;
+}
+
+.gallery-lightbox-action[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ============================================================

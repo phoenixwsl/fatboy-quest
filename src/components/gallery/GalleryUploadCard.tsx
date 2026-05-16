@@ -1,103 +1,54 @@
 // ============================================================
-// 上传"+"卡片 — 末尾挂新画
+// 上传"+"卡片 — R5.8.0
 //
-// 行为：
-//   - 点击 → 触发 <input type="file" accept="image/*"> 唤起相册/相机
-//   - 选好图后 → 调 compressForGallery → 写 IndexedDB
-//   - 容量到 100 张时 disabled
-//   - 错误 toast 走外部（onError prop）
+// 新职责:仅触发 file picker,把 File 抛给上层(StudyRoom)。
+// 编辑器(crop/frame/metadata)由上层管理。
+//
+// 上限提示在卡片文案上显示。
 // ============================================================
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Plus } from 'lucide-react';
-import { compressForGallery, ImageTooLargeError } from '../../lib/imageCompress';
-import { db } from '../../db';
-import type { GalleryImage } from '../../types';
 import { GALLERY_MAX_IMAGES } from '../../types';
 
 interface Props {
   /** 当前画廊已挂的张数 */
   currentCount: number;
-  /** 上传者 */
-  uploadedBy: 'parent' | 'child';
-  /** 上传者名字（用作 artist 字段默认值） */
-  defaultArtist?: string;
-  /** 出错时回报上层 toast */
-  onError?: (msg: string) => void;
-  /** 上传成功后回调（可选） */
-  onUploaded?: (id: string) => void;
+  /** 文件选好后回调,StudyRoom 接住进入 UploadEditor */
+  onFilePicked: (file: File) => void;
 }
 
-function newId() {
-  return 'gal_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
-
-export function GalleryUploadCard({
-  currentCount, uploadedBy, defaultArtist, onError, onUploaded,
-}: Props) {
+export function GalleryUploadCard({ currentCount, onFilePicked }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
 
   const isFull = currentCount >= GALLERY_MAX_IMAGES;
   const remaining = GALLERY_MAX_IMAGES - currentCount;
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setBusy(true);
-    try {
-      // 一次可能选多张，但要尊重 100 张上限
-      const slots = GALLERY_MAX_IMAGES - currentCount;
-      const toProcess = Array.from(files).slice(0, slots);
-      for (const file of toProcess) {
-        try {
-          const { fullBlob, thumbBlob, width, height, ratio } =
-            await compressForGallery(file);
-          const img: GalleryImage = {
-            id: newId(),
-            fullBlob, thumbBlob, width, height, ratio,
-            uploadedBy,
-            uploadedAt: Date.now(),
-            artist: uploadedBy === 'child' ? defaultArtist : undefined,
-            year: new Date().getFullYear(),
-          };
-          await db.galleryImages.add(img);
-          onUploaded?.(img.id);
-        } catch (e) {
-          if (e instanceof ImageTooLargeError) {
-            onError?.(e.message);
-          } else {
-            onError?.('图片处理失败，换一张试试');
-          }
-        }
-      }
-    } finally {
-      setBusy(false);
-      if (inputRef.current) inputRef.current.value = '';
-    }
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) onFilePicked(file);
+    if (inputRef.current) inputRef.current.value = '';
   }
 
   return (
     <div
       className="gallery-upload-card"
-      onClick={() => !isFull && !busy && inputRef.current?.click()}
+      onClick={() => !isFull && inputRef.current?.click()}
       role="button"
-      tabIndex={isFull || busy ? -1 : 0}
-      aria-disabled={isFull || busy}
+      tabIndex={isFull ? -1 : 0}
+      aria-disabled={isFull}
       aria-label={isFull ? '画廊已满' : '挂一幅新画'}
     >
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        multiple
         style={{ display: 'none' }}
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={handleChange}
       />
       <Plus size={28} strokeWidth={1.5} />
-      {busy ? (
-        <span>正在挂画…</span>
-      ) : isFull ? (
-        <span>画廊已满，请家长取下几张老作品再来</span>
+      {isFull ? (
+        <span>画廊已满,请取下几张老作品再来</span>
       ) : remaining <= 10 ? (
         <span>挂一幅新画（还能挂 {remaining} 张）</span>
       ) : (

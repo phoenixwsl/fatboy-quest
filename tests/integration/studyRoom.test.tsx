@@ -98,26 +98,26 @@ describe('G · 画廊页基础渲染', () => {
   });
 });
 
-describe('G · 路径权限模型', () => {
-  it('G3: 孩子端打开 lightbox 不显示"取下"按钮', async () => {
+describe('G · Lightbox 动作菜单（R5.8.0 双端可删）', () => {
+  it('G3: 孩子端打开 lightbox,显示"取下/换画框/换描述"', async () => {
     await db.galleryImages.add(makeImg('a', { title: '向日葵' }));
     renderAt('/home');
 
     await waitFor(() => expect(screen.getByText('向日葵')).toBeTruthy());
-
-    // 点开 lightbox
     fireEvent.click(screen.getByLabelText('向日葵'));
 
     await waitFor(() => {
-      // lightbox 渲染了
       expect(document.querySelector('.gallery-lightbox-backdrop')).toBeTruthy();
     });
 
-    // 没有"取下"按钮
-    expect(screen.queryByText('取下')).toBeNull();
+    // R5.8.0 后双端都能看到三个动作
+    expect(screen.getByText('取下')).toBeTruthy();
+    expect(screen.getByText('换描述')).toBeTruthy();
+    // 换画框对老图(无 originalBlob)是 disabled,但按钮存在
+    expect(screen.getByText('换画框')).toBeTruthy();
   });
 
-  it('G4: 家长端打开 lightbox 显示"取下"按钮', async () => {
+  it('G4: 家长端 lightbox 同样显示三个动作(行为统一)', async () => {
     await db.galleryImages.add(makeImg('a', { title: '向日葵' }));
     renderAt('/parent/gallery');
 
@@ -126,6 +126,8 @@ describe('G · 路径权限模型', () => {
 
     await waitFor(() => {
       expect(screen.getByText('取下')).toBeTruthy();
+      expect(screen.getByText('换描述')).toBeTruthy();
+      expect(screen.getByText('换画框')).toBeTruthy();
     });
   });
 });
